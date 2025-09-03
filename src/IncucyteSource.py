@@ -25,6 +25,8 @@ class IncucyteSource(ImageSource):
         self.base_path = Path(self.uri)
         self.scan_data_path = self.base_path / "EssenFiles" / "ScanData"
         self._file_cache = {}
+        # Default to True for filling missing images
+        self.fill_missing_images = True
 
     def init_metadata(self):
         """Initialize all metadata from Incucyte structure"""
@@ -317,12 +319,37 @@ class IncucyteSource(ImageSource):
         filename = f"{well_id}-{field_id + 1}-{channel_code}.tif"
         file_path = timepoint_info["path"] / filename
 
-        # Let TiffFile handle the file reading errors naturally
-        with tifffile.TiffFile(str(file_path)) as tif:
-            page = tif.pages[0]
-            data = page.asarray()
-            self._file_cache[cache_key] = data
-            return data
+        # Check if file exists
+        if not file_path.exists():
+            if self.fill_missing_images:
+                # Create a black image with the same dimensions as other images
+                sample_info = self._get_sample_image_info()
+                black_image = np.zeros((sample_info["height"], sample_info["width"]), 
+                                     dtype=sample_info["dtype"])
+                self._file_cache[cache_key] = black_image
+                print(f"Warning: Missing image file {file_path}, filled with black image")
+                return black_image
+            else:
+                raise FileNotFoundError(f"Image file not found: {file_path}")
+
+        try:
+            # Let TiffFile handle the file reading errors naturally
+            with tifffile.TiffFile(str(file_path)) as tif:
+                page = tif.pages[0]
+                data = page.asarray()
+                self._file_cache[cache_key] = data
+                return data
+        except Exception as e:
+            if self.fill_missing_images:
+                # If file exists but can't be read, also fill with black image
+                sample_info = self._get_sample_image_info()
+                black_image = np.zeros((sample_info["height"], sample_info["width"]), 
+                                     dtype=sample_info["dtype"])
+                self._file_cache[cache_key] = black_image
+                print(f"Warning: Could not read image file {file_path}: {e}, filled with black image")
+                return black_image
+            else:
+                raise e
 
     # ImageSource interface methods
     def is_screen(self):
