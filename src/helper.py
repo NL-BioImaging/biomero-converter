@@ -1,6 +1,7 @@
 import os.path
 
 
+def create_source(filename, input_format=None):
 def create_source(filename):
     """
     Create an image source object based on the input file extension.
@@ -19,16 +20,19 @@ def create_source(filename):
     if input_ext == '.db':
         from src.ImageDbSource import ImageDbSource
         source = ImageDbSource(filename)
-    elif input_ext == '.isyntax':
-        from src.ISyntaxSource import ISyntaxSource
-        source = ISyntaxSource(filename)
     elif 'tif' in input_ext:
         from src.TiffSource import TiffSource
         source = TiffSource(filename)
+    elif input_format == 'incucyte':
+        #check if filename is a folder
+        if not os.path.isdir(filename):
+            raise ValueError(f'For Incucyte format, the input should be a folder containing the images, not a file: {filename}')
+        else:
+            from src.IncucyteSource import IncucyteSource
+            source = IncucyteSource(filename)
     else:
         raise ValueError(f'Unsupported input file format: {input_ext}')
     return source
-
 
 def create_writer(output_format, verbose=False):
     """
