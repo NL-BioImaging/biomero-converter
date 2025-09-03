@@ -29,7 +29,7 @@ def init_logging(log_filename, verbose=False):
     logging.getLogger('ome_zarr').setLevel(logging.WARNING)     # mute verbose ome_zarr logging
 
 
-def convert(input_filename, output_folder, alt_output_folder=None,
+def convert(input_filename, output_folder, input_format=None, alt_output_folder=None,
             output_format='omezarr2', show_progress=False, verbose=False):
     attempts = 0
     while True:
@@ -61,7 +61,7 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
     """
 
     logging.info(f'Importing {input_filename}')
-    source = create_source(input_filename)
+    source = create_source(input_filename, input_format=input_format)
     writer, output_ext = create_writer(output_format, verbose=verbose)
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
