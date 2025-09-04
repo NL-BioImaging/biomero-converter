@@ -4,6 +4,7 @@
 
 import numpy as np
 
+from color_conversion import hexrgb_to_rgba
 from src.DbReader import DBReader
 from src.ImageSource import ImageSource
 from src.util import *
@@ -22,7 +23,11 @@ class ImageDbSource(ImageSource):
         self._get_experiment_metadata()
         self._get_well_info()
         self._get_image_info()
+        self._get_sizes()
         return self.metadata
+
+    def get_shape(self):
+        return self.shape
 
     def _get_time_series_info(self):
         time_series_ids = sorted(self.db.fetch_all('SELECT DISTINCT TimeSeriesElementId FROM SourceImageBase', return_dicts=False))
@@ -73,7 +78,7 @@ class ImageDbSource(ImageSource):
         well_info['columns'] = sorted(list(cols), key=lambda x: int(x))
         num_sites = well_info['SitesX'] * well_info['SitesY']
         well_info['num_sites'] = num_sites
-        well_info['fields'] = [f'{site_index}' for site_index in range(num_sites)]
+        well_info['fields'] = list(range(num_sites))
 
         image_wells = self.db.fetch_all('SELECT Name, ZoneIndex, CoordX, CoordY FROM Well WHERE HasImages = 1')
         self.metadata['wells'] = dict(sorted({well['Name']: well for well in image_wells}.items(),
@@ -98,11 +103,11 @@ class ImageDbSource(ImageSource):
             bits_per_pixel = 32
         self.metadata['dtype'] = np.dtype(f'uint{bits_per_pixel}')
 
+    def _get_sizes(self):
         well_info = self.metadata['well_info']
-        max_data_size = (well_info['SensorSizeXPixels'] * well_info['SensorSizeYPixels'] *
-                         len(self.metadata['wells']) * well_info['num_sites'] * self.metadata['num_channels'] *
-                         len(self.metadata['time_points']) *
-                         bits_per_pixel // 8)
+        nbytes = self.metadata['dtype'].itemsize
+        self.shape = len(self.metadata['time_points']), self.metadata['num_channels'], 1, well_info['SensorSizeYPixels'], well_info['SensorSizeXPixels']
+        max_data_size = np.prod(self.shape) * nbytes * len(self.metadata['wells']) * well_info['num_sites']
         self.metadata['max_data_size'] = max_data_size
 
     def _read_well_info(self, well_id, channel=None, time_point=None, level=0):
@@ -165,6 +170,8 @@ class ImageDbSource(ImageSource):
         if site_id is None:
             # Return full image data
             return self.data
+
+        site_id = int(site_id)
         if site_id < 0:
             # Return list of all fields
             data = []
@@ -239,7 +246,7 @@ class ImageDbSource(ImageSource):
         channels = []
         for channel0 in self.metadata['channels']:
             channel = {'label': channel0.get('Dye'),
-                       'color': channel0.get('Color').lstrip('#')}
+                       'color': hexrgb_to_rgba(channel0.get('Color').lstrip('#'))}
             if channel['label'] is None:
                 channel['label'] = ''
             channels.append(channel)

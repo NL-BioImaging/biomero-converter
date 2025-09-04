@@ -1,5 +1,7 @@
 import numpy as np
 
+from color_conversion import rgba_to_hexrgb
+
 
 def create_axes_metadata(dimension_order):
     axes = []
@@ -56,8 +58,11 @@ def create_channel_metadata(dtype, channels, nchannels, ome_version):
         channels = [{'label': label, 'color': color} for label, color in zip(labels, colors)]
 
     omezarr_channels = []
-    for channeli, channel0 in enumerate(channels):
-        channel = channel0.copy()
+    for channeli, channel in enumerate(channels):
+        omezarr_channel = {'label': channel.get('label', channel.get('Name'), f'{channeli}')}
+        color = channel.get('color', channel.get('Color'))
+        if color is not None:
+            omezarr_channel['color'] = rgba_to_hexrgb(color)
         if dtype.kind == 'f':
             # info = np.finfo(dtype)
             start, end = 0, 1
@@ -65,8 +70,8 @@ def create_channel_metadata(dtype, channels, nchannels, ome_version):
             info = np.iinfo(dtype)
             start, end = info.min, info.max
         min, max = start, end
-        channel['window'] = {'start': start, 'end': end, 'min': min, 'max': max}
-        omezarr_channels.append(channel)
+        omezarr_channel['window'] = {'start': start, 'end': end, 'min': min, 'max': max}
+        omezarr_channels.append(omezarr_channel)
 
     metadata = {
         'version': ome_version,
@@ -95,12 +100,3 @@ def scale_dimensions_dict(shape0, scale):
             shape1 = int(shape1 * scale)
         shape[dimension] = shape1
     return shape
-
-
-def int_to_hexrgb(intrgb):
-    signed = (intrgb < 0)
-    rgb = [x / 255 for x in intrgb.to_bytes(3, signed=signed, byteorder="big")]
-    if rgb[-1] == 0:
-        rgb[-1] = 1
-    hexrgb = ''.join([hex(int(x * 255))[2:].upper().zfill(2) for x in rgb])
-    return hexrgb

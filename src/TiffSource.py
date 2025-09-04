@@ -3,7 +3,7 @@ import numpy as np
 import os.path
 from tifffile import TiffFile, xml2dict
 
-from ome_zarr_util import int_to_hexrgb
+from color_conversion import int_to_rgba
 from src.ImageSource import ImageSource
 from src.util import convert_to_um, ensure_list
 
@@ -67,7 +67,7 @@ class TiffSource(ImageSource):
                 channel = {'label': label}
                 color = channel0.get('Color')
                 if color is not None:
-                    channel['color'] = int_to_hexrgb(color)
+                    channel['color'] = int_to_rgba(color)
                 channels.append(channel)
         else:
             self.is_plate = False
@@ -113,6 +113,9 @@ class TiffSource(ImageSource):
 
     def is_screen(self):
         return self.is_plate
+
+    def get_shape(self):
+        return self.shape
 
     def get_data(self, well_id=None, field_id=None):
         data = self.tiff.asarray()

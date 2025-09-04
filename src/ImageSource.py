@@ -12,6 +12,9 @@ class ImageSource(ABC):
     def is_screen(self):
         raise NotImplementedError("The 'is_screen' method must be implemented by subclasses.")
 
+    def get_shape(self):
+        raise NotImplementedError("The 'get_shape' method must be implemented by subclasses.")
+
     def get_data(self, well_id=None, field_id=None):
         raise NotImplementedError("The 'get_data' method must be implemented by subclasses.")
 

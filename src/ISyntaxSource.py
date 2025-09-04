@@ -53,16 +53,19 @@ class ISyntaxSource(ImageSource):
         self.dim_order = 'yxc'
         self.channels = []
         self.nchannels = 4
-        self.dtype = np.dtype(f'uint{nbits}')
 
         self.isyntax = ISyntax.open(self.uri)
         self.width, self.height = self.isyntax.dimensions
         self.shape = 1, self.nchannels, 1, self.height, self.width
+        self.dtype = np.dtype(f'uint{nbits}')
 
         return self.metadata
 
     def is_screen(self):
         return self.is_plate
+
+    def get_shape(self):
+        return self.shape
 
     def get_data(self, well_id=None, field_id=None):
         return self.isyntax.read_region(0, 0, self.width, self.height)

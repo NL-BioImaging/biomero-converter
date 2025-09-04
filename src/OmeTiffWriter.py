@@ -1,12 +1,9 @@
-# TODO: requires proper implementation including ome xml metadata
-
-import logging
 import numpy as np
 import os.path
 from skimage.transform import resize
 from tifffile import TiffWriter
 
-from ome_tiff_util import create_metadata, create_resolution_data
+from ome_tiff_util import create_metadata, create_binaryonly_metadata, create_resolution_metadata, create_uuid
 from src.OmeWriter import OmeWriter
 from src.util import *
 
@@ -16,38 +13,72 @@ class OmeTiffWriter(OmeWriter):
         super().__init__()
         self.verbose = verbose
 
-    def write(self, filename, source, well_id=None, field_id=None, tile_size=None, compression=None, **kwargs):
-        is_screen = source.is_screen()
-        # TODO: if is_screen, decide whether to write single tiff with screen + metadata, or separate tiff files + separate companion file with metadata
+    def write(self, filename, source, **kwargs):
+        if source.is_screen():
+            total_size = self._write_screen(filename, source, **kwargs)
+        else:
+            total_size = self._write_image(filename, source, **kwargs)
 
+        if self.verbose:
+            print(f'Total data written: {print_hbytes(total_size)}')
+
+    def _write_screen(self, filename, source, **kwargs):
+        # writes separate tiff files for each field, and separate metadata companion file
         filepath, filename = os.path.split(filename)
-        filetitle, ext = os.path.splitext(filename)
-        filename = f'{filetitle}'
-        filename += f'_{pad_leading_zero(well_id)}'
-        if field_id is not None and field_id >= 0:
-            filename += f'_{pad_leading_zero(field_id)}'
-        filename = os.path.join(filepath, filename + ext)
+        filetitle = os.path.splitext(filename)[0].rstrip('.ome')
 
-        data = source.get_data(well_id, field_id)
+        companion_filename = os.path.join(filepath, filetitle + '.companion.ome')
+        companion_uuid = create_uuid()
 
-        xml_metadata = create_metadata(source)
+        total_size = 0
+        image_uuids = []
+        image_filenames = []
+        for well_id in source.get_wells():
+            for field in source.get_fields():
+                resolution, resolution_unit = create_resolution_metadata(source)
+                data = source.get_data(well_id, field)
 
-        resolution, resolution_unit = create_resolution_data(source)
-        self._write_tiff(filename, source, data,
-                         resolution=resolution, resolution_unit=resolution_unit,
-                         tile_size=tile_size, compression=compression,
-                         xml_metadata=xml_metadata, pyramid_levels=4)
+                filename = f'{filetitle}'
+                filename += f'_{pad_leading_zero(well_id)}'
+                if field is not None:
+                    filename += f'_{pad_leading_zero(field)}'
+                filename = os.path.join(filepath, filename + '.ome.tiff')
+                xml_metadata, image_uuid = create_binaryonly_metadata(os.path.basename(companion_filename), companion_uuid)
 
-        logging.info(f'Image saved as {filename}')
+                size = self._write_tiff(filename, source, data,
+                                        resolution=resolution, resolution_unit=resolution_unit,
+                                        tile_size=kwargs.get('tile_size'), compression=kwargs.get('compression'),
+                                        xml_metadata=xml_metadata, pyramid_levels=4)
+
+                image_uuids.append(image_uuid)
+                image_filenames.append(os.path.basename(filename))
+                total_size += size
+
+        xml_metadata = create_metadata(source, companion_uuid, image_uuids, image_filenames)
+        with open(companion_filename, 'wb') as file:
+            file.write(xml_metadata.encode())
+
+        return total_size
+
+    def _write_image(self, filename, source, **kwargs):
+        xml_metadata, _ = create_metadata(source)
+        resolution, resolution_unit = create_resolution_metadata(source)
+        data = source.get_data()
+
+        return self._write_tiff(filename, source, data,
+                                resolution=resolution, resolution_unit=resolution_unit,
+                                tile_size=kwargs.get('tile_size'), compression=kwargs.get('compression'),
+                                xml_metadata=xml_metadata, pyramid_levels=4)
 
     def _write_tiff(self, filename, source, data,
                   resolution=None, resolution_unit=None, tile_size=None, compression=None,
                   xml_metadata=None, pyramid_levels=0, pyramid_scale=2):
 
-        dim_order = source.get_dimension_order()
+        dim_order = source.get_dim_order()
+        shape = data.shape
         x_index = dim_order.index('x')
         y_index = dim_order.index('y')
-        size = data.shape[x_index], data.shape[y_index]
+        size = shape[x_index], shape[y_index]
 
         if tile_size is not None and isinstance(tile_size, int):
             tile_size = [tile_size] * 2
@@ -69,10 +100,11 @@ class OmeTiffWriter(OmeWriter):
         base_size = np.divide(max_size, np.prod(size))
         scale = 1
         for level in range(pyramid_levels):
-            max_size += np.prod(size * scale) * base_size
+            max_size += np.prod(size) * scale * base_size
             scale /= pyramid_scale
         bigtiff = (max_size > 2 ** 32)
 
+        size = data.size * data.itemsize
         with TiffWriter(filename, bigtiff=bigtiff, ome=is_ome) as writer:
             for level in range(pyramid_levels + 1):
                 if level == 0:
@@ -81,10 +113,14 @@ class OmeTiffWriter(OmeWriter):
                     subfiletype = None
                 else:
                     scale /= pyramid_scale
-                    data = resize(data, size * scale)
+                    new_shape = list(shape)
+                    new_shape[x_index] = int(shape[x_index] * scale)
+                    new_shape[y_index] = int(shape[y_index] * scale)
+                    data = resize(data, new_shape)
                     subifds = None
                     subfiletype = 1
                     xml_metadata_bytes = None
                 writer.write(data, subifds=subifds, subfiletype=subfiletype,
                              resolution=resolution, resolutionunit=resolution_unit, tile=tile_size,
                              compression=compression, description=xml_metadata_bytes)
+        return size

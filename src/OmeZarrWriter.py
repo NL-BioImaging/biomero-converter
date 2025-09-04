@@ -37,7 +37,7 @@ class OmeZarrWriter(OmeWriter):
         nchannels = source.get_nchannels()
 
         zarr_root.attrs['omero'] = create_channel_metadata(dtype, channels, nchannels, self.ome_version)
-        zarr_root.attrs['_creator'] = {'name': 'OmeZarrWriter', 'version': VERSION}
+        zarr_root.attrs['_creator'] = {'name': 'nl.biomero.OmeZarrWriter', 'version': VERSION}
 
         if self.verbose:
             print(f'Total data written: {print_hbytes(total_size)}')
@@ -52,23 +52,23 @@ class OmeZarrWriter(OmeWriter):
         col_names = source.get_columns()
         wells = source.get_wells()
         well_paths = ['/'.join(split_well_name(well)) for well in wells]
-        field_paths = source.get_fields()
+        fields = list(map(str, source.get_fields()))
 
         acquisitions = source.get_acquisitions()
         name = source.get_name()
         write_plate_metadata(zarr_root, row_names, col_names, well_paths,
-                             name=name, field_count=len(field_paths), acquisitions=acquisitions,
+                             name=name, field_count=len(fields), acquisitions=acquisitions,
                              fmt=self.ome_format)
         total_size = 0
         for well_id in wells:
             row, col = split_well_name(well_id)
             row_group = zarr_root.require_group(str(row))
             well_group = row_group.require_group(str(col))
-            write_well_metadata(well_group, field_paths, fmt=self.ome_format)
+            write_well_metadata(well_group, fields, fmt=self.ome_format)
             position = source.get_position_um(well_id)
-            for field_index, field in enumerate(field_paths):
-                image_group = well_group.require_group(str(field))
-                data = source.get_data(well_id, field_index)
+            for field in fields:
+                image_group = well_group.require_group(field)
+                data = source.get_data(well_id, field)
                 size = self._write_data(image_group, data, source, position)
                 total_size += size
 
@@ -106,9 +106,9 @@ class OmeZarrWriter(OmeWriter):
         else:
             storage_options = None
 
+        size = data.size * data.itemsize
         write_image(image=data, group=group, axes=axes, coordinate_transformations=pixel_size_scales,
                     scaler=scaler, fmt=self.ome_format, storage_options=storage_options)
-        size = data.size * data.dtype.itemsize
         return size
 
     def _create_scale_metadata(self, source, dim_order, translation, scaler=None):
