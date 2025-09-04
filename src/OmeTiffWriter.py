@@ -1,7 +1,7 @@
 # TODO: requires proper implementation including ome xml metadata
 
 import logging
-import os
+import os.path
 from tifffile import tifffile
 
 from src.OmeWriter import OmeWriter

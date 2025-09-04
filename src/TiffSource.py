@@ -1,6 +1,6 @@
 from enum import Enum
 import numpy as np
-import os
+import os.path
 from tifffile import TiffFile, xml2dict
 
 from ome_zarr_util import int_to_hexrgb

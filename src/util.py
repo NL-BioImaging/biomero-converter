@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-import os
+import os.path
 import re
 
 
@@ -87,15 +87,21 @@ def xml_content_to_dict(element):
     else:
         value = element.text
         if value is not None:
-            try:
-                if '"' in value:
-                    value = value.replace('"', '')
-                elif '.' in value:
-                    value = float(value)
-                else:
-                    value = int(value)
-            except ValueError:
-                pass
+            if '"' in value:
+                value = value.replace('"', '')
+            else:
+                for t in (float, int, bool):
+                    try:
+                        if t == bool:
+                            if value.lower() == 'true':
+                                value = True
+                            if value.lower() == 'false':
+                                value = False
+                        else:
+                            value = t(value)
+                        break
+                    except (TypeError, ValueError):
+                        pass
 
     if key == 'DataObject':
         key = element.attrib['ObjectType']

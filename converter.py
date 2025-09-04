@@ -1,6 +1,6 @@
 import json
 import logging
-import os
+import os.path
 import shutil
 
 from src.helper import create_source, create_writer

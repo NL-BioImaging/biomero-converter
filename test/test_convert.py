@@ -1,6 +1,6 @@
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
-import os
+import os.path
 import pytest
 import tempfile
 
