@@ -41,7 +41,7 @@ def convert(input_filename, output_folder, alt_output_folder=None,
 
     name = source.get_name()
     output_path = os.path.join(output_folder, name + output_ext)
-    writer.write(output_path, source, name=name)
+    writer.write(output_path, source)
     source.close()
 
     if show_progress:

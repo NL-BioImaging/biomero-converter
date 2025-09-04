@@ -26,9 +26,9 @@ class OmeZarrWriter(OmeWriter):
             self.ome_format = None
         self.verbose = verbose
 
-    def write(self, filename, source, name=None, **kwargs):
+    def write(self, filename, source, **kwargs):
         if source.is_screen():
-            zarr_root, total_size = self._write_screen(filename, source, name, **kwargs)
+            zarr_root, total_size = self._write_screen(filename, source, **kwargs)
         else:
             zarr_root, total_size = self._write_image(filename, source)
 
@@ -43,7 +43,7 @@ class OmeZarrWriter(OmeWriter):
             print(f'Total data written: {print_hbytes(total_size)}')
 
 
-    def _write_screen(self, filename, source, name=None, **kwargs):
+    def _write_screen(self, filename, source, **kwargs):
         #zarr_location = parse_url(filename, mode='w', fmt=self.ome_format)
         zarr_location = filename
         zarr_root = zarr.open_group(zarr_location, mode='w', zarr_version=self.zarr_version)
@@ -55,6 +55,7 @@ class OmeZarrWriter(OmeWriter):
         field_paths = source.get_fields()
 
         acquisitions = source.get_acquisitions()
+        name = source.get_name()
         write_plate_metadata(zarr_root, row_names, col_names, well_paths,
                              name=name, field_count=len(field_paths), acquisitions=acquisitions,
                              fmt=self.ome_format)
@@ -64,11 +65,11 @@ class OmeZarrWriter(OmeWriter):
             row_group = zarr_root.require_group(str(row))
             well_group = row_group.require_group(str(col))
             write_well_metadata(well_group, field_paths, fmt=self.ome_format)
-
+            position = source.get_position_um(well_id)
             for field_index, field in enumerate(field_paths):
                 image_group = well_group.require_group(str(field))
                 data = source.get_data(well_id, field_index)
-                size = self._write_data(image_group, data, source, well_id)
+                size = self._write_data(image_group, data, source, position)
                 total_size += size
 
         return zarr_root, total_size
@@ -82,13 +83,13 @@ class OmeZarrWriter(OmeWriter):
         size = self._write_data(zarr_root, data, source)
         return zarr_root, size
 
-    def _write_data(self, group, data, source, well_id=None):
+    def _write_data(self, group, data, source, position=None):
         dim_order = source.get_dim_order()
         if dim_order[-1] == 'c':
             dim_order = 'c' + dim_order[:-1]
             data = np.moveaxis(data, -1, 0)
         axes = create_axes_metadata(dim_order)
-        pixel_size_scales, scaler = self._create_scale_metadata(source, dim_order, source.get_position_um(well_id))
+        pixel_size_scales, scaler = self._create_scale_metadata(source, dim_order, position)
 
         if self.zarr_version >= 3:
             shards = []
