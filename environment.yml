@@ -8,4 +8,5 @@ dependencies:
  - zarr
  - ome-zarr
  - tifffile
+ - ome-types
  - pip
