@@ -45,14 +45,15 @@ class TestConvert:
             ),
         ],
     )
-    def test_convert(self, tmp_path, input_filename, output_format, show_progess=True, verbose=False):
-        init_logging('log/db_to_zarr.log', verbose=True)
+    def test_convert(self, tmp_path, input_filename, output_format, show_progess=True, verbose=True):
+        init_logging('log/db_to_zarr.log', verbose=verbose)
         with Timer(f'convert {input_filename} to {output_format}'):
             output = convert(input_filename, tmp_path, output_format=output_format, show_progress=show_progess, verbose=verbose)
 
         source = create_source(input_filename)
         metadata = source.init_metadata()
         if verbose:
+            print('SOURCE METADATA')
             print(print_dict(metadata))
             print()
             if source.is_screen():
@@ -81,7 +82,10 @@ class TestConvert:
             pixel_size = {axis: pixel_size for axis, pixel_size in zip(axes, pixel_sizes0) if axis in 'xyz'}
             if source.is_screen():
                 wells = [well['path'].replace('/', '') for well in metadata['metadata']['plate']['wells']]
-        #print(print_dict(metadata))
+
+        if verbose:
+            print('CONVERTED METADATA')
+            print(print_dict(metadata))
 
         if '2' in output_format:
             assert float(reader.zarr.version) == 0.4

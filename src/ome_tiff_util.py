@@ -55,7 +55,7 @@ def create_metadata(source, companion_uuid=None, image_uuids=None, image_filenam
                     sample.position_y = position['y']
                     sample.position_y_unit = UnitsLength.MICROMETER
 
-                image = create_image_metadata(source,
+                image = create_image_metadata(source, image_index,
                                               image_uuids[image_index],
                                               image_filenames[image_index])
                 ome.images.append(image)
@@ -71,17 +71,18 @@ def create_metadata(source, companion_uuid=None, image_uuids=None, image_filenam
 
         ome.plates = [plate]
     else:
-        ome.images = [create_image_metadata(source, ome.uuid, source.get_name())]
+        ome.images = [create_image_metadata(source, 0, ome.uuid, source.get_name())]
 
     return to_xml(ome)
 
 
-def create_image_metadata(source, image_uuid=None, image_filename=None):
+def create_image_metadata(source, image_index, image_uuid=None, image_filename=None):
     t, c, z, y, x = source.get_shape()
     pixel_size = source.get_pixel_size_um()
     ome_channels = []
     for channeli, channel in enumerate(source.get_channels()):
         ome_channel = Channel()
+        ome_channel.id = f'Channel:{channeli}'
         ome_channel.name = channel.get('label', channel.get('Name', f'{channeli}'))
         color = channel.get('color', channel.get('Color'))
         if color is not None:
@@ -90,11 +91,9 @@ def create_image_metadata(source, image_uuid=None, image_filename=None):
 
     tiff_data = TiffData()
     tiff_data.uuid = TiffData.UUID(value=image_uuid, file_name=image_filename)
-    tiff_data.first_t = 0
-    tiff_data.first_c = 0
-    tiff_data.first_z = 0
 
     pixels = Pixels(
+        id='Pixels:0',
         dimension_order=source.get_dim_order()[::-1].upper(),
         type=PixelType(str(source.get_dtype())),
         channels=ome_channels,
@@ -111,7 +110,7 @@ def create_image_metadata(source, image_uuid=None, image_filename=None):
         pixels.physical_size_z = pixel_size['z']
         pixels.physical_size_z_unit = UnitsLength.MICROMETER
 
-    image = Image(pixels=pixels)
+    image = Image(id=f'Image:{image_index}', pixels=pixels)
     return image
 
 
