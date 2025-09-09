@@ -45,10 +45,10 @@ class TestConvert:
             ),
         ],
     )
-    def test_convert(self, tmp_path, input_filename, output_format, show_progess=True, verbose=True):
+    def test_convert(self, tmp_path, input_filename, output_format, alt_output_folder=None, show_progess=True, verbose=True):
         init_logging('log/db_to_zarr.log', verbose=verbose)
         with Timer(f'convert {input_filename} to {output_format}'):
-            output = convert(input_filename, tmp_path, output_format=output_format, show_progress=show_progess, verbose=verbose)
+            output = convert(input_filename, tmp_path, alt_output_folder=alt_output_folder, output_format=output_format, show_progress=show_progess, verbose=verbose)
 
         source = create_source(input_filename)
         metadata = source.init_metadata()
@@ -111,6 +111,6 @@ if __name__ == '__main__':
 
     test = TestConvert()
     input_filename = test.input_filename
-    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'ometiff')
+    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'ometiff', alt_output_folder = tempfile.TemporaryDirectory().name)
     test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr2')
     test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr3')

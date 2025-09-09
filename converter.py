@@ -40,9 +40,10 @@ def convert(input_filename, output_folder, alt_output_folder=None,
 
     result = {'name': name}
     if isinstance(full_output_path, list):
-        result['full_path'] = full_output_path[0]
+        full_path = full_output_path[0]
     else:
-        result['full_path'] = full_output_path
+        full_path = full_output_path
+    result['full_path'] = full_path
     message = f"Exported   {result['full_path']}"
 
     if alt_output_folder:
@@ -57,7 +58,7 @@ def convert(input_filename, output_folder, alt_output_folder=None,
             shutil.copytree(full_output_path, alt_output_path, dirs_exist_ok=True)
         else:
             shutil.copy2(full_output_path, alt_output_path)
-        result['alt_path'] = os.path.join(alt_output_folder, os.path.basename(full_output_path))
+        result['alt_path'] = os.path.join(alt_output_folder, os.path.basename(full_path))
         message += f' and {result["alt_path"]}'
 
     logging.info(message)
