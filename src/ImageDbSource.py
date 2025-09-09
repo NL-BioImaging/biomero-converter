@@ -4,7 +4,7 @@
 
 import numpy as np
 
-from color_conversion import hexrgb_to_rgba
+from src.color_conversion import hexrgb_to_rgba
 from src.DbReader import DBReader
 from src.ImageSource import ImageSource
 from src.util import *

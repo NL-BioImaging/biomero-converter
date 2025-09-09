@@ -4,7 +4,6 @@ import os.path
 import shutil
 
 from src.helper import create_source, create_writer
-from src.util import print_dict, print_hbytes
 
 
 def init_logging(log_filename, verbose=False):
@@ -30,33 +29,34 @@ def convert(input_filename, output_folder, alt_output_folder=None,
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
-    metadata = source.init_metadata()
-    if verbose:
-        print(print_dict(metadata))
-        print()
-        if source.is_screen():
-            print(source.print_well_matrix())
-            print(source.print_timepoint_well_matrix())
-        print(f'Total data size:    {print_hbytes(source.get_total_data_size())}')
-
+    source.init_metadata()
     name = source.get_name()
     output_path = os.path.join(output_folder, name + output_ext)
-    writer.write(output_path, source)
+    full_output_path = writer.write(output_path, source)
     source.close()
 
     if show_progress:
         print(f'Converting {input_filename} to {output_path}')
 
     message = f'Exported  {output_path}'
-    result = {'name': name, 'full_path': output_path}
+    result = {'name': name}
+    if isinstance(full_output_path, list):
+        result['full_path'] = full_output_path[0]
+    else:
+        result['full_path'] = full_output_path
+
     if alt_output_folder:
         if not os.path.exists(alt_output_folder):
             os.makedirs(alt_output_folder)
         alt_output_path = os.path.join(alt_output_folder, name + output_ext)
-        if 'zar' in output_format:
-            shutil.copytree(output_path, alt_output_path, dirs_exist_ok=True)
+        if isinstance(full_output_path, list):
+            for path in full_output_path:
+                alt_output_path = os.path.join(alt_output_folder, os.path.basename(path))
+                shutil.copy2(path, alt_output_path)
+        elif os.path.isdir(output_format):
+            shutil.copytree(full_output_path, alt_output_path, dirs_exist_ok=True)
         else:
-            shutil.copy2(output_path, alt_output_path)
+            shutil.copy2(full_output_path, alt_output_path)
         result['alt_path'] = alt_output_path
         message += f' and {alt_output_path}'
 

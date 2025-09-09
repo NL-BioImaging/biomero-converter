@@ -6,8 +6,8 @@ from isyntax import ISyntax
 import numpy as np
 from xml.etree import ElementTree
 
-from ImageSource import ImageSource
-from util import get_filetitle, xml_content_to_dict
+from src.ImageSource import ImageSource
+from src.util import get_filetitle, xml_content_to_dict
 
 
 class ISyntaxSource(ImageSource):

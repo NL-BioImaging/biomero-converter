@@ -3,7 +3,7 @@ import os.path
 from skimage.transform import resize
 from tifffile import TiffWriter
 
-from ome_tiff_util import create_metadata, create_binaryonly_metadata, create_resolution_metadata, create_uuid
+from src.ome_tiff_util import create_metadata, create_binaryonly_metadata, create_resolution_metadata, create_uuid
 from src.OmeWriter import OmeWriter
 from src.util import *
 
@@ -13,17 +13,20 @@ class OmeTiffWriter(OmeWriter):
         super().__init__()
         self.verbose = verbose
 
-    def write(self, filename, source, **kwargs):
+    def write(self, filepath, source, **kwargs):
         if source.is_screen():
-            total_size = self._write_screen(filename, source, **kwargs)
+            filepath, total_size = self._write_screen(filepath, source, **kwargs)
         else:
-            total_size = self._write_image(filename, source, **kwargs)
+            filepath, total_size = self._write_image(filepath, source, **kwargs)
 
         if self.verbose:
             print(f'Total data written: {print_hbytes(total_size)}')
 
+        return filepath
+
     def _write_screen(self, filename, source, **kwargs):
         # writes separate tiff files for each field, and separate metadata companion file
+        output_paths = []
         filepath, filename = os.path.split(filename)
         filetitle = os.path.splitext(filename)[0].rstrip('.ome')
 
@@ -52,23 +55,27 @@ class OmeTiffWriter(OmeWriter):
 
                 image_uuids.append(image_uuid)
                 image_filenames.append(os.path.basename(filename))
+                output_paths.append(filename)
                 total_size += size
 
         xml_metadata = create_metadata(source, companion_uuid, image_uuids, image_filenames)
         with open(companion_filename, 'wb') as file:
             file.write(xml_metadata.encode())
 
-        return total_size
+        output_paths = [companion_filename] + output_paths
+        return output_paths, total_size
 
     def _write_image(self, filename, source, **kwargs):
         xml_metadata, _ = create_metadata(source)
         resolution, resolution_unit = create_resolution_metadata(source)
         data = source.get_data()
 
-        return self._write_tiff(filename, source, data,
+        size = self._write_tiff(filename, source, data,
                                 resolution=resolution, resolution_unit=resolution_unit,
                                 tile_size=kwargs.get('tile_size'), compression=kwargs.get('compression'),
                                 xml_metadata=xml_metadata, pyramid_levels=4)
+
+        return filename, size
 
     def _write_tiff(self, filename, source, data,
                   resolution=None, resolution_unit=None, tile_size=None, compression=None,

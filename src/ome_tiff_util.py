@@ -1,11 +1,19 @@
 import numpy as np
 from ome_types.model import *
 from ome_types import to_xml
+from tifffile import xml2dict
 import uuid
 
-from color_conversion import rgba_to_int
-from parameters import VERSION
-from util import split_well_name
+from src.color_conversion import rgba_to_int
+from src.parameters import VERSION
+from src.util import split_well_name
+
+
+def metadata_to_dict(xml_metadata):
+    metadata = xml2dict(xml_metadata)
+    if 'OME' in metadata:
+        metadata = metadata['OME']
+    return metadata
 
 
 def create_uuid():

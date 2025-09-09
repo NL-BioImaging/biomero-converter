@@ -1,9 +1,10 @@
 from enum import Enum
 import numpy as np
 import os.path
-from tifffile import TiffFile, xml2dict
+from tifffile import TiffFile
 
-from color_conversion import int_to_rgba
+from ome_tiff_util import metadata_to_dict
+from src.color_conversion import int_to_rgba
 from src.ImageSource import ImageSource
 from src.util import convert_to_um, ensure_list
 
@@ -11,7 +12,22 @@ from src.util import convert_to_um, ensure_list
 class TiffSource(ImageSource):
     def __init__(self, uri, metadata={}):
         super().__init__(uri, metadata)
-        self.tiff = TiffFile(uri)
+        image_filename = None
+        ext = os.path.splitext(uri)[1].lower()
+        if 'tif' in ext:
+            image_filename = uri
+        elif 'ome' in ext:
+            # read metadata
+            with open(uri, 'rb') as file:
+                self.metadata = metadata_to_dict(file.read().decode())
+            # try to open first ome-tiff file
+            filename = ensure_list(self.metadata.get('Image', {}))[0].get('Pixels', {}).get('TiffData', {}).get('UUID', {}).get('FileName')
+            if filename:
+                image_filename = os.path.join(os.path.dirname(uri), filename)
+        else:
+            raise RuntimeError(f'Unsupported tiff extension: {ext}')
+
+        self.tiff = TiffFile(image_filename)
 
     def init_metadata(self):
         self.is_ome = self.tiff.is_ome
@@ -20,9 +36,9 @@ class TiffSource(ImageSource):
         position = {}
         channels = []
         if self.is_ome:
-            self.metadata = xml2dict(self.tiff.ome_metadata)
-            if 'OME' in self.metadata:
-                self.metadata = self.metadata['OME']
+            metadata = metadata_to_dict(self.tiff.ome_metadata)
+            if metadata and not 'BinaryOnly' in metadata:
+                self.metadata = metadata
             self.is_plate = 'Plate' in self.metadata
             if self.is_plate:
                 plate = self.metadata['Plate']
@@ -39,18 +55,18 @@ class TiffSource(ImageSource):
                     wells[label] = well['ID']
                 self.rows = sorted(rows)
                 self.columns = list(columns)
-                self.wells = wells
+                self.wells = list(wells.keys())
             else:
                 self.name = self.metadata['Image'].get('Name')
             pixels = ensure_list(self.metadata.get('Image', []))[0].get('Pixels', {})
             self.shape = pixels.get('SizeT'), pixels.get('SizeC'), pixels.get('SizeZ'), pixels.get('SizeY'), pixels.get('SizeX')
             self.dim_order = ''.join(reversed(pixels['DimensionOrder'].lower()))
             self.dtype = np.dtype(pixels['Type'])
-            if 'PositionX' in pixels:
+            if 'PhysicalSizeX' in pixels:
                 pixel_size['x'] = convert_to_um(float(pixels.get('PhysicalSizeX')), pixels.get('PhysicalSizeXUnit'))
-            if 'PositionY' in pixels:
+            if 'PhysicalSizeY' in pixels:
                 pixel_size['y'] = convert_to_um(float(pixels.get('PhysicalSizeY')), pixels.get('PhysicalSizeYUnit'))
-            if 'PositionZ' in pixels:
+            if 'PhysicalSizeZ' in pixels:
                 pixel_size['z'] = convert_to_um(float(pixels.get('PhysicalSizeZ')), pixels.get('PhysicalSizeZUnit'))
             plane = pixels.get('Plane')
             if plane:

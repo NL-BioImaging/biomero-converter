@@ -1,6 +1,6 @@
 import numpy as np
 
-from color_conversion import rgba_to_hexrgb
+from src.color_conversion import rgba_to_hexrgb
 
 
 def create_axes_metadata(dimension_order):
@@ -59,7 +59,7 @@ def create_channel_metadata(dtype, channels, nchannels, ome_version):
 
     omezarr_channels = []
     for channeli, channel in enumerate(channels):
-        omezarr_channel = {'label': channel.get('label', channel.get('Name'), f'{channeli}')}
+        omezarr_channel = {'label': channel.get('label', channel.get('Name', f'{channeli}'))}
         color = channel.get('color', channel.get('Color'))
         if color is not None:
             omezarr_channel['color'] = rgba_to_hexrgb(color)

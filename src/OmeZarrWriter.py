@@ -26,11 +26,11 @@ class OmeZarrWriter(OmeWriter):
             self.ome_format = None
         self.verbose = verbose
 
-    def write(self, filename, source, **kwargs):
+    def write(self, filepath, source, **kwargs):
         if source.is_screen():
-            zarr_root, total_size = self._write_screen(filename, source, **kwargs)
+            zarr_root, total_size = self._write_screen(filepath, source, **kwargs)
         else:
-            zarr_root, total_size = self._write_image(filename, source)
+            zarr_root, total_size = self._write_image(filepath, source)
 
         dtype = source.get_dtype()
         channels = source.get_channels()
@@ -42,10 +42,11 @@ class OmeZarrWriter(OmeWriter):
         if self.verbose:
             print(f'Total data written: {print_hbytes(total_size)}')
 
+        return filepath
 
-    def _write_screen(self, filename, source, **kwargs):
+    def _write_screen(self, filepath, source, **kwargs):
         #zarr_location = parse_url(filename, mode='w', fmt=self.ome_format)
-        zarr_location = filename
+        zarr_location = filepath
         zarr_root = zarr.open_group(zarr_location, mode='w', zarr_version=self.zarr_version)
 
         row_names = source.get_rows()
@@ -74,9 +75,9 @@ class OmeZarrWriter(OmeWriter):
 
         return zarr_root, total_size
 
-    def _write_image(self, filename, source):
+    def _write_image(self, filepath, source):
         #zarr_location = parse_url(filename, mode='w', fmt=self.ome_format)
-        zarr_location = filename
+        zarr_location = filepath
         zarr_root = zarr.open_group(zarr_location, mode='w', zarr_version=self.zarr_version)
 
         data = source.get_data()
