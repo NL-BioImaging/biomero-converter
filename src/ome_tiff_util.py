@@ -84,6 +84,7 @@ def create_image_metadata(source, image_index, image_uuid=None, image_filename=N
         ome_channel = Channel()
         ome_channel.id = f'Channel:{channeli}'
         ome_channel.name = channel.get('label', channel.get('Name', f'{channeli}'))
+        ome_channel.samples_per_pixel = 1
         color = channel.get('color', channel.get('Color'))
         if color is not None:
             ome_channel.color = Color(rgba_to_int(color))

@@ -86,6 +86,7 @@ class OmeTiffWriter(OmeWriter):
         x_index = dim_order.index('x')
         y_index = dim_order.index('y')
         size = shape[x_index], shape[y_index]
+        source_type = source.get_dtype()
 
         if tile_size is not None and isinstance(tile_size, int):
             tile_size = [tile_size] * 2
@@ -123,11 +124,11 @@ class OmeTiffWriter(OmeWriter):
                     new_shape = list(shape)
                     new_shape[x_index] = int(shape[x_index] * scale)
                     new_shape[y_index] = int(shape[y_index] * scale)
-                    data = resize(data, new_shape)
+                    data = resize(data, new_shape, preserve_range=True)
                     subifds = None
                     subfiletype = 1
                     xml_metadata_bytes = None
-                writer.write(data, subifds=subifds, subfiletype=subfiletype,
+                writer.write(data.astype(source_type), subifds=subifds, subfiletype=subfiletype,
                              resolution=resolution, resolutionunit=resolution_unit, tile=tile_size,
                              compression=compression, description=xml_metadata_bytes)
         return size

@@ -45,7 +45,7 @@ class TestConvert:
             ),
         ],
     )
-    def test_convert(self, tmp_path, input_filename, output_format, alt_output_folder=None, show_progess=True, verbose=True):
+    def test_convert(self, tmp_path, input_filename, output_format, alt_output_folder=None, show_progess=True, verbose=False):
         init_logging('log/db_to_zarr.log', verbose=verbose)
         with Timer(f'convert {input_filename} to {output_format}'):
             output = convert(input_filename, tmp_path, alt_output_folder=alt_output_folder, output_format=output_format, show_progress=show_progess, verbose=verbose)
