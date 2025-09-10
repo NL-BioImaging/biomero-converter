@@ -54,7 +54,7 @@ def convert(input_filename, output_folder, alt_output_folder=None,
             for path in full_output_path:
                 alt_output_path = os.path.join(alt_output_folder, os.path.basename(path))
                 shutil.copy2(path, alt_output_path)
-        elif os.path.isdir(output_format):
+        elif os.path.isdir(full_output_path):
             shutil.copytree(full_output_path, alt_output_path, dirs_exist_ok=True)
         else:
             shutil.copy2(full_output_path, alt_output_path)

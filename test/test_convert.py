@@ -111,6 +111,6 @@ if __name__ == '__main__':
 
     test = TestConvert()
     input_filename = test.input_filename
-    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'ometiff', alt_output_folder = tempfile.TemporaryDirectory().name)
-    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr2')
-    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr3')
+    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'ometiff', alt_output_folder=tempfile.TemporaryDirectory().name)
+    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr2', alt_output_folder=tempfile.TemporaryDirectory().name)
+    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr3', alt_output_folder=tempfile.TemporaryDirectory().name)
