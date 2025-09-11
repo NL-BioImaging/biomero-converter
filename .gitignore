@@ -211,5 +211,3 @@ __marimo__/
 # pixi environments
 .pixi
 *.egg-info
-pixi.lock
-pixi.toml
