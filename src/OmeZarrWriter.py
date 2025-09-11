@@ -9,6 +9,7 @@ from src.OmeWriter import OmeWriter
 from src.ome_zarr_util import *
 from src.parameters import VERSION
 from src.util import split_well_name, print_hbytes
+from src.WindowScanner import WindowScanner
 
 
 class OmeZarrWriter(OmeWriter):
@@ -27,6 +28,11 @@ class OmeZarrWriter(OmeWriter):
         self.verbose = verbose
 
     def write(self, filepath, source, **kwargs):
+        window_scanner = WindowScanner()
+        window_scanner.process(source.get_data('B2'), source.get_dim_order())
+        window = window_scanner.get_window()
+
+
         if source.is_screen():
             zarr_root, total_size = self._write_screen(filepath, source, **kwargs)
         else:
@@ -87,11 +93,6 @@ class OmeZarrWriter(OmeWriter):
         axes = create_axes_metadata(dim_order)
         pixel_size_scales, scaler = self._create_scale_metadata(source, dim_order, position)
 
-        dtype = source.get_dtype()
-        channels = source.get_channels()
-        nchannels = source.get_nchannels()
-        group.attrs['omero'] = create_channel_metadata(dtype, channels, nchannels, self.ome_version)
-
         if self.zarr_version >= 3:
             shards = []
             chunks = []
@@ -110,6 +111,14 @@ class OmeZarrWriter(OmeWriter):
         size = data.size * data.itemsize
         write_image(image=data, group=group, axes=axes, coordinate_transformations=pixel_size_scales,
                     scaler=scaler, fmt=self.ome_format, storage_options=storage_options)
+
+        dtype = source.get_dtype()
+        channels = source.get_channels()
+        nchannels = source.get_nchannels()
+        window_scanner = WindowScanner()
+        window_scanner.process(data, dim_order)
+        window = window_scanner.get_window()
+        group.attrs['omero'] = create_channel_metadata(dtype, channels, nchannels, window, self.ome_version)
         return size
 
     def _create_scale_metadata(self, source, dim_order, translation, scaler=None):

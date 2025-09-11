@@ -45,7 +45,7 @@ def create_transformation_metadata(dimension_order, pixel_size_um, scale, transl
     return metadata
 
 
-def create_channel_metadata(dtype, channels, nchannels, ome_version):
+def create_channel_metadata(dtype, channels, nchannels, window, ome_version):
     if len(channels) < nchannels:
         labels = []
         colors = []
@@ -58,19 +58,18 @@ def create_channel_metadata(dtype, channels, nchannels, ome_version):
         channels = [{'label': label, 'color': color} for label, color in zip(labels, colors)]
 
     omezarr_channels = []
+    start, end = window
     for channeli, channel in enumerate(channels):
         omezarr_channel = {'label': channel.get('label', channel.get('Name', f'{channeli}'))}
         color = channel.get('color', channel.get('Color'))
         if color is not None:
             omezarr_channel['color'] = rgba_to_hexrgb(color)
         if dtype.kind == 'f':
-            # info = np.finfo(dtype)
-            start, end = 0, 1
+            min, max = 0, 1
         else:
             info = np.iinfo(dtype)
-            start, end = info.min, info.max
-        min, max = start, end
-        omezarr_channel['window'] = {'start': start, 'end': end, 'min': min, 'max': max}
+            min, max = info.min, info.max
+        omezarr_channel['window'] = {'min': min, 'max': max, 'start': start[channeli], 'end': end[channeli]}
         omezarr_channels.append(omezarr_channel)
 
     metadata = {
