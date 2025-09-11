@@ -245,10 +245,11 @@ class ImageDbSource(ImageSource):
     def get_channels(self):
         channels = []
         for channel0 in self.metadata['channels']:
-            channel = {'label': channel0.get('Dye'),
-                       'color': hexrgb_to_rgba(channel0.get('Color').lstrip('#'))}
-            if channel['label'] is None:
-                channel['label'] = ''
+            channel = {}
+            if 'Dye' in channel0 and channel0['Dye']:
+                channel['label'] = channel0['Dye']
+            if 'Color' in channel0:
+                channel['color'] = hexrgb_to_rgba(channel0['Color'].lstrip('#'))
             channels.append(channel)
         return channels
 

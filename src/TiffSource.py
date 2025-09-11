@@ -77,13 +77,11 @@ class TiffSource(ImageSource):
                 if 'PositionZ' in plane:
                     position['z'] = convert_to_um(float(plane.get('PositionZ')), plane.get('PositionZUnit'))
             for channel0 in ensure_list(pixels.get('Channel')):
-                label = channel0.get('Name')
-                if label is None:
-                    label = ''
-                channel = {'label': label}
-                color = channel0.get('Color')
-                if color is not None:
-                    channel['color'] = int_to_rgba(color)
+                channel = {}
+                if 'Name' in channel0:
+                    channel['label'] = channel0['Name']
+                if 'Color' in channel0:
+                    channel['color'] = int_to_rgba(channel0['Color'])
                 channels.append(channel)
         else:
             self.is_plate = False

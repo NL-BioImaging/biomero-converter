@@ -32,11 +32,6 @@ class OmeZarrWriter(OmeWriter):
         else:
             zarr_root, total_size = self._write_image(filepath, source)
 
-        dtype = source.get_dtype()
-        channels = source.get_channels()
-        nchannels = source.get_nchannels()
-
-        zarr_root.attrs['omero'] = create_channel_metadata(dtype, channels, nchannels, self.ome_version)
         zarr_root.attrs['_creator'] = {'name': 'nl.biomero.OmeZarrWriter', 'version': VERSION}
 
         if self.verbose:
@@ -92,12 +87,17 @@ class OmeZarrWriter(OmeWriter):
         axes = create_axes_metadata(dim_order)
         pixel_size_scales, scaler = self._create_scale_metadata(source, dim_order, position)
 
+        dtype = source.get_dtype()
+        channels = source.get_channels()
+        nchannels = source.get_nchannels()
+        group.attrs['omero'] = create_channel_metadata(dtype, channels, nchannels, self.ome_version)
+
         if self.zarr_version >= 3:
             shards = []
             chunks = []
             # TODO: don't redefine chunks for dask/+ arrays
-            for n in data.shape:
-                if n > 10:
+            for dim, n in zip(dim_order, data.shape):
+                if dim in 'xy':
                     shards += [10240]
                     chunks += [1024]
                 else:
