@@ -1,0 +1,33 @@
+site_name: image-db-to-ome
+site_url: https://nl-bioimaging.github.io/image-db-to-ome/
+site_description: convert source image to OME-TIFF or OME-Zarr format
+
+repo_name: image-db-to-ome
+repo_url: https://github.com/NL-BioImaging/image-db-to-ome
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            show_submodules: true
+            show_if_no_docstring: true
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - overview.md
+  - references.md
+
+theme:
+  name: material
+  color_mode: auto
+  user_color_mode_toggle: true
+  logo: images/logo.png
