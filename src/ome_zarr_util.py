@@ -4,6 +4,15 @@ from src.color_conversion import rgba_to_hexrgb
 
 
 def create_axes_metadata(dimension_order):
+    """
+    Create axes metadata for OME-Zarr from dimension order.
+
+    Args:
+        dimension_order (str): String of dimension characters.
+
+    Returns:
+        list: List of axis metadata dictionaries.
+    """
     axes = []
     for dimension in dimension_order:
         unit1 = None
@@ -23,6 +32,18 @@ def create_axes_metadata(dimension_order):
 
 
 def create_transformation_metadata(dimension_order, pixel_size_um, scale, translation_um={}):
+    """
+    Create transformation metadata (scale and translation) for OME-Zarr.
+
+    Args:
+        dimension_order (str): String of dimension characters.
+        pixel_size_um (dict): Pixel size in micrometers per dimension.
+        scale (float): Scaling factor.
+        translation_um (dict, optional): Translation in micrometers per dimension.
+
+    Returns:
+        list: List of transformation metadata dictionaries.
+    """
     metadata = []
     pixel_size_scale = []
     translation_scale = []
@@ -46,6 +67,19 @@ def create_transformation_metadata(dimension_order, pixel_size_um, scale, transl
 
 
 def create_channel_metadata(dtype, channels, nchannels, window, ome_version):
+    """
+    Create channel metadata for OME-Zarr.
+
+    Args:
+        dtype: Numpy dtype of image data.
+        channels (list): List of channel dicts.
+        nchannels (int): Number of channels.
+        window (tuple): Min/max window values.
+        ome_version (str): OME-Zarr version.
+
+    Returns:
+        dict: Channel metadata dictionary.
+    """
     if len(channels) < nchannels:
         labels = []
         colors = []
@@ -80,6 +114,17 @@ def create_channel_metadata(dtype, channels, nchannels, window, ome_version):
 
 
 def scale_dimensions_xy(shape0, dimension_order, scale):
+    """
+    Scale x and y dimensions in a shape tuple.
+
+    Args:
+        shape0 (tuple): Original shape.
+        dimension_order (str): String of dimension characters.
+        scale (float): Scaling factor.
+
+    Returns:
+        list: Scaled shape.
+    """
     shape = []
     if scale == 1:
         return shape0
@@ -91,6 +136,16 @@ def scale_dimensions_xy(shape0, dimension_order, scale):
 
 
 def scale_dimensions_dict(shape0, scale):
+    """
+    Scale x and y dimensions in a shape dictionary.
+
+    Args:
+        shape0 (dict): Original shape dictionary.
+        scale (float): Scaling factor.
+
+    Returns:
+        dict: Scaled shape dictionary.
+    """
     shape = {}
     if scale == 1:
         return shape0

@@ -10,6 +10,15 @@ from src.util import split_well_name
 
 
 def metadata_to_dict(xml_metadata):
+    """
+    Convert OME-XML metadata to a Python dictionary.
+
+    Args:
+        xml_metadata (str): OME-XML metadata string.
+
+    Returns:
+        dict: Parsed metadata dictionary.
+    """
     metadata = xml2dict(xml_metadata)
     if 'OME' in metadata:
         metadata = metadata['OME']
@@ -17,10 +26,28 @@ def metadata_to_dict(xml_metadata):
 
 
 def create_uuid():
+    """
+    Generate a new UUID string in OME format.
+
+    Returns:
+        str: UUID string.
+    """
     return f'urn:uuid:{uuid.uuid4()}'
 
 
 def create_metadata(source, companion_uuid=None, image_uuids=None, image_filenames=None):
+    """
+    Create OME metadata XML for the given source.
+
+    Args:
+        source: Image source object.
+        companion_uuid (str, optional): UUID of companion file.
+        image_uuids (list, optional): List of image UUIDs.
+        image_filenames (list, optional): List of image filenames.
+
+    Returns:
+        str: OME-XML metadata string.
+    """
     ome = OME()
     ome.uuid = companion_uuid
     ome.creator = f'nl.biomero.OmeTiffWriter {VERSION}'
@@ -77,6 +104,18 @@ def create_metadata(source, companion_uuid=None, image_uuids=None, image_filenam
 
 
 def create_image_metadata(source, image_index, image_uuid=None, image_filename=None):
+    """
+    Create OME Image metadata for a single image.
+
+    Args:
+        source: Image source object.
+        image_index (int): Index of the image.
+        image_uuid (str, optional): UUID for the image.
+        image_filename (str, optional): Filename for the image.
+
+    Returns:
+        Image: OME Image object.
+    """
     t, c, z, y, x = source.get_shape()
     pixel_size = source.get_pixel_size_um()
     ome_channels = []
@@ -116,6 +155,16 @@ def create_image_metadata(source, image_index, image_uuid=None, image_filename=N
 
 
 def create_binaryonly_metadata(metadata_filename, companion_uuid):
+    """
+    Create OME metadata for binary-only companion files.
+
+    Args:
+        metadata_filename (str): Metadata file name.
+        companion_uuid (str): UUID for companion file.
+
+    Returns:
+        tuple: (OME-XML metadata string, UUID)
+    """
     ome = OME()
     ome.uuid = create_uuid()
     ome.creator = f'nl.biomero.OmeTiffWriter {VERSION}'
@@ -124,6 +173,15 @@ def create_binaryonly_metadata(metadata_filename, companion_uuid):
 
 
 def get_label_type(labels):
+    """
+    Determine naming convention (NUMBER or LETTER) for plate labels.
+
+    Args:
+        labels (list): List of row or column labels.
+
+    Returns:
+        NamingConvention: NUMBER or LETTER.
+    """
     is_digits = [label.isdigit() for label in labels]
     if np.all(is_digits):
         naming_convention = NamingConvention.NUMBER
@@ -133,6 +191,15 @@ def get_label_type(labels):
 
 
 def create_resolution_metadata(source):
+    """
+    Create TIFF resolution metadata from source pixel size.
+
+    Args:
+        source: Image source object.
+
+    Returns:
+        tuple: (resolution list, resolution unit string)
+    """
     pixel_size_um = source.get_pixel_size_um()
     resolution_unit = 'CENTIMETER'
     resolution = [1e4 / pixel_size_um[dim] for dim in 'xy']

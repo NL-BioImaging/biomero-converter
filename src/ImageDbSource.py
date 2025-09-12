@@ -11,7 +11,17 @@ from src.util import *
 
 
 class ImageDbSource(ImageSource):
+    """
+    Loads image and metadata from a database source for high-content screening.
+    """
     def __init__(self, uri, metadata={}):
+        """
+        Initialize ImageDbSource.
+
+        Args:
+            uri (str): Path to the database file.
+            metadata (dict): Optional metadata dictionary.
+        """
         super().__init__(uri, metadata)
         self.db = DBReader(self.uri)
         self.data = None
@@ -19,6 +29,12 @@ class ImageDbSource(ImageSource):
         self.metadata['dim_order'] = 'tczyx'
 
     def init_metadata(self):
+        """
+        Initializes and loads metadata from the database.
+
+        Returns:
+            dict: Metadata dictionary.
+        """
         self._get_time_series_info()
         self._get_experiment_metadata()
         self._get_well_info()
@@ -27,9 +43,18 @@ class ImageDbSource(ImageSource):
         return self.metadata
 
     def get_shape(self):
+        """
+        Returns the shape of the image data.
+
+        Returns:
+            tuple: Shape of the image data.
+        """
         return self.shape
 
     def _get_time_series_info(self):
+        """
+        Loads time series and image file info into metadata.
+        """
         time_series_ids = sorted(self.db.fetch_all('SELECT DISTINCT TimeSeriesElementId FROM SourceImageBase', return_dicts=False))
         self.metadata['time_points'] = time_series_ids
 
@@ -41,6 +66,9 @@ class ImageDbSource(ImageSource):
         self.metadata['image_files'] = image_files
 
     def _get_experiment_metadata(self):
+        """
+        Loads experiment metadata and acquisition info into metadata.
+        """
         creation_info = self.db.fetch_all('SELECT DateCreated, Creator, Name FROM ExperimentBase')[0]
         creation_info['DateCreated'] = convert_dotnet_ticks_to_datetime(creation_info['DateCreated'])
         self.metadata.update(creation_info)
@@ -52,6 +80,9 @@ class ImageDbSource(ImageSource):
         self.metadata['acquisitions'] = acquisitions
 
     def _get_well_info(self):
+        """
+        Loads well and channel information into metadata.
+        """
         well_info = self.db.fetch_all('''
             SELECT SensorSizeYPixels, SensorSizeXPixels, Objective, PixelSizeUm, SensorBitness, SitesX, SitesY
             FROM AcquisitionExp, AutomaticZonesParametersExp
@@ -96,6 +127,9 @@ class ImageDbSource(ImageSource):
         self.metadata['well_info'] = well_info
 
     def _get_image_info(self):
+        """
+        Loads image bit depth and dtype info into metadata.
+        """
         bits_per_pixel = self.db.fetch_all('SELECT DISTINCT BitsPerPixel FROM SourceImageBase', return_dicts=False)[0]
         self.metadata['bits_per_pixel'] = bits_per_pixel
         bits_per_pixel = int(np.ceil(bits_per_pixel / 8)) * 8
@@ -104,6 +138,9 @@ class ImageDbSource(ImageSource):
         self.metadata['dtype'] = np.dtype(f'uint{bits_per_pixel}')
 
     def _get_sizes(self):
+        """
+        Calculates and stores image shape and estimated data size.
+        """
         well_info = self.metadata['well_info']
         nbytes = self.metadata['dtype'].itemsize
         self.shape = len(self.metadata['time_points']), self.metadata['num_channels'], 1, well_info['SensorSizeYPixels'], well_info['SensorSizeXPixels']
@@ -111,6 +148,18 @@ class ImageDbSource(ImageSource):
         self.metadata['max_data_size'] = max_data_size
 
     def _read_well_info(self, well_id, channel=None, time_point=None, level=0):
+        """
+        Reads image info for a specific well, optionally filtered by channel and time point.
+
+        Args:
+            well_id (str): Well identifier.
+            channel (int, optional): Channel ID.
+            time_point (int, optional): Time point ID.
+            level (int, optional): Image level index.
+
+        Returns:
+            list: Well image info dictionaries.
+        """
         well_id = strip_leading_zeros(well_id)
         well_ids = self.metadata.get('wells', {})
 
@@ -134,6 +183,12 @@ class ImageDbSource(ImageSource):
         return well_info
 
     def _assemble_image_data(self, well_info):
+        """
+        Assembles image data array using well info.
+
+        Args:
+            well_info (list): List of well image info dicts.
+        """
         dtype = self.metadata['dtype']
         well_info = np.asarray(well_info)
         xmax = np.max([info['CoordX'] + info['SizeX'] for info in well_info])
@@ -158,6 +213,15 @@ class ImageDbSource(ImageSource):
         self.data = data
 
     def _extract_site(self, site_id=None):
+        """
+        Extracts image data for a specific site or all sites.
+
+        Args:
+            site_id (int, optional): Site index. If None, returns all data.
+
+        Returns:
+            ndarray or list: Image data for the site(s).
+        """
         well_info = self.metadata['well_info']
         sitesx = well_info['SitesX']
         sitesy = well_info['SitesY']
@@ -196,46 +260,125 @@ class ImageDbSource(ImageSource):
             raise ValueError(f'Invalid site: {site_id}')
 
     def is_screen(self):
+        """
+        Checks if the source is a screen (has wells).
+
+        Returns:
+            bool: True if wells exist.
+        """
         return len(self.metadata['wells']) > 0
 
     def get_data(self, well_id=None, field_id=None):
+        """
+        Gets image data for a specific well and field.
+
+        Args:
+            well_id (str, optional): Well identifier.
+            field_id (int, optional): Field index.
+
+        Returns:
+            ndarray: Image data.
+        """
         if well_id != self.data_well_id:
             self._assemble_image_data(self._read_well_info(well_id))
             self.data_well_id = well_id
         return self._extract_site(field_id)
 
     def get_name(self):
+        """
+        Gets the experiment or file name.
+
+        Returns:
+            str: Name.
+        """
         name = self.metadata.get('Name')
         if not name:
             name = splitall(os.path.splitext(self.uri)[0])[-2]
         return name
 
     def get_rows(self):
+        """
+        Returns the list of row identifiers.
+
+        Returns:
+            list: Row identifiers.
+        """
         return self.metadata['well_info']['rows']
 
     def get_columns(self):
+        """
+        Returns the list of column identifiers.
+
+        Returns:
+            list: Column identifiers.
+        """
         return self.metadata['well_info']['columns']
 
     def get_wells(self):
+        """
+        Returns the list of well identifiers.
+
+        Returns:
+            list: Well identifiers.
+        """
         return list(self.metadata['wells'])
 
     def get_time_points(self):
+        """
+        Returns the list of time points.
+
+        Returns:
+            list: Time point IDs.
+        """
         return self.metadata['time_points']
 
     def get_fields(self):
+        """
+        Returns the list of field indices.
+
+        Returns:
+            list: Field indices.
+        """
         return self.metadata['well_info']['fields']
 
     def get_dim_order(self):
+        """
+        Returns the dimension order string.
+
+        Returns:
+            str: Dimension order.
+        """
         return self.metadata.get('dim_order', 'tczyx')
 
     def get_dtype(self):
+        """
+        Returns the numpy dtype of the image data.
+
+        Returns:
+            dtype: Numpy dtype.
+        """
         return self.metadata.get('dtype')
 
     def get_pixel_size_um(self):
+        """
+        Returns the pixel size in micrometers.
+
+        Returns:
+            dict: Pixel size for x and y.
+        """
         pixel_size = self.metadata['well_info'].get('PixelSizeUm', 1)
         return {'x': pixel_size, 'y': pixel_size}
 
     def get_position_um(self, well_id=None):
+        """
+        Returns the position in micrometers for a well.
+
+        Args:
+            well_id (str): Well identifier.
+
+        Returns:
+            dict: Position in micrometers.
+        """
         well = self.metadata['wells'][well_id]
         well_info = self.metadata['well_info']
         x = well.get('CoordX', 0) * well_info['max_sizex_um']
@@ -243,6 +386,12 @@ class ImageDbSource(ImageSource):
         return {'x': x, 'y': y}
 
     def get_channels(self):
+        """
+        Returns channel metadata.
+
+        Returns:
+            list: List of channel dicts.
+        """
         channels = []
         for channel0 in self.metadata['channels']:
             channel = {}
@@ -254,9 +403,21 @@ class ImageDbSource(ImageSource):
         return channels
 
     def get_nchannels(self):
+        """
+        Returns the number of channels.
+
+        Returns:
+            int: Number of channels.
+        """
         return max(self.metadata['num_channels'], 1)
 
     def get_acquisitions(self):
+        """
+        Returns acquisition metadata.
+
+        Returns:
+            list: List of acquisition dicts.
+        """
         acquisitions = []
         for index, acq in enumerate(self.metadata.get('acquisitions', [])):
             acquisitions.append({
@@ -269,9 +430,21 @@ class ImageDbSource(ImageSource):
         return acquisitions
 
     def get_total_data_size(self):
+        """
+        Returns the estimated total data size.
+
+        Returns:
+            int: Total data size in bytes.
+        """
         return self.metadata['max_data_size']
 
     def print_well_matrix(self):
+        """
+        Returns a string representation of the well matrix.
+
+        Returns:
+            str: Well matrix.
+        """
         s = ''
 
         well_info = self.metadata['well_info']
@@ -293,6 +466,12 @@ class ImageDbSource(ImageSource):
         return s
 
     def print_timepoint_well_matrix(self):
+        """
+        Returns a string representation of the timepoint-well matrix.
+
+        Returns:
+            str: Timepoint-well matrix.
+        """
         s = ''
 
         time_points = self.metadata['time_points']
@@ -316,4 +495,7 @@ class ImageDbSource(ImageSource):
         return s
 
     def close(self):
+        """
+        Closes the database connection.
+        """
         self.db.close()
