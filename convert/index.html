@@ -10,19 +10,25 @@
       
       
       
+        <link rel="canonical" href="https://nl-bioimaging.github.io/image-db-to-ome/convert/">
       
       
+        <link rel="prev" href="../main/">
       
-      <link rel="icon" href="/image-db-to-ome/assets/images/favicon.png">
+      
+        <link rel="next" href="../overview/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.19">
     
     
       
-        <title>image-db-to-ome</title>
+        <title>converter.convert() Usage - image-db-to-ome</title>
       
     
     
-      <link rel="stylesheet" href="/image-db-to-ome/assets/stylesheets/main.7e37652d.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.7e37652d.min.css">
       
       
 
@@ -41,9 +47,9 @@
       
     
     
-      <link rel="stylesheet" href="/image-db-to-ome/assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL("/image-db-to-ome/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -61,6 +67,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#converterconvert-usage" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -73,9 +84,9 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/image-db-to-ome/." title="image-db-to-ome" class="md-header__button md-logo" aria-label="image-db-to-ome" data-md-component="logo">
+    <a href=".." title="image-db-to-ome" class="md-header__button md-logo" aria-label="image-db-to-ome" data-md-component="logo">
       
-  <img src="/image-db-to-ome/images/logo.png" alt="logo">
+  <img src="../images/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -92,7 +103,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              converter.convert() Usage
             
           </span>
         </div>
@@ -182,9 +193,9 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/image-db-to-ome/." title="image-db-to-ome" class="md-nav__button md-logo" aria-label="image-db-to-ome" data-md-component="logo">
+    <a href=".." title="image-db-to-ome" class="md-nav__button md-logo" aria-label="image-db-to-ome" data-md-component="logo">
       
-  <img src="/image-db-to-ome/images/logo.png" alt="logo">
+  <img src="../images/logo.png" alt="logo">
 
     </a>
     image-db-to-ome
@@ -211,7 +222,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/image-db-to-ome/." class="md-nav__link">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -233,7 +244,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/image-db-to-ome/main/" class="md-nav__link">
+      <a href="../main/" class="md-nav__link">
         
   
   
@@ -252,10 +263,32 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/image-db-to-ome/convert/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    converter.convert() Usage
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -266,6 +299,53 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Arguments
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#returns" class="md-nav__link">
+    <span class="md-ellipsis">
+      Returns
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -277,7 +357,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/image-db-to-ome/overview/" class="md-nav__link">
+      <a href="../overview/" class="md-nav__link">
         
   
   
@@ -299,7 +379,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/image-db-to-ome/references/" class="md-nav__link">
+      <a href="../references/" class="md-nav__link">
         
   
   
@@ -331,6 +411,43 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Arguments
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#returns" class="md-nav__link">
+    <span class="md-ellipsis">
+      Returns
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -342,8 +459,65 @@
             <div class="md-content" data-md-component="content">
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<h1 id="converterconvert-usage">converter.convert() Usage</h1>
+<p>The <code>convert()</code> function in <code>converter.py</code> is used to convert an input file to OME format and write the result to one or more output folders.</p>
+<h2 id="example-usage">Example Usage</h2>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">converter</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert</span>
+
+<span class="n">input_filename</span> <span class="o">=</span> <span class="s2">&quot;path/to/input_file&quot;</span>
+<span class="n">output_folder</span> <span class="o">=</span> <span class="s2">&quot;path/to/output_folder&quot;</span>
+<span class="n">alt_output_folder</span> <span class="o">=</span> <span class="s2">&quot;path/to/alternative_output_folder&quot;</span>
+
+<span class="n">result_json</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span>
+    <span class="n">input_filename</span><span class="p">,</span>
+    <span class="n">output_folder</span><span class="p">,</span>
+    <span class="n">alt_output_folder</span><span class="p">,</span>
+    <span class="n">output_format</span><span class="o">=</span><span class="s2">&quot;omezarr2&quot;</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">result_json</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="arguments">Arguments</h2>
+<ul>
+<li><code>input_filename</code> (str): Path to the input file.</li>
+<li><code>output_folder</code> (str): Output folder path.</li>
+<li><code>alt_output_folder</code> (str, optional): Alternative output folder path.</li>
+<li><code>output_format</code> (str): Output format string (default: <code>'omezarr2'</code>).</li>
+<li><code>show_progress</code> (bool): If <code>True</code>, prints progress.</li>
+<li><code>verbose</code> (bool): If <code>True</code>, enables verbose logging.</li>
+</ul>
+<h2 id="returns">Returns</h2>
+<p>A JSON string containing an array with conversion result info, e.g.:</p>
+<div class="highlight"><pre><span></span><code><span class="p">[</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;experiment_name&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;full_path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;path/to/output_folder/experiment_name.ome.zarr&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;alt_path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;path/to/alternative_output_folder/experiment_name.ome.zarr&quot;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">]</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -379,10 +553,10 @@
     
     
       
-      <script id="__config" type="application/json">{"base": "/image-db-to-ome/", "features": [], "search": "/image-db-to-ome/assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="/image-db-to-ome/assets/javascripts/bundle.92b07e13.min.js"></script>
+      <script src="../assets/javascripts/bundle.92b07e13.min.js"></script>
       
     
   </body>

@@ -10,19 +10,25 @@
       
       
       
+        <link rel="canonical" href="https://nl-bioimaging.github.io/image-db-to-ome/main/">
       
       
+        <link rel="prev" href="..">
       
-      <link rel="icon" href="/image-db-to-ome/assets/images/favicon.png">
+      
+        <link rel="next" href="../convert/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.19">
     
     
       
-        <title>image-db-to-ome</title>
+        <title>Using Docker to Run the Main Script - image-db-to-ome</title>
       
     
     
-      <link rel="stylesheet" href="/image-db-to-ome/assets/stylesheets/main.7e37652d.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.7e37652d.min.css">
       
       
 
@@ -41,9 +47,9 @@
       
     
     
-      <link rel="stylesheet" href="/image-db-to-ome/assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL("/image-db-to-ome/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -61,6 +67,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#using-docker-to-run-the-main-script" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -73,9 +84,9 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/image-db-to-ome/." title="image-db-to-ome" class="md-header__button md-logo" aria-label="image-db-to-ome" data-md-component="logo">
+    <a href=".." title="image-db-to-ome" class="md-header__button md-logo" aria-label="image-db-to-ome" data-md-component="logo">
       
-  <img src="/image-db-to-ome/images/logo.png" alt="logo">
+  <img src="../images/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -92,7 +103,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              Using Docker to Run the Main Script
             
           </span>
         </div>
@@ -182,9 +193,9 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/image-db-to-ome/." title="image-db-to-ome" class="md-nav__button md-logo" aria-label="image-db-to-ome" data-md-component="logo">
+    <a href=".." title="image-db-to-ome" class="md-nav__button md-logo" aria-label="image-db-to-ome" data-md-component="logo">
       
-  <img src="/image-db-to-ome/images/logo.png" alt="logo">
+  <img src="../images/logo.png" alt="logo">
 
     </a>
     image-db-to-ome
@@ -211,7 +222,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/image-db-to-ome/." class="md-nav__link">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -230,10 +241,32 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/image-db-to-ome/main/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Using Docker to Run the Main Script
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -244,6 +277,44 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Arguments
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -255,7 +326,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/image-db-to-ome/convert/" class="md-nav__link">
+      <a href="../convert/" class="md-nav__link">
         
   
   
@@ -277,7 +348,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/image-db-to-ome/overview/" class="md-nav__link">
+      <a href="../overview/" class="md-nav__link">
         
   
   
@@ -299,7 +370,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/image-db-to-ome/references/" class="md-nav__link">
+      <a href="../references/" class="md-nav__link">
         
   
   
@@ -331,6 +402,34 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Arguments
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -342,8 +441,52 @@
             <div class="md-content" data-md-component="content">
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<h1 id="using-docker-to-run-the-main-script">Using Docker to Run the Main Script</h1>
+<p>You can use Docker to run the conversion process by mounting your input and output folders and passing the required arguments.</p>
+<h2 id="example">Example</h2>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-v<span class="w"> </span>/local/input_folder:/data/input<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-v<span class="w"> </span>/local/output_folder:/data/output<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>image-db-to-ome:latest<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>python<span class="w"> </span>main.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--inputfile<span class="w"> </span>/data/input/input_file.tiff<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--outputfolder<span class="w"> </span>/data/output<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--outputformat<span class="w"> </span>omezarr2<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--show_progress<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--verbose
+</code></pre></div>
+<p>Replace <code>/local/input_folder</code> and <code>/local/output_folder</code> with your actual local paths.<br />
+Adjust the image name (<code>image-db-to-ome:latest</code>) as needed.</p>
+<h2 id="arguments">Arguments</h2>
+<p>Refer to the main script for all available arguments:</p>
+<ul>
+<li><code>--inputfile</code>: Path to the input file (required)</li>
+<li><code>--outputfolder</code>: Path to the output folder (required)</li>
+<li><code>--altoutputfolder</code>: Alternative output folder (optional)</li>
+<li><code>--outputformat</code>: Output format version (default: <code>omezarr2</code>)</li>
+<li><code>--show_progress</code>: Show progress bar (flag)</li>
+<li><code>--verbose</code>: Enable verbose logging (flag)</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -379,10 +522,10 @@
     
     
       
-      <script id="__config" type="application/json">{"base": "/image-db-to-ome/", "features": [], "search": "/image-db-to-ome/assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="/image-db-to-ome/assets/javascripts/bundle.92b07e13.min.js"></script>
+      <script src="../assets/javascripts/bundle.92b07e13.min.js"></script>
       
     
   </body>
