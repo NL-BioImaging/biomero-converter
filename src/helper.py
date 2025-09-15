@@ -2,7 +2,6 @@ import os.path
 
 
 def create_source(filename, input_format=None):
-def create_source(filename):
     """
     Create an image source object based on the input file extension.
 
