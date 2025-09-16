@@ -12,8 +12,8 @@ from src.util import print_dict, print_hbytes
 
 
 class TestConvert:
-    #basedir = 'C:/Project/slides/DB/'
-    basedir = 'D:/slides/DB/'
+    basedir = 'C:/Project/slides/DB/'
+    #basedir = 'D:/slides/DB/'
     #basedir = 'C:/Project/slides/Ome-tiff/'
     #basedir = 'E:/Personal/Crick/slides/test_images/'
     #basedir = 'D:/slides/isyntax/'

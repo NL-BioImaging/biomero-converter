@@ -19,5 +19,8 @@ def rgba_to_hexrgb(rgba: list) -> str:
 
 
 def hexrgb_to_rgba(hexrgb: str) -> list:
-    rgba = int_to_rgba(eval('0x' + hexrgb + 'FF'))
+    hexrgb = hexrgb.lstrip('#')
+    if len(hexrgb) == 6:
+        hexrgb += 'FF'  # add alpha
+    rgba = int_to_rgba(eval('0x' + hexrgb))
     return rgba

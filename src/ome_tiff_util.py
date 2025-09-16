@@ -32,17 +32,15 @@ def create_metadata(source, companion_uuid=None, image_uuids=None, image_filenam
         plate = Plate()
         plate.columns = len(columns)
         plate.rows = len(rows)
-        plate.row_naming_convention = get_label_type(rows)
-        plate.column_naming_convention = get_label_type(columns)
+        plate.row_naming_convention = get_col_row_type(rows)
+        plate.column_naming_convention = get_col_row_type(columns)
 
         image_index = 0
         for well_id in source.get_wells():
             row, col = split_well_name(well_id)
-            if plate.row_naming_convention == NamingConvention.LETTER:
-                row = ord(row.upper()) - ord('A')
-            if plate.column_naming_convention == NamingConvention.LETTER:
-                col = ord(col.upper()) - ord('A')
-            well = Well(row=row, column=col)
+            col_index = columns.index(col)
+            row_index = rows.index(row)
+            well = Well(column=col_index, row=row_index)
             well.id = f'Well:{well_id}'
             for field in source.get_fields():
                 sample = WellSample(index=image_index)
@@ -55,13 +53,12 @@ def create_metadata(source, companion_uuid=None, image_uuids=None, image_filenam
                     sample.position_y = position['y']
                     sample.position_y_unit = UnitsLength.MICROMETER
 
-                image = create_image_metadata(source, image_index,
+                image = create_image_metadata(source,
                                               image_uuids[image_index],
                                               image_filenames[image_index])
                 ome.images.append(image)
 
-                image_ref = ImageRef()
-                image_ref.id = image.id
+                image_ref = ImageRef(id=image.id)   # assign id at instantiation to avoid auto sequence increment
                 sample.image_ref = image_ref
                 well.well_samples.append(sample)
 
@@ -71,18 +68,17 @@ def create_metadata(source, companion_uuid=None, image_uuids=None, image_filenam
 
         ome.plates = [plate]
     else:
-        ome.images = [create_image_metadata(source, 0, ome.uuid, source.get_name())]
+        ome.images = [create_image_metadata(source, ome.uuid, source.get_name())]
 
     return to_xml(ome)
 
 
-def create_image_metadata(source, image_index, image_uuid=None, image_filename=None):
+def create_image_metadata(source, image_uuid=None, image_filename=None):
     t, c, z, y, x = source.get_shape()
     pixel_size = source.get_pixel_size_um()
     ome_channels = []
     for channeli, channel in enumerate(source.get_channels()):
         ome_channel = Channel()
-        ome_channel.id = f'Channel:{channeli}'
         ome_channel.name = channel.get('label', channel.get('Name', f'{channeli}'))
         ome_channel.samples_per_pixel = 1
         color = channel.get('color', channel.get('Color'))
@@ -94,7 +90,6 @@ def create_image_metadata(source, image_index, image_uuid=None, image_filename=N
     tiff_data.uuid = TiffData.UUID(value=image_uuid, file_name=image_filename)
 
     pixels = Pixels(
-        id='Pixels:0',
         dimension_order=source.get_dim_order()[::-1].upper(),
         type=PixelType(str(source.get_dtype())),
         channels=ome_channels,
@@ -111,7 +106,7 @@ def create_image_metadata(source, image_index, image_uuid=None, image_filename=N
         pixels.physical_size_z = pixel_size['z']
         pixels.physical_size_z_unit = UnitsLength.MICROMETER
 
-    image = Image(id=f'Image:{image_index}', pixels=pixels)
+    image = Image(pixels=pixels) #id=f'Image:{image_index}', pixels=pixels)
     return image
 
 
@@ -123,13 +118,20 @@ def create_binaryonly_metadata(metadata_filename, companion_uuid):
     return to_xml(ome), ome.uuid
 
 
-def get_label_type(labels):
+def get_col_row_type(labels):
     is_digits = [label.isdigit() for label in labels]
     if np.all(is_digits):
         naming_convention = NamingConvention.NUMBER
     else:
         naming_convention = NamingConvention.LETTER
     return naming_convention
+
+
+def create_col_row_label(index, naming_convention):
+    label = index + 1
+    if naming_convention.lower() == NamingConvention.LETTER.name.lower():
+        label = chr(ord('A') + index)
+    return str(label)
 
 
 def create_resolution_metadata(source):

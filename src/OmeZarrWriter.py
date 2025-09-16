@@ -28,11 +28,6 @@ class OmeZarrWriter(OmeWriter):
         self.verbose = verbose
 
     def write(self, filepath, source, **kwargs):
-        window_scanner = WindowScanner()
-        window_scanner.process(source.get_data('B2'), source.get_dim_order())
-        window = window_scanner.get_window()
-
-
         if source.is_screen():
             zarr_root, total_size = self._write_screen(filepath, source, **kwargs)
         else:

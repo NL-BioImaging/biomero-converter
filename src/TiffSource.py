@@ -3,7 +3,7 @@ import numpy as np
 import os.path
 from tifffile import TiffFile
 
-from ome_tiff_util import metadata_to_dict
+from ome_tiff_util import metadata_to_dict, create_col_row_label
 from src.color_conversion import int_to_rgba
 from src.ImageSource import ImageSource
 from src.util import convert_to_um, ensure_list
@@ -47,8 +47,8 @@ class TiffSource(ImageSource):
                 columns = set()
                 wells = {}
                 for well in plate['Well']:
-                    row = chr(ord('A') + well['Row'])
-                    column = well['Column']
+                    row = create_col_row_label(well['Row'], plate['RowNamingConvention'])
+                    column = create_col_row_label(well['Column'], plate['ColumnNamingConvention'])
                     rows.add(row)
                     columns.add(column)
                     label = f'{row}{column}'
