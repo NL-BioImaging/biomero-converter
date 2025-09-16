@@ -107,6 +107,9 @@ def create_image_metadata(source, image_uuid=None, image_filename=None):
         pixels.physical_size_z_unit = UnitsLength.MICROMETER
 
     image = Image(pixels=pixels)
+    index = pixels.id.split(':')[1]
+    for channeli, channel in enumerate(pixels.channels):
+        channel.id = f'Channel:{index}:{channeli}'
     return image
 
 
