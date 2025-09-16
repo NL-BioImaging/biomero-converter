@@ -94,7 +94,7 @@ def create_channel_metadata(dtype, channels, nchannels, window, ome_version):
     omezarr_channels = []
     start, end = window
     for channeli, channel in enumerate(channels):
-        omezarr_channel = {'label': channel.get('label', channel.get('Name', f'{channeli}'))}
+        omezarr_channel = {'label': channel.get('label', channel.get('Name', f'{channeli}')), 'active': True}
         color = channel.get('color', channel.get('Color'))
         if color is not None:
             omezarr_channel['color'] = rgba_to_hexrgb(color)
