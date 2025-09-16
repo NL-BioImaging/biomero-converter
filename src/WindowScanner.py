@@ -2,11 +2,27 @@ import numpy as np
 
 
 class WindowScanner:
+    """
+    Computes quantile-based min/max window for image channels.
+    """
+
     def __init__(self):
+        """
+        Initialize WindowScanner.
+        """
         self.min = {}
         self.max = {}
 
     def process(self, data, dim_order, min_quantile=0.01, max_quantile=0.99):
+        """
+        Processes image data to compute min/max quantiles for each channel.
+
+        Args:
+            data (ndarray): Image data.
+            dim_order (str): Dimension order string.
+            min_quantile (float): Lower quantile.
+            max_quantile (float): Upper quantile.
+        """
         if 'c' in dim_order:
             nc = data.shape[dim_order.index('c')]
         else:
@@ -29,4 +45,10 @@ class WindowScanner:
                 self.max[channeli] = max(max1, self.max[channeli])
 
     def get_window(self):
+        """
+        Returns the computed min/max window for channels.
+
+        Returns:
+            tuple: (min dict, max dict)
+        """
         return self.min, self.max

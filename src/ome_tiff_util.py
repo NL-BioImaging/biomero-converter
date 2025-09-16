@@ -106,7 +106,7 @@ def create_image_metadata(source, image_uuid=None, image_filename=None):
         pixels.physical_size_z = pixel_size['z']
         pixels.physical_size_z_unit = UnitsLength.MICROMETER
 
-    image = Image(pixels=pixels) #id=f'Image:{image_index}', pixels=pixels)
+    image = Image(pixels=pixels)
     return image
 
 

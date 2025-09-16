@@ -9,11 +9,31 @@ from src.util import *
 
 
 class OmeTiffWriter(OmeWriter):
+    """
+    Writes image data and metadata to OME-TIFF files.
+    """
     def __init__(self, verbose=False):
+        """
+        Initialize OmeTiffWriter.
+
+        Args:
+            verbose (bool): If True, prints progress info.
+        """
         super().__init__()
         self.verbose = verbose
 
     def write(self, filepath, source, **kwargs):
+        """
+        Writes image or screen data to OME-TIFF files.
+
+        Args:
+            filepath (str): Output file path.
+            source (ImageSource): Source object.
+            **kwargs: Additional options.
+
+        Returns:
+            str or list: Output file path(s).
+        """
         if source.is_screen():
             filepath, total_size = self._write_screen(filepath, source, **kwargs)
         else:
@@ -25,6 +45,17 @@ class OmeTiffWriter(OmeWriter):
         return filepath
 
     def _write_screen(self, filename, source, **kwargs):
+        """
+        Writes multi-well screen data to separate TIFF files and companion metadata.
+
+        Args:
+            filename (str): Output file name.
+            source (ImageSource): Source object.
+            **kwargs: Additional options.
+
+        Returns:
+            tuple: (List of output paths, total data size)
+        """
         # writes separate tiff files for each field, and separate metadata companion file
         output_paths = []
         filepath, filename = os.path.split(filename)
@@ -66,6 +97,17 @@ class OmeTiffWriter(OmeWriter):
         return output_paths, total_size
 
     def _write_image(self, filename, source, **kwargs):
+        """
+        Writes single image data to a TIFF file.
+
+        Args:
+            filename (str): Output file name.
+            source (ImageSource): Source object.
+            **kwargs: Additional options.
+
+        Returns:
+            tuple: (Output path, data size)
+        """
         xml_metadata, _ = create_metadata(source)
         resolution, resolution_unit = create_resolution_metadata(source)
         data = source.get_data()
@@ -80,7 +122,24 @@ class OmeTiffWriter(OmeWriter):
     def _write_tiff(self, filename, source, data,
                   resolution=None, resolution_unit=None, tile_size=None, compression=None,
                   xml_metadata=None, pyramid_levels=0, pyramid_scale=2):
+        """
+        Writes image data to a TIFF file with optional pyramids and metadata.
 
+        Args:
+            filename (str): Output file name.
+            source (ImageSource): Source object.
+            data (ndarray): Image data.
+            resolution (tuple, optional): Pixel resolution.
+            resolution_unit (str, optional): Resolution unit.
+            tile_size (int or tuple, optional): Tile size.
+            compression (str, optional): Compression type.
+            xml_metadata (str, optional): OME-XML metadata.
+            pyramid_levels (int): Number of pyramid levels.
+            pyramid_scale (int): Pyramid downscale factor.
+
+        Returns:
+            int: Data size in bytes.
+        """
         dim_order = source.get_dim_order()
         shape = data.shape
         x_index = dim_order.index('x')

@@ -2,6 +2,18 @@ import os.path
 
 
 def create_source(filename):
+    """
+    Create an image source object based on the input file extension.
+
+    Args:
+        filename (str): Path to the input file.
+
+    Returns:
+        ImageSource: Source object for the input file.
+
+    Raises:
+        ValueError: If the file format is unsupported.
+    """
     input_ext = os.path.splitext(filename)[1].lower()
 
     if input_ext == '.db':
@@ -19,6 +31,19 @@ def create_source(filename):
 
 
 def create_writer(output_format, verbose=False):
+    """
+    Create a writer object and output extension based on the output format.
+
+    Args:
+        output_format (str): Output format string.
+        verbose (bool): If True, enables verbose output.
+
+    Returns:
+        tuple: (writer object, output file extension)
+
+    Raises:
+        ValueError: If the output format is unsupported.
+    """
     if 'zar' in output_format:
         if '3' in output_format:
             zarr_version = 3

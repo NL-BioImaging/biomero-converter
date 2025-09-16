@@ -7,6 +7,13 @@ from src.helper import create_source, create_writer
 
 
 def init_logging(log_filename, verbose=False):
+    """
+    Initialize logging to file and optionally to console.
+
+    Args:
+        log_filename (str): Path to the log file.
+        verbose (bool): If True, also log to console.
+    """
     basepath = os.path.dirname(log_filename)
     if basepath and not os.path.exists(basepath):
         os.makedirs(basepath)
@@ -22,6 +29,20 @@ def init_logging(log_filename, verbose=False):
 
 def convert(input_filename, output_folder, alt_output_folder=None,
             output_format='omezarr2', show_progress=False, verbose=False):
+    """
+    Convert an input file to OME format and write to output folder(s).
+
+    Args:
+        input_filename (str): Path to the input file.
+        output_folder (str): Output folder path.
+        alt_output_folder (str, optional): Alternative output folder path.
+        output_format (str): Output format string.
+        show_progress (bool): If True, print progress.
+        verbose (bool): If True, enable verbose logging.
+
+    Returns:
+        str: JSON string with conversion result info array.
+    """
 
     logging.info(f'Importing {input_filename}')
     source = create_source(input_filename)

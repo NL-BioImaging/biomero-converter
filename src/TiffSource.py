@@ -10,7 +10,17 @@ from src.util import convert_to_um, ensure_list
 
 
 class TiffSource(ImageSource):
+    """
+    Loads image and metadata from TIFF or OME-TIFF files.
+    """
     def __init__(self, uri, metadata={}):
+        """
+        Initialize TiffSource.
+
+        Args:
+            uri (str): Path to the TIFF file.
+            metadata (dict): Optional metadata dictionary.
+        """
         super().__init__(uri, metadata)
         image_filename = None
         ext = os.path.splitext(uri)[1].lower()
@@ -30,6 +40,12 @@ class TiffSource(ImageSource):
         self.tiff = TiffFile(image_filename)
 
     def init_metadata(self):
+        """
+        Initializes and loads metadata from the (OME) TIFF file.
+
+        Returns:
+            dict: Metadata dictionary.
+        """
         self.is_ome = self.tiff.is_ome
         self.is_imagej = self.tiff.is_imagej
         pixel_size = {'x': 1, 'y': 1}
@@ -126,36 +142,96 @@ class TiffSource(ImageSource):
         return self.metadata
 
     def is_screen(self):
+        """
+        Checks if the source is a plate/screen.
+
+        Returns:
+            bool: True if plate/screen.
+        """
         return self.is_plate
 
     def get_shape(self):
+        """
+        Returns the shape of the image data.
+
+        Returns:
+            tuple: Shape of the image data.
+        """
         return self.shape
 
     def get_data(self, well_id=None, field_id=None):
+        """
+        Gets image data from the TIFF file.
+
+        Returns:
+            ndarray: Image data.
+        """
         data = self.tiff.asarray()
         while data.ndim < len(self.dim_order):
             data = np.expand_dims(data, 0)
         return data
 
     def get_name(self):
+        """
+        Gets the image or plate name.
+
+        Returns:
+            str: Name.
+        """
         return self.name
 
     def get_dim_order(self):
+        """
+        Returns the dimension order string.
+
+        Returns:
+            str: Dimension order.
+        """
         return self.dim_order
 
     def get_dtype(self):
+        """
+        Returns the numpy dtype of the image data.
+
+        Returns:
+            dtype: Numpy dtype.
+        """
         return self.dtype
 
     def get_pixel_size_um(self):
+        """
+        Returns the pixel size in micrometers.
+
+        Returns:
+            dict: Pixel size for x, y, (and z).
+        """
         return self.pixel_size
 
     def get_position_um(self, well_id=None):
+        """
+        Returns the position in micrometers.
+
+        Returns:
+            dict: Position in micrometers.
+        """
         return self.position
 
     def get_channels(self):
+        """
+        Returns channel metadata.
+
+        Returns:
+            list: List of channel dicts.
+        """
         return self.channels
 
     def get_nchannels(self):
+        """
+        Returns the number of channels.
+
+        Returns:
+            int: Number of channels.
+        """
         nchannels = 1
         if 'c' in self.dim_order:
             c_index = self.dim_order.index('c')
@@ -163,38 +239,92 @@ class TiffSource(ImageSource):
         return nchannels
 
     def get_rows(self):
+        """
+        Returns the list of row identifiers.
+
+        Returns:
+            list: Row identifiers.
+        """
         return self.rows
 
     def get_columns(self):
+        """
+        Returns the list of column identifiers.
+
+        Returns:
+            list: Column identifiers.
+        """
         return self.columns
 
     def get_wells(self):
+        """
+        Returns the list of well identifiers.
+
+        Returns:
+            list: Well identifiers.
+        """
         return self.wells
 
     def get_time_points(self):
+        """
+        Returns the list of time points.
+
+        Returns:
+            list: Time point IDs.
+        """
         nt = 1
         if 't' in self.dim_order:
             t_index = self.dim_order.index('t')
             nt = self.tiff.pages.first.shape[t_index]
-        return nt
+        return list(range(nt))
 
     def get_fields(self):
+        """
+        Returns the list of field indices.
+
+        Returns:
+            list: Field indices.
+        """
         return self.fields
 
     def get_acquisitions(self):
+        """
+        Returns acquisition metadata (empty for TIFF).
+
+        Returns:
+            list: Empty list.
+        """
         return []
 
     def get_total_data_size(self):
+        """
+        Returns the estimated total data size.
+
+        Returns:
+            int: Total data size in bytes.
+        """
         total_size = np.prod(self.shape)
         if self.is_plate:
             total_size *= len(self.get_wells()) * len(self.get_fields())
         return total_size
 
     def close(self):
+        """
+        Closes the TIFF file.
+        """
         self.tiff.close()
 
 
 def tags_to_dict(tags):
+    """
+    Converts TIFF tags to a dictionary.
+
+    Args:
+        tags: TIFF tags object.
+
+    Returns:
+        dict: Tag name-value mapping.
+    """
     tag_dict = {}
     for tag in tags.values():
         tag_dict[tag.name] = tag.value
@@ -202,6 +332,15 @@ def tags_to_dict(tags):
 
 
 def convert_rational_value(value):
+    """
+    Converts a rational value tuple to a float.
+
+    Args:
+        value (tuple or None): Rational value.
+
+    Returns:
+        float or None: Converted value.
+    """
     if value is not None and isinstance(value, tuple):
         if value[0] == value[1]:
             value = value[0]
