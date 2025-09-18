@@ -100,7 +100,8 @@ class ImageSource(ABC):
 
     def get_channels(self):
         """
-        Get channel metadata.
+        Get channel metadata in NGFF format, color provided as RGBA list with values between 0 and 1
+        e.g. white = [1, 1, 1, 1]
 
         Raises:
             NotImplementedError: Must be implemented by subclasses.
