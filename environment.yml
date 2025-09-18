@@ -9,4 +9,7 @@ dependencies:
  - ome-zarr
  - tifffile
  - ome-types
+ - dask[array]
  - pip
+ - pip:
+   - pyisyntax

@@ -2,6 +2,7 @@
 # which is based on https://github.com/amspath/libisyntax
 
 
+import dask.array as da
 from isyntax import ISyntax
 import numpy as np
 from xml.etree import ElementTree
@@ -99,7 +100,9 @@ class ISyntaxSource(ImageSource):
         Returns:
             ndarray: Image data.
         """
-        return self.isyntax.read_region(0, 0, self.width, self.height)
+        #data = self.isyntax.read_region(0, 0, self.width, self.height)
+        data = da.map_blocks(self.isyntax.read_region)
+        return data
 
     def get_name(self):
         """
