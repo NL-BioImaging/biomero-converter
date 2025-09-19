@@ -108,7 +108,7 @@ class OmeTiffWriter(OmeWriter):
         Returns:
             tuple: (Output path, data size)
         """
-        xml_metadata, _ = create_metadata(source)
+        xml_metadata = create_metadata(source)
         resolution, resolution_unit = create_resolution_metadata(source)
         data = source.get_data()
 

@@ -16,8 +16,8 @@ class TestConvert:
     #basedir = 'D:/slides/DB/'
     #basedir = 'C:/Project/slides/Ome-tiff/'
     #basedir = 'E:/Personal/Crick/slides/test_images/'
-    basedir = 'C:/Project/slides/isyntax/'
-    #basedir = 'D:/slides/isyntax/'
+    #basedir = 'C:/Project/slides/isyntax/'
+    basedir = 'D:/slides/isyntax/'
 
     #filename = 'TestData1/experiment.db'
     #filename = '2ChannelPlusTL/experiment.db'

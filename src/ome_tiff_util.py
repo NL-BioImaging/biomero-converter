@@ -20,12 +20,14 @@ def create_uuid():
     return f'urn:uuid:{uuid.uuid4()}'
 
 
-def create_metadata(source, companion_uuid=None, image_uuids=None, image_filenames=None):
+def create_metadata(source, uuid=None, image_uuids=None, image_filenames=None):
     ome = OME()
-    ome.uuid = companion_uuid
+    if uuid is None:
+        uuid = create_uuid()
+    ome.uuid = uuid
     ome.creator = f'nl.biomero.OmeTiffWriter {VERSION}'
 
-    if source.is_screen:
+    if source.is_screen():
         columns = source.get_columns()
         rows = source.get_rows()
 
@@ -74,6 +76,7 @@ def create_metadata(source, companion_uuid=None, image_uuids=None, image_filenam
 
 
 def create_image_metadata(source, image_uuid=None, image_filename=None):
+    dim_order = 'tczyx'
     t, c, z, y, x = source.get_shape()
     pixel_size = source.get_pixel_size_um()
     ome_channels = []
@@ -90,7 +93,7 @@ def create_image_metadata(source, image_uuid=None, image_filename=None):
     tiff_data.uuid = TiffData.UUID(value=image_uuid, file_name=image_filename)
 
     pixels = Pixels(
-        dimension_order=source.get_dim_order()[::-1].upper(),
+        dimension_order=Pixels_DimensionOrder(dim_order[::-1].upper()),
         type=PixelType(str(source.get_dtype())),
         channels=ome_channels,
         size_t=t, size_c=c, size_z=z, size_y=y, size_x=x,
