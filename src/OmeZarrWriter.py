@@ -7,7 +7,7 @@ import zarr
 
 from src.OmeWriter import OmeWriter
 from src.ome_zarr_util import *
-from src.parameters import VERSION
+from src.parameters import *
 from src.util import split_well_name, print_hbytes
 from src.WindowScanner import WindowScanner
 
@@ -76,7 +76,7 @@ class OmeZarrWriter(OmeWriter):
         zarr_location = filepath
         zarr_root = zarr.open_group(zarr_location, mode='w', zarr_version=self.zarr_version)
 
-        data = source.get_data()
+        data = source.get_data(as_dask=True)
         size = self._write_data(zarr_root, data, source)
         return zarr_root, size
 
@@ -88,20 +88,19 @@ class OmeZarrWriter(OmeWriter):
         axes = create_axes_metadata(dim_order)
         pixel_size_scales, scaler = self._create_scale_metadata(source, dim_order, position)
 
+        storage_options = None
         if self.zarr_version >= 3:
-            shards = []
-            chunks = []
-            # TODO: don't redefine chunks for dask/+ arrays
-            for dim, n in zip(dim_order, data.shape):
-                if dim in 'xy':
-                    shards += [10240]
-                    chunks += [1024]
-                else:
-                    shards += [1]
-                    chunks += [1]
-            storage_options = {'chunks': chunks, 'shards': shards}
-        else:
-            storage_options = None
+            if not hasattr(data, 'chunksize'):
+                chunks = []
+                shards = []
+                for dim, n in zip(dim_order, data.shape):
+                    if dim in 'xy':
+                        chunks += [ZARR_CHUNK_SIZE]
+                        shards += [ZARR_CHUNK_SIZE * ZARR_SHARD_MULTIPLIER]
+                    else:
+                        chunks += [1]
+                        shards += [1]
+                storage_options = {'chunks': chunks, 'shards': shards}
 
         size = data.size * data.itemsize
         write_image(image=data, group=group, axes=axes, coordinate_transformations=pixel_size_scales,

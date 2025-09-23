@@ -1,10 +1,10 @@
-import numpy as np
 import os.path
 from skimage.transform import resize
 from tifffile import TiffWriter
 
 from src.ome_tiff_util import create_metadata, create_binaryonly_metadata, create_resolution_metadata, create_uuid
 from src.OmeWriter import OmeWriter
+from src.parameters import *
 from src.util import *
 
 
@@ -81,7 +81,7 @@ class OmeTiffWriter(OmeWriter):
 
                 size = self._write_tiff(filename, source, data,
                                         resolution=resolution, resolution_unit=resolution_unit,
-                                        tile_size=kwargs.get('tile_size'), compression=kwargs.get('compression'),
+                                        tile_size=TILE_SIZE, compression=TIFF_COMPRESSION,
                                         xml_metadata=xml_metadata, pyramid_levels=4)
 
                 image_uuids.append(image_uuid)
@@ -114,7 +114,7 @@ class OmeTiffWriter(OmeWriter):
 
         size = self._write_tiff(filename, source, data,
                                 resolution=resolution, resolution_unit=resolution_unit,
-                                tile_size=kwargs.get('tile_size'), compression=kwargs.get('compression'),
+                                tile_size=TILE_SIZE, compression=TIFF_COMPRESSION,
                                 xml_metadata=xml_metadata, pyramid_levels=4)
 
         return filename, size
@@ -144,11 +144,13 @@ class OmeTiffWriter(OmeWriter):
         shape = data.shape
         x_index = dim_order.index('x')
         y_index = dim_order.index('y')
-        size = shape[x_index], shape[y_index]
         source_type = source.get_dtype()
 
-        if tile_size is not None and isinstance(tile_size, int):
-            tile_size = [tile_size] * 2
+        if tile_size is not None:
+            if isinstance(tile_size, int):
+                tile_size = [tile_size] * 2
+            if tile_size[0] > shape[-2] or tile_size[1] > shape[-1]:
+                tile_size = None
 
         if resolution is not None:
             # tifffile only supports x/y pyramid resolution
@@ -163,15 +165,14 @@ class OmeTiffWriter(OmeWriter):
             is_ome = True
 
         # maximum size (w/o compression)
-        max_size = data.size * data.itemsize
-        base_size = np.divide(max_size, np.prod(size))
+        data_size = data.size * data.itemsize
+        max_size = 0
         scale = 1
-        for level in range(pyramid_levels):
-            max_size += np.prod(size) * scale * base_size
+        for level in range(1 + pyramid_levels):
+            max_size += data_size * scale ** 2
             scale /= pyramid_scale
         bigtiff = (max_size > 2 ** 32)
 
-        size = data.size * data.itemsize
         with TiffWriter(filename, bigtiff=bigtiff, ome=is_ome) as writer:
             for level in range(pyramid_levels + 1):
                 if level == 0:
@@ -190,4 +191,4 @@ class OmeTiffWriter(OmeWriter):
                 writer.write(data.astype(source_type), subifds=subifds, subfiletype=subfiletype,
                              resolution=resolution, resolutionunit=resolution_unit, tile=tile_size,
                              compression=compression, description=xml_metadata_bytes)
-        return size
+        return data_size

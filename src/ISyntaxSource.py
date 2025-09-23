@@ -2,12 +2,14 @@
 # which is based on https://github.com/amspath/libisyntax
 
 
+import dask
 import dask.array as da
 from isyntax import ISyntax
 import numpy as np
 from xml.etree import ElementTree
 
 from src.ImageSource import ImageSource
+from src.parameters import *
 from src.util import get_filetitle, xml_content_to_dict
 
 
@@ -60,9 +62,10 @@ class ISyntaxSource(ImageSource):
 
         # original color channels get converted in pyisyntax package to 8-bit RGBA
         nbits = 8
-        self.dim_order = 'yxc'
         self.channels = []
         self.nchannels = 4
+        self.source_order = 'yxc'
+        self.dim_order = 'tczyx'
 
         self.isyntax = ISyntax.open(self.uri)
         self.width, self.height = self.isyntax.dimensions
@@ -89,19 +92,39 @@ class ISyntaxSource(ImageSource):
         """
         return self.shape
 
-    def get_data(self, well_id=None, field_id=None):
+    def get_data(self, well_id=None, field_id=None, as_dask=False):
         """
         Gets image data for a specific well and field.
-
-        Args:
-            well_id (str, optional): Well identifier.
-            field_id (int, optional): Field index.
 
         Returns:
             ndarray: Image data.
         """
-        #data = self.isyntax.read_region(0, 0, self.width, self.height)
-        data = da.map_blocks(self.isyntax.read_region)
+
+        def get_lazy_tile(x, y, width, height):
+            lazy_array = dask.delayed(self.isyntax.read_region)(x, y, width, height)
+            return da.from_delayed(lazy_array, shape=(height, width, self.nchannels), dtype=self.dtype)
+
+        if as_dask:
+            shape = self.shape[-2:]
+            y_chunks, x_chunks = da.core.normalize_chunks(TILE_SIZE, shape, dtype=self.dtype)
+            rows = []
+            x = 0
+            y = 0
+            for height in y_chunks:
+                row = []
+                for width in x_chunks:
+                    row.append(get_lazy_tile(x, y, width, height))
+                    x += width
+                rows.append(da.concatenate(row, axis=1))
+                y += height
+            data = da.concatenate(rows, axis=0)
+        else:
+            data = self.isyntax.read_region(0, 0, self.width, self.height)
+
+        # convert YXC to TCZYX:
+        data = np.expand_dims(data, 0)
+        data = np.moveaxis(data, -1, 0)
+        data = np.expand_dims(data, 0)
         return data
 
     def get_name(self):

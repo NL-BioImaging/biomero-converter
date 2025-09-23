@@ -8,18 +8,18 @@ from converter import init_logging, convert
 from src.helper import create_source
 from src.TiffSource import TiffSource
 from src.Timer import Timer
-from src.util import print_dict, print_hbytes
+from src.util import print_dict
 
 
 class TestConvert:
     #basedir = 'C:/Project/slides/DB/'
-    #basedir = 'D:/slides/DB/'
+    basedir = 'D:/slides/DB/'
     #basedir = 'C:/Project/slides/Ome-tiff/'
     #basedir = 'E:/Personal/Crick/slides/test_images/'
     #basedir = 'C:/Project/slides/isyntax/'
-    basedir = 'D:/slides/isyntax/'
+    #basedir = 'D:/slides/isyntax/'
 
-    #filename = 'TestData1/experiment.db'
+    filename = 'TestData1/experiment.db'
     #filename = '2ChannelPlusTL/experiment.db'
     #filename = 'PicoData16ProcCoverag/experiment.db'
     #filename = '241209 - TC1 TC9 test MSP MUB/experiment.db'
@@ -28,7 +28,7 @@ class TestConvert:
     #filename = 'NIRHTa-001.ome.tiff'
     #filename = 'signed single-channel.ome.tiff'
     #filename = 'volumetric Broken_NE_cropped.tif'
-    filename = 'small.isyntax'
+    #filename = 'small.isyntax'
     #filename = 'test-isyntax.isyntax'
 
     input_filename = basedir + filename
@@ -60,7 +60,6 @@ class TestConvert:
             if source.is_screen():
                 print(source.print_well_matrix())
                 print(source.print_timepoint_well_matrix())
-            print(f'Total data size:    {print_hbytes(source.get_total_data_size())}')
 
         #print(print_dict(metadata))
         source_pixel_size = source.get_pixel_size_um()
@@ -112,6 +111,6 @@ if __name__ == '__main__':
 
     test = TestConvert()
     input_filename = test.input_filename
-    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'ometiff', alt_output_folder=tempfile.TemporaryDirectory().name)
-    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr2', alt_output_folder=tempfile.TemporaryDirectory().name)
-    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr3', alt_output_folder=tempfile.TemporaryDirectory().name)
+    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'ometiff', alt_output_folder=tempfile.TemporaryDirectory().name, verbose=True)
+    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr2', alt_output_folder=tempfile.TemporaryDirectory().name, verbose=True)
+    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr3', alt_output_folder=tempfile.TemporaryDirectory().name, verbose=True)

@@ -31,7 +31,7 @@ def create_axes_metadata(dimension_order):
     return axes
 
 
-def create_transformation_metadata(dimension_order, pixel_size_um, scale, translation_um={}):
+def create_transformation_metadata(dimension_order, pixel_size_um, scale, translation_um=None):
     """
     Create transformation metadata (scale and translation) for OME-Zarr.
 
@@ -55,10 +55,11 @@ def create_transformation_metadata(dimension_order, pixel_size_um, scale, transl
             pixel_size_scale1 /= scale
         pixel_size_scale.append(pixel_size_scale1)
 
-        translation1 = translation_um.get(dimension, 0)
-        if dimension in ['x', 'y']:
-            translation1 *= scale
-        translation_scale.append(translation1)
+        if translation_um is not None:
+            translation1 = translation_um.get(dimension, 0)
+            if dimension in ['x', 'y']:
+                translation1 *= scale
+            translation_scale.append(translation1)
 
     metadata.append({'type': 'scale', 'scale': pixel_size_scale})
     if not all(v == 0 for v in translation_scale):

@@ -1,11 +1,14 @@
+import dask
+import dask.array as da
 from enum import Enum
 import numpy as np
 import os.path
-from tifffile import TiffFile
+from tifffile import TiffFile, imread
 
-from src.ome_tiff_util import metadata_to_dict, create_col_row_label
-from src.color_conversion import int_to_rgba
 from src.ImageSource import ImageSource
+from src.color_conversion import int_to_rgba
+from src.ome_tiff_util import metadata_to_dict, create_col_row_label
+from src.parameters import TILE_SIZE
 from src.util import convert_to_um, ensure_list
 
 
@@ -51,6 +54,14 @@ class TiffSource(ImageSource):
         pixel_size = {'x': 1, 'y': 1}
         position = {}
         channels = []
+
+        if self.tiff.series:
+            page = self.tiff.series[0]
+        else:
+            page = self.tiff.pages.first
+        self.source_shape = page.shape
+        self.source_dim_order = page.axes.lower().replace('s', 'c').replace('r', '')
+
         if self.is_ome:
             metadata = metadata_to_dict(self.tiff.ome_metadata)
             if metadata and not 'BinaryOnly' in metadata:
@@ -58,7 +69,7 @@ class TiffSource(ImageSource):
             self.is_plate = 'Plate' in self.metadata
             if self.is_plate:
                 plate = self.metadata['Plate']
-                self.name = plate.get('Name')
+                self.name = plate.get('Name', '')
                 rows = set()
                 columns = set()
                 wells = {}
@@ -73,7 +84,8 @@ class TiffSource(ImageSource):
                 self.columns = list(columns)
                 self.wells = list(wells.keys())
             else:
-                self.name = self.metadata['Image'].get('Name')
+                self.name = self.metadata['Image'].get('Name', '')
+            self.name = self.name.rstrip('.tiff').rstrip('.tif').rstrip('.ome')
             pixels = ensure_list(self.metadata.get('Image', []))[0].get('Pixels', {})
             self.shape = pixels.get('SizeT'), pixels.get('SizeC'), pixels.get('SizeZ'), pixels.get('SizeY'), pixels.get('SizeX')
             self.dim_order = ''.join(reversed(pixels['DimensionOrder'].lower()))
@@ -113,14 +125,10 @@ class TiffSource(ImageSource):
                     pixel_size['z'] = convert_to_um(self.imagej_metadata['spacing'], pixel_size_unit)
             self.metadata = tags_to_dict(self.tiff.pages.first.tags)
             self.name = os.path.splitext(self.tiff.filename)[0]
-            if self.tiff.series:
-                page = self.tiff.series[0]
-            else:
-                page = self.tiff.pages.first
-            self.shape = page.shape
+            self.shape = list(self.source_shape)
             while len(self.shape) < 5:
                 self.shape = tuple([1] + list(self.shape))
-            self.dim_order = page.axes.lower().replace('s', 'c').replace('r', '')
+            self.dim_order = 'tczyx'
             self.dtype = page.dtype
             res_unit = self.metadata.get('ResolutionUnit', '')
             if isinstance(res_unit, Enum):
@@ -159,14 +167,19 @@ class TiffSource(ImageSource):
         """
         return self.shape
 
-    def get_data(self, well_id=None, field_id=None):
+    def get_data(self, well_id=None, field_id=None, as_dask=False):
         """
         Gets image data from the TIFF file.
 
         Returns:
             ndarray: Image data.
         """
-        data = self.tiff.asarray()
+        if as_dask:
+            lazy_array = dask.delayed(imread)(self.uri)
+            data = da.from_delayed(lazy_array, shape=self.source_shape, dtype=self.dtype)
+            data = data.rechunk(TILE_SIZE)
+        else:
+            data = self.tiff.asarray()
         while data.ndim < len(self.dim_order):
             data = np.expand_dims(data, 0)
         return data

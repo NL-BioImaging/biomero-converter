@@ -29,7 +29,7 @@ class WindowScanner:
             nc = 1
         for channeli in range(nc):
             if 'c' in dim_order:
-                channel_data = data.take(channeli, axis=dim_order.index('c'))
+                channel_data = np.take(data, channeli, axis=dim_order.index('c'))
             else:
                 channel_data = data
             min1, max1 = np.quantile(channel_data, q=[min_quantile, max_quantile])

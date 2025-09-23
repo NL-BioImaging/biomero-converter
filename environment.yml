@@ -8,8 +8,9 @@ dependencies:
  - zarr
  - ome-zarr
  - tifffile
- - ome-types
+ - imagecodecs
  - dask[array]
+ - ome-types
  - pip
  - pip:
    - pyisyntax

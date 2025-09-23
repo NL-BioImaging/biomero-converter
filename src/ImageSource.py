@@ -44,9 +44,14 @@ class ImageSource(ABC):
         """
         raise NotImplementedError("The 'get_shape' method must be implemented by subclasses.")
 
-    def get_data(self, well_id=None, field_id=None):
+    def get_data(self, well_id=None, field_id=None, as_dask=False):
         """
         Get image data for a well and field.
+
+        Args:
+            well_id (str, optional): Well identifier
+            field_id (int, optional): Field identifier
+            as_dask (bool): If True, attempt to return a dask array. Default is False.
 
         Raises:
             NotImplementedError: Must be implemented by subclasses.
