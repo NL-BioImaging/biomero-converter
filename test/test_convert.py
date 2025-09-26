@@ -17,10 +17,11 @@ from src.util import print_dict
 class TestConvert:
     #basedir = 'C:/Project/slides/DB/'
     #basedir = 'D:/slides/DB/'
-    basedir = 'C:/Project/slides/Ome-tiff/'
+    #basedir = 'C:/Project/slides/Ome-tiff/'
     #basedir = 'E:/Personal/Crick/slides/test_images/'
     #basedir = 'C:/Project/slides/isyntax/'
     #basedir = 'D:/slides/isyntax/'
+    basedir = 'D:/slides/'
 
     #filename = 'TestData1/experiment.db'
     #filename = '2ChannelPlusTL/experiment.db'
@@ -115,6 +116,6 @@ if __name__ == '__main__':
 
     test = TestConvert()
     input_filename = test.input_filename
-    #test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'ometiff', alt_output_folder=tempfile.TemporaryDirectory().name, verbose=True)
-    #test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr2', alt_output_folder=tempfile.TemporaryDirectory().name, verbose=True)
+    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'ometiff', alt_output_folder=tempfile.TemporaryDirectory().name, verbose=True)
+    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr2', alt_output_folder=tempfile.TemporaryDirectory().name, verbose=True)
     test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr3', alt_output_folder=tempfile.TemporaryDirectory().name, verbose=True)

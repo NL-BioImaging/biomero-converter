@@ -90,6 +90,10 @@ class OmeZarrWriter(OmeWriter):
 
         axes = create_axes_metadata(dim_order)
         pixel_size_scales, scaler = self._create_scale_metadata(source, dim_order, position)
+        window_scanner.process(data, dim_order)
+        window = window_scanner.get_window()
+        metadata = {'omero': create_channel_metadata(dtype, channels, nchannels, is_rgb, window, self.ome_version),
+                    'metadata': {'method': scaler.method}}
 
         storage_options = None
         if self.zarr_version >= 3:
@@ -107,11 +111,9 @@ class OmeZarrWriter(OmeWriter):
 
         size = data.size * data.itemsize
         write_image(image=data, group=group, axes=axes, coordinate_transformations=pixel_size_scales,
-                    scaler=scaler, fmt=self.ome_format, storage_options=storage_options)
+                    scaler=scaler, fmt=self.ome_format, storage_options=storage_options,
+                    name=source.get_name(), metadata=metadata)
 
-        window_scanner.process(data, dim_order)
-        window = window_scanner.get_window()
-        group.attrs['omero'] = create_channel_metadata(dtype, channels, nchannels, is_rgb, window, self.ome_version)
         return size
 
     def _create_scale_metadata(self, source, dim_order, translation, scaler=None):

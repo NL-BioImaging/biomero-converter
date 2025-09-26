@@ -105,6 +105,7 @@ def create_channel_metadata(dtype, channels, nchannels, is_rgb, window, ome_vers
             info = np.iinfo(dtype)
             min, max = info.min, info.max
         if is_rgb and dtype == np.uint8:
+            # For RGB(A) uint8 images don't change color value range
             start, end = min, max
         else:
             start, end = starts[channeli], ends[channeli]
