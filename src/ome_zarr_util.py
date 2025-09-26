@@ -67,7 +67,7 @@ def create_transformation_metadata(dimension_order, pixel_size_um, scale, transl
     return metadata
 
 
-def create_channel_metadata(dtype, channels, nchannels, window, ome_version):
+def create_channel_metadata(dtype, channels, nchannels, is_rgb, window, ome_version):
     """
     Create channel metadata for OME-Zarr.
 
@@ -84,16 +84,16 @@ def create_channel_metadata(dtype, channels, nchannels, window, ome_version):
     if len(channels) < nchannels:
         labels = []
         colors = []
-        if nchannels in (3, 4):
+        if is_rgb and nchannels in (3, 4):
             labels = ['Red', 'Green', 'Blue']
-            colors = ["FF0000", "00FF00", "0000FF"]
-        if nchannels == 4:
+            colors = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+        if is_rgb and nchannels == 4:
             labels += ['Alpha']
-            colors += ["FFFFFF"]
+            colors += [(1, 1, 1)]
         channels = [{'label': label, 'color': color} for label, color in zip(labels, colors)]
 
     omezarr_channels = []
-    start, end = window
+    starts, ends = window
     for channeli, channel in enumerate(channels):
         omezarr_channel = {'label': channel.get('label', channel.get('Name', f'{channeli}')), 'active': True}
         color = channel.get('color', channel.get('Color'))
@@ -104,7 +104,11 @@ def create_channel_metadata(dtype, channels, nchannels, window, ome_version):
         else:
             info = np.iinfo(dtype)
             min, max = info.min, info.max
-        omezarr_channel['window'] = {'min': min, 'max': max, 'start': start[channeli], 'end': end[channeli]}
+        if is_rgb and dtype == np.uint8:
+            start, end = min, max
+        else:
+            start, end = starts[channeli], ends[channeli]
+        omezarr_channel['window'] = {'min': min, 'max': max, 'start': start, 'end': end}
         omezarr_channels.append(omezarr_channel)
 
     metadata = {

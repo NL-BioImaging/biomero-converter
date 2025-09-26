@@ -3,7 +3,7 @@ import dask.array as da
 from enum import Enum
 import numpy as np
 import os.path
-from tifffile import TiffFile, imread
+from tifffile import TiffFile, imread, PHOTOMETRIC
 
 from src.ImageSource import ImageSource
 from src.color_conversion import int_to_rgba
@@ -59,6 +59,7 @@ class TiffSource(ImageSource):
             page = self.tiff.series[0]
         else:
             page = self.tiff.pages.first
+        self.is_photometric_rgb = (self.tiff.pages.first.photometric == PHOTOMETRIC.RGB)
         self.source_shape = page.shape
         self.source_dim_order = page.axes.lower().replace('s', 'c').replace('r', '')
 
@@ -125,9 +126,18 @@ class TiffSource(ImageSource):
                     pixel_size['z'] = convert_to_um(self.imagej_metadata['spacing'], pixel_size_unit)
             self.metadata = tags_to_dict(self.tiff.pages.first.tags)
             self.name = os.path.splitext(self.tiff.filename)[0]
-            self.shape = list(self.source_shape)
-            while len(self.shape) < 5:
-                self.shape = tuple([1] + list(self.shape))
+            nt, nc, nz, ny, nx = 1, 1, 1, 1, 1
+            if 't' in self.source_dim_order:
+                nt = self.source_shape[self.source_dim_order.index('t')]
+            if 'c' in self.source_dim_order:
+                nc = self.source_shape[self.source_dim_order.index('c')]
+            if 'z' in self.source_dim_order:
+                nz = self.source_shape[self.source_dim_order.index('z')]
+            if 'y' in self.source_dim_order:
+                ny = self.source_shape[self.source_dim_order.index('y')]
+            if 'x' in self.source_dim_order:
+                nx = self.source_shape[self.source_dim_order.index('x')]
+            self.shape = nt, nc, nz, ny, nx
             self.dim_order = 'tczyx'
             self.dtype = page.dtype
             res_unit = self.metadata.get('ResolutionUnit', '')
@@ -180,7 +190,13 @@ class TiffSource(ImageSource):
             data = data.rechunk(TILE_SIZE)
         else:
             data = self.tiff.asarray()
-        while data.ndim < len(self.dim_order):
+        if 'z' not in self.source_dim_order:
+            data = np.expand_dims(data, 0)
+        if 'c' not in self.source_dim_order:
+            data = np.expand_dims(data, 0)
+        elif self.source_dim_order.endswith('c'):
+            data = np.moveaxis(data, -1, 0)
+        if 't' not in self.source_dim_order:
             data = np.expand_dims(data, 0)
         return data
 
@@ -245,11 +261,13 @@ class TiffSource(ImageSource):
         Returns:
             int: Number of channels.
         """
-        nchannels = 1
-        if 'c' in self.dim_order:
-            c_index = self.dim_order.index('c')
-            nchannels = self.tiff.pages.first.shape[c_index]
-        return nchannels
+        return self.shape[1]
+
+    def is_rgb(self):
+        """
+        Check if the source is a RGB(A) image.
+        """
+        return self.is_photometric_rgb
 
     def get_rows(self):
         """

@@ -122,6 +122,12 @@ class ImageSource(ABC):
         """
         raise NotImplementedError("The 'get_nchannels' method must be implemented by subclasses.")
 
+    def is_rgb(self):
+        """
+        Check if the source is a RGB(A) image.
+        """
+        raise NotImplementedError("The 'is_rgb' method must be implemented by subclasses.")
+
     def get_rows(self):
         """
         Get the list of row identifiers.

@@ -1,8 +1,11 @@
 import json
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
+import os
 import pytest
+import sys
 import tempfile
+sys.path.append(os.getcwd())
 
 from converter import init_logging, convert
 from src.helper import create_source
@@ -13,13 +16,13 @@ from src.util import print_dict
 
 class TestConvert:
     #basedir = 'C:/Project/slides/DB/'
-    basedir = 'D:/slides/DB/'
-    #basedir = 'C:/Project/slides/Ome-tiff/'
+    #basedir = 'D:/slides/DB/'
+    basedir = 'C:/Project/slides/Ome-tiff/'
     #basedir = 'E:/Personal/Crick/slides/test_images/'
     #basedir = 'C:/Project/slides/isyntax/'
     #basedir = 'D:/slides/isyntax/'
 
-    filename = 'TestData1/experiment.db'
+    #filename = 'TestData1/experiment.db'
     #filename = '2ChannelPlusTL/experiment.db'
     #filename = 'PicoData16ProcCoverag/experiment.db'
     #filename = '241209 - TC1 TC9 test MSP MUB/experiment.db'
@@ -28,6 +31,7 @@ class TestConvert:
     #filename = 'NIRHTa-001.ome.tiff'
     #filename = 'signed single-channel.ome.tiff'
     #filename = 'volumetric Broken_NE_cropped.tif'
+    filename = 'rgb.tiff'
     #filename = 'small.isyntax'
     #filename = 'test-isyntax.isyntax'
 
@@ -111,6 +115,6 @@ if __name__ == '__main__':
 
     test = TestConvert()
     input_filename = test.input_filename
-    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'ometiff', alt_output_folder=tempfile.TemporaryDirectory().name, verbose=True)
-    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr2', alt_output_folder=tempfile.TemporaryDirectory().name, verbose=True)
+    #test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'ometiff', alt_output_folder=tempfile.TemporaryDirectory().name, verbose=True)
+    #test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr2', alt_output_folder=tempfile.TemporaryDirectory().name, verbose=True)
     test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr3', alt_output_folder=tempfile.TemporaryDirectory().name, verbose=True)

@@ -10,8 +10,8 @@ class WindowScanner:
         """
         Initialize WindowScanner.
         """
-        self.min = {}
-        self.max = {}
+        self.mins = []
+        self.maxs = []
 
     def process(self, data, dim_order, min_quantile=0.01, max_quantile=0.99):
         """
@@ -23,26 +23,20 @@ class WindowScanner:
             min_quantile (float): Lower quantile.
             max_quantile (float): Upper quantile.
         """
-        if 'c' in dim_order:
-            nc = data.shape[dim_order.index('c')]
+        axis = []
+        if 't' in dim_order:
+            axis += [dim_order.index('t')]
+        if 'z' in dim_order:
+            axis += [dim_order.index('z')]
+        axis += [dim_order.index('y'), dim_order.index('x')]
+        values = np.quantile(data, axis=axis, q=[min_quantile, max_quantile])
+        mins, maxs = values
+        if len(self.mins) == 0:
+            self.mins = mins
+            self.maxs = maxs
         else:
-            nc = 1
-        for channeli in range(nc):
-            if 'c' in dim_order:
-                channel_data = np.take(data, channeli, axis=dim_order.index('c'))
-            else:
-                channel_data = data
-            min1, max1 = np.quantile(channel_data, q=[min_quantile, max_quantile])
-            if data.dtype.kind in ['u', 'i']:
-                min1, max1 = int(min1), int(max1)
-            if channeli not in self.min:
-                self.min[channeli] = min1
-            else:
-                self.min[channeli] = min(min1, self.min[channeli])
-            if channeli not in self.max:
-                self.max[channeli] = max1
-            else:
-                self.max[channeli] = max(max1, self.max[channeli])
+            self.mins = np.min([mins, self.mins], axis=0)
+            self.maxs = np.max([maxs, self.maxs], axis=0)
 
     def get_window(self):
         """
@@ -51,4 +45,4 @@ class WindowScanner:
         Returns:
             tuple: (min dict, max dict)
         """
-        return self.min, self.max
+        return np.array(self.mins).tolist(), np.array(self.maxs).tolist()

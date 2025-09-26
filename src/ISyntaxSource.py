@@ -190,6 +190,12 @@ class ISyntaxSource(ImageSource):
         """
         return self.nchannels
 
+    def is_rgb(self):
+        """
+        Check if the source is a RGB(A) image.
+        """
+        return True
+
     def get_rows(self):
         """
         Returns the list of row identifiers (empty for ISyntax).

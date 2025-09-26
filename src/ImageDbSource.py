@@ -407,6 +407,12 @@ class ImageDbSource(ImageSource):
         """
         return max(self.metadata['num_channels'], 1)
 
+    def is_rgb(self):
+        """
+        Check if the source is a RGB(A) image.
+        """
+        return False
+
     def get_acquisitions(self):
         """
         Returns acquisition metadata.
