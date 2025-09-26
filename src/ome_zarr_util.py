@@ -104,11 +104,10 @@ def create_channel_metadata(dtype, channels, nchannels, is_rgb, window, ome_vers
         else:
             info = np.iinfo(dtype)
             min, max = info.min, info.max
-        if is_rgb and dtype == np.uint8:
-            # For RGB(A) uint8 images don't change color value range
-            start, end = min, max
-        else:
+        if starts and ends:
             start, end = starts[channeli], ends[channeli]
+        else:
+            start, end = min, max
         omezarr_channel['window'] = {'min': min, 'max': max, 'start': start, 'end': end}
         omezarr_channels.append(omezarr_channel)
 

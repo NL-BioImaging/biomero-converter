@@ -5,7 +5,6 @@ import shutil
 
 from src.helper import create_source, create_writer
 from src.parameters import CONVERSION_ATTEMPTS
-from src.util import print_hbytes
 
 
 def init_logging(log_filename, verbose=False):
@@ -67,8 +66,6 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
         os.makedirs(output_folder)
 
     source.init_metadata()
-    if verbose:
-        print(f'Total data size:    {print_hbytes(source.get_total_data_size())}')
     name = source.get_name()
     output_path = os.path.join(output_folder, name + output_ext)
     full_output_path = writer.write(output_path, source)

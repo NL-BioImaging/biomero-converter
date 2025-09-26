@@ -1,3 +1,4 @@
+import numpy as np
 import os.path
 from skimage.transform import resize
 from tifffile import TiffWriter
@@ -82,7 +83,8 @@ class OmeTiffWriter(OmeWriter):
                 size = self._write_tiff(filename, source, data,
                                         resolution=resolution, resolution_unit=resolution_unit,
                                         tile_size=TILE_SIZE, compression=TIFF_COMPRESSION,
-                                        xml_metadata=xml_metadata, pyramid_levels=4)
+                                        xml_metadata=xml_metadata,
+                                        pyramid_levels=PYRAMID_LEVELS, pyramid_downscale=PYRAMID_DOWNSCALE)
 
                 image_uuids.append(image_uuid)
                 image_filenames.append(os.path.basename(filename))
@@ -115,13 +117,14 @@ class OmeTiffWriter(OmeWriter):
         size = self._write_tiff(filename, source, data,
                                 resolution=resolution, resolution_unit=resolution_unit,
                                 tile_size=TILE_SIZE, compression=TIFF_COMPRESSION,
-                                xml_metadata=xml_metadata, pyramid_levels=4)
+                                xml_metadata=xml_metadata,
+                                pyramid_levels=PYRAMID_LEVELS, pyramid_downscale=PYRAMID_DOWNSCALE)
 
         return filename, size
 
     def _write_tiff(self, filename, source, data,
-                  resolution=None, resolution_unit=None, tile_size=None, compression=None,
-                  xml_metadata=None, pyramid_levels=0, pyramid_scale=2):
+                    resolution=None, resolution_unit=None, tile_size=None, compression=None, compressionargs=None,
+                    xml_metadata=None, pyramid_levels=0, pyramid_downscale=2):
         """
         Writes image data to a TIFF file with optional pyramids and metadata.
 
@@ -135,21 +138,26 @@ class OmeTiffWriter(OmeWriter):
             compression (str, optional): Compression type.
             xml_metadata (str, optional): OME-XML metadata.
             pyramid_levels (int): Number of pyramid levels.
-            pyramid_scale (int): Pyramid downscale factor.
+            pyramid_downscale (int): Pyramid downscale factor.
 
         Returns:
             int: Data size in bytes.
         """
         dim_order = source.get_dim_order()
-        shape = data.shape
+        shape = list(data.shape)
+        if source.is_rgb() and source.get_nchannels() in (3, 4) and dim_order[-1] != 'c':
+            old_dimc = dim_order.index('c')
+            data = np.moveaxis(data, old_dimc, -1)
+            dim_order = dim_order[:old_dimc] + dim_order[old_dimc+1:] + 'c'
+            shape = shape[:old_dimc] + shape[old_dimc+1:] + [shape[old_dimc]]
+
         x_index = dim_order.index('x')
         y_index = dim_order.index('y')
         source_type = source.get_dtype()
-
         if tile_size is not None:
             if isinstance(tile_size, int):
                 tile_size = [tile_size] * 2
-            if tile_size[0] > shape[-2] or tile_size[1] > shape[-1]:
+            if tile_size[0] > shape[y_index] or tile_size[1] > shape[x_index]:
                 tile_size = None
 
         if resolution is not None:
@@ -170,7 +178,7 @@ class OmeTiffWriter(OmeWriter):
         scale = 1
         for level in range(1 + pyramid_levels):
             max_size += data_size * scale ** 2
-            scale /= pyramid_scale
+            scale /= pyramid_downscale
         bigtiff = (max_size > 2 ** 32)
 
         with TiffWriter(filename, bigtiff=bigtiff, ome=is_ome) as writer:
@@ -180,15 +188,16 @@ class OmeTiffWriter(OmeWriter):
                     subifds = pyramid_levels
                     subfiletype = None
                 else:
-                    scale /= pyramid_scale
+                    scale /= pyramid_downscale
                     new_shape = list(shape)
                     new_shape[x_index] = int(shape[x_index] * scale)
                     new_shape[y_index] = int(shape[y_index] * scale)
-                    data = resize(data, new_shape, preserve_range=True)
+                    data = resize(data, new_shape, preserve_range=True).astype(source_type)
                     subifds = None
                     subfiletype = 1
                     xml_metadata_bytes = None
-                writer.write(data.astype(source_type), subifds=subifds, subfiletype=subfiletype,
+                writer.write(data, subifds=subifds, subfiletype=subfiletype,
                              resolution=resolution, resolutionunit=resolution_unit, tile=tile_size,
-                             compression=compression, description=xml_metadata_bytes)
+                             compression=compression, compressionargs=compressionargs,
+                             description=xml_metadata_bytes)
         return data_size

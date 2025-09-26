@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import numpy as np
 import os.path
 import re
 
@@ -7,6 +8,32 @@ def ensure_list(item):
     if not isinstance(item, (list, tuple)):
         item = [item]
     return item
+
+
+def redimension_data(data, old_order, new_order, **indices):
+    # able to provide optional dimension values e.g. t=0, z=0
+    if new_order == old_order:
+        return data
+
+    new_data = data
+    order = old_order
+    # remove
+    for o in old_order:
+        if o not in new_order:
+            index = order.index(o)
+            dim_value = indices.get(o, 0)
+            new_data = np.take(new_data, indices=dim_value, axis=index)
+            order = order[:index] + order[index + 1:]
+    # add
+    for o in new_order:
+        if o not in order:
+            new_data = np.expand_dims(new_data, 0)
+            order = o + order
+    # move
+    old_indices = [order.index(o) for o in new_order]
+    new_indices = list(range(len(new_order)))
+    new_data = np.moveaxis(new_data, old_indices, new_indices)
+    return new_data
 
 
 def get_filetitle(filename):

@@ -51,12 +51,23 @@ class ImageSource(ABC):
         Args:
             well_id (str, optional): Well identifier
             field_id (int, optional): Field identifier
-            as_dask (bool): If True, attempt to return a dask array. Default is False.
+            as_dask (bool, optional): If True, attempt to return a dask array. Default is False.
 
         Raises:
             NotImplementedError: Must be implemented by subclasses.
         """
         raise NotImplementedError("The 'get_data' method must be implemented by subclasses.")
+
+    def get_image_window(self, well_id=None, field_id=None, data=None):
+        """
+        Get image value range window (for a well and field).
+
+        Args:
+            well_id (str, optional): Well identifier
+            field_id (int, optional): Field identifier
+            data (ndarray, optional): Image data to compute window from.
+        """
+        return [], []
 
     def get_name(self):
         """

@@ -10,7 +10,8 @@ from xml.etree import ElementTree
 
 from src.ImageSource import ImageSource
 from src.parameters import *
-from src.util import get_filetitle, xml_content_to_dict
+from src.util import get_filetitle, xml_content_to_dict, redimension_data
+from src.WindowScanner import WindowScanner
 
 
 class ISyntaxSource(ImageSource):
@@ -64,8 +65,9 @@ class ISyntaxSource(ImageSource):
         nbits = 8
         self.channels = []
         self.nchannels = 4
-        self.source_order = 'yxc'
+        self.source_dim_order = 'yxc'
         self.dim_order = 'tczyx'
+        self.is_rgb_channels = True
 
         self.isyntax = ISyntax.open(self.uri)
         self.width, self.height = self.isyntax.dimensions
@@ -121,11 +123,24 @@ class ISyntaxSource(ImageSource):
         else:
             data = self.isyntax.read_region(0, 0, self.width, self.height)
 
-        # convert YXC to TCZYX:
-        data = np.expand_dims(data, 0)
-        data = np.moveaxis(data, -1, 0)
-        data = np.expand_dims(data, 0)
-        return data
+        return redimension_data(data, self.source_dim_order, self.dim_order)
+
+    def get_image_window(self, well_id=None, field_id=None, data=None):
+        # For RGB(A) uint8 images don't change color value range
+        if not (self.is_rgb_channels and self.dtype == np.uint8):
+            level = None
+            dims = None
+            for level0, dims0 in enumerate(self.isyntax.level_dimensions):
+                if np.prod(dims0) < 1e7:
+                    level = level0
+                    dims = dims0
+                    break
+            if level is not None:
+                window_scanner = WindowScanner()
+                data = self.isyntax.read_region(0, 0, dims[0], dims[1], level=level)
+                window_scanner.process(data, self.source_dim_order)
+                return window_scanner.get_window()
+        return [], []
 
     def get_name(self):
         """
@@ -194,7 +209,7 @@ class ISyntaxSource(ImageSource):
         """
         Check if the source is a RGB(A) image.
         """
-        return True
+        return self.is_rgb_channels
 
     def get_rows(self):
         """

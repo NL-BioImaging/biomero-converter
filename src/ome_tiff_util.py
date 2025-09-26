@@ -77,18 +77,25 @@ def create_metadata(source, uuid=None, image_uuids=None, image_filenames=None):
 
 
 def create_image_metadata(source, image_uuid=None, image_filename=None):
-    dim_order = 'tczyx'
+    dim_order = source.get_dim_order()
     t, c, z, y, x = source.get_shape()
     pixel_size = source.get_pixel_size_um()
+    channels = source.get_channels()
     ome_channels = []
-    for channeli, channel in enumerate(source.get_channels()):
-        ome_channel = Channel()
-        ome_channel.name = channel.get('label', channel.get('Name', f'{channeli}'))
-        ome_channel.samples_per_pixel = 1
-        color = channel.get('color', channel.get('Color'))
-        if color is not None:
-            ome_channel.color = Color(rgba_to_int(color))
-        ome_channels.append(ome_channel)
+    if len(channels) < c:
+        if source.is_rgb() and c in (3, 4):
+            ome_channels.append(Channel(name='rgb', samples_per_pixel=3))
+        else:
+            ome_channels = [Channel(name=f'{channeli}', samples_per_pixel=1) for channeli in range(c)]
+    else:
+        for channeli, channel in enumerate(channels):
+            ome_channel = Channel()
+            ome_channel.name = channel.get('label', channel.get('Name', f'{channeli}'))
+            ome_channel.samples_per_pixel = 1
+            color = channel.get('color', channel.get('Color'))
+            if color is not None:
+                ome_channel.color = Color(rgba_to_int(color))
+            ome_channels.append(ome_channel)
 
     tiff_data = TiffData()
     tiff_data.uuid = TiffData.UUID(value=image_uuid, file_name=image_filename)

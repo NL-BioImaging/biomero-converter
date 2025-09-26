@@ -9,7 +9,8 @@ from src.ImageSource import ImageSource
 from src.color_conversion import int_to_rgba
 from src.ome_tiff_util import metadata_to_dict, create_col_row_label
 from src.parameters import TILE_SIZE
-from src.util import convert_to_um, ensure_list
+from src.util import convert_to_um, ensure_list, redimension_data, get_filetitle
+from src.WindowScanner import WindowScanner
 
 
 class TiffSource(ImageSource):
@@ -70,7 +71,7 @@ class TiffSource(ImageSource):
             self.is_plate = 'Plate' in self.metadata
             if self.is_plate:
                 plate = self.metadata['Plate']
-                self.name = plate.get('Name', '')
+                self.name = plate.get('Name')
                 rows = set()
                 columns = set()
                 wells = {}
@@ -85,11 +86,13 @@ class TiffSource(ImageSource):
                 self.columns = list(columns)
                 self.wells = list(wells.keys())
             else:
-                self.name = self.metadata['Image'].get('Name', '')
+                self.name = self.metadata['Image'].get('Name')
+            if not self.name:
+                self.name = get_filetitle(self.uri)
             self.name = self.name.rstrip('.tiff').rstrip('.tif').rstrip('.ome')
             pixels = ensure_list(self.metadata.get('Image', []))[0].get('Pixels', {})
             self.shape = pixels.get('SizeT'), pixels.get('SizeC'), pixels.get('SizeZ'), pixels.get('SizeY'), pixels.get('SizeX')
-            self.dim_order = ''.join(reversed(pixels['DimensionOrder'].lower()))
+            #self.source_dim_order = ''.join(reversed(pixels['DimensionOrder'].lower()))
             self.dtype = np.dtype(pixels['Type'])
             if 'PhysicalSizeX' in pixels:
                 pixel_size['x'] = convert_to_um(float(pixels.get('PhysicalSizeX')), pixels.get('PhysicalSizeXUnit'))
@@ -126,19 +129,12 @@ class TiffSource(ImageSource):
                     pixel_size['z'] = convert_to_um(self.imagej_metadata['spacing'], pixel_size_unit)
             self.metadata = tags_to_dict(self.tiff.pages.first.tags)
             self.name = os.path.splitext(self.tiff.filename)[0]
-            nt, nc, nz, ny, nx = 1, 1, 1, 1, 1
-            if 't' in self.source_dim_order:
-                nt = self.source_shape[self.source_dim_order.index('t')]
-            if 'c' in self.source_dim_order:
-                nc = self.source_shape[self.source_dim_order.index('c')]
-            if 'z' in self.source_dim_order:
-                nz = self.source_shape[self.source_dim_order.index('z')]
-            if 'y' in self.source_dim_order:
-                ny = self.source_shape[self.source_dim_order.index('y')]
-            if 'x' in self.source_dim_order:
-                nx = self.source_shape[self.source_dim_order.index('x')]
+            nt = self.source_shape[self.source_dim_order.index('t')] if 't' in self.source_dim_order else 1
+            nc = self.source_shape[self.source_dim_order.index('c')] if 'c' in self.source_dim_order else 1
+            nz = self.source_shape[self.source_dim_order.index('z')] if 'z' in self.source_dim_order else 1
+            ny = self.source_shape[self.source_dim_order.index('y')] if 'y' in self.source_dim_order else 1
+            nx = self.source_shape[self.source_dim_order.index('x')] if 'x' in self.source_dim_order else 1
             self.shape = nt, nc, nz, ny, nx
-            self.dim_order = 'tczyx'
             self.dtype = page.dtype
             res_unit = self.metadata.get('ResolutionUnit', '')
             if isinstance(res_unit, Enum):
@@ -157,6 +153,7 @@ class TiffSource(ImageSource):
         self.pixel_size = pixel_size
         self.position = position
         self.channels = channels
+        self.dim_order = 'tczyx'
         return self.metadata
 
     def is_screen(self):
@@ -190,15 +187,27 @@ class TiffSource(ImageSource):
             data = data.rechunk(TILE_SIZE)
         else:
             data = self.tiff.asarray()
-        if 'z' not in self.source_dim_order:
-            data = np.expand_dims(data, 0)
-        if 'c' not in self.source_dim_order:
-            data = np.expand_dims(data, 0)
-        elif self.source_dim_order.endswith('c'):
-            data = np.moveaxis(data, -1, 0)
-        if 't' not in self.source_dim_order:
-            data = np.expand_dims(data, 0)
-        return data
+        return redimension_data(data, self.source_dim_order, self.dim_order)
+
+    def get_image_window(self, well_id=None, field_id=None, data=None):
+        # For RGB(A) uint8 images don't change color value range
+        if not (self.is_photometric_rgb and self.dtype == np.uint8):
+            if self.tiff.series:
+                page = self.tiff.series[0]
+            else:
+                page = self.tiff.pages.first
+            if hasattr(page, 'levels'):
+                small = None
+                for level in page.levels:
+                    if level.sizes['width'] * level.sizes['height'] < 1e7:
+                        small = level
+                        break
+                if small:
+                    window_scanner = WindowScanner()
+                    window_scanner.process(small.asarray(), self.source_dim_order)
+                    return window_scanner.get_window()
+        return [], []
+
 
     def get_name(self):
         """

@@ -9,7 +9,6 @@ from src.OmeWriter import OmeWriter
 from src.ome_zarr_util import *
 from src.parameters import *
 from src.util import split_well_name, print_hbytes
-from src.WindowScanner import WindowScanner
 
 
 class OmeZarrWriter(OmeWriter):
@@ -66,7 +65,8 @@ class OmeZarrWriter(OmeWriter):
             for field in fields:
                 image_group = well_group.require_group(field)
                 data = source.get_data(well_id, field)
-                size = self._write_data(image_group, data, source, position)
+                window = source.get_image_window(well_id, field, data=data)
+                size = self._write_data(image_group, data, source, window, position=position)
                 total_size += size
 
         return zarr_root, total_size
@@ -77,11 +77,11 @@ class OmeZarrWriter(OmeWriter):
         zarr_root = zarr.open_group(zarr_location, mode='w', zarr_version=self.zarr_version)
 
         data = source.get_data(as_dask=True)
-        size = self._write_data(zarr_root, data, source)
+        window = source.get_image_window()
+        size = self._write_data(zarr_root, data, source, window)
         return zarr_root, size
 
-    def _write_data(self, group, data, source, position=None):
-        window_scanner = WindowScanner()
+    def _write_data(self, group, data, source, window, position=None):
         dim_order = source.get_dim_order()
         dtype = source.get_dtype()
         channels = source.get_channels()
@@ -90,8 +90,6 @@ class OmeZarrWriter(OmeWriter):
 
         axes = create_axes_metadata(dim_order)
         pixel_size_scales, scaler = self._create_scale_metadata(source, dim_order, position)
-        window_scanner.process(data, dim_order)
-        window = window_scanner.get_window()
         metadata = {'omero': create_channel_metadata(dtype, channels, nchannels, is_rgb, window, self.ome_version),
                     'metadata': {'method': scaler.method}}
 
@@ -118,7 +116,7 @@ class OmeZarrWriter(OmeWriter):
 
     def _create_scale_metadata(self, source, dim_order, translation, scaler=None):
         if scaler is None:
-            scaler = Scaler()
+            scaler = Scaler(downscale=PYRAMID_DOWNSCALE, max_layer=PYRAMID_LEVELS)
         pixel_size_scales = []
         scale = 1
         for i in range(scaler.max_layer + 1):

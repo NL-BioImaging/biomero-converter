@@ -8,6 +8,7 @@ from src.color_conversion import hexrgb_to_rgba
 from src.DbReader import DBReader
 from src.ImageSource import ImageSource
 from src.util import *
+from src.WindowScanner import WindowScanner
 
 
 class ImageDbSource(ImageSource):
@@ -26,7 +27,7 @@ class ImageDbSource(ImageSource):
         self.db = DBReader(self.uri)
         self.data = None
         self.data_well_id = None
-        self.metadata['dim_order'] = 'tczyx'
+        self.dim_order = 'tczyx'
 
     def init_metadata(self):
         """
@@ -131,18 +132,18 @@ class ImageDbSource(ImageSource):
         Loads image bit depth and dtype info into metadata.
         """
         bits_per_pixel = self.db.fetch_all('SELECT DISTINCT BitsPerPixel FROM SourceImageBase', return_dicts=False)[0]
-        self.metadata['bits_per_pixel'] = bits_per_pixel
+        self.bits_per_pixel = bits_per_pixel
         bits_per_pixel = int(np.ceil(bits_per_pixel / 8)) * 8
         if bits_per_pixel == 24:
             bits_per_pixel = 32
-        self.metadata['dtype'] = np.dtype(f'uint{bits_per_pixel}')
+        self.dtype = np.dtype(f'uint{bits_per_pixel}')
 
     def _get_sizes(self):
         """
         Calculates and stores image shape and estimated data size.
         """
         well_info = self.metadata['well_info']
-        nbytes = self.metadata['dtype'].itemsize
+        nbytes = self.dtype.itemsize
         self.shape = len(self.metadata['time_points']), self.metadata['num_channels'], 1, well_info['SensorSizeYPixels'], well_info['SensorSizeXPixels']
         max_data_size = np.prod(self.shape) * nbytes * len(self.metadata['wells']) * well_info['num_sites']
         self.metadata['max_data_size'] = max_data_size
@@ -189,14 +190,13 @@ class ImageDbSource(ImageSource):
         Args:
             well_info (list): List of well image info dicts.
         """
-        dtype = self.metadata['dtype']
         well_info = np.asarray(well_info)
         xmax = np.max([info['CoordX'] + info['SizeX'] for info in well_info])
         ymax = np.max([info['CoordY'] + info['SizeY'] for info in well_info])
         zmax = np.max([info.get('CoordZ', 0) + info.get('SizeZ', 1) for info in well_info])
         nc = len(set([info['ChannelId'] for info in well_info]))
         nt = len(self.metadata['time_points'])
-        data = np.zeros((nt, nc, zmax, ymax, xmax), dtype=dtype)
+        data = np.zeros((nt, nc, zmax, ymax, xmax), dtype=self.dtype)
 
         for timei, time_id in enumerate(self.metadata['time_points']):
             image_file = self.metadata['image_files'][time_id]
@@ -207,7 +207,7 @@ class ImageDbSource(ImageSource):
                         coordx, coordy, coordz = info['CoordX'], info['CoordY'], info.get('CoordZ', 0)
                         sizex, sizey, sizez = info['SizeX'], info['SizeY'], info.get('SizeZ', 1)
                         channeli = info['ChannelId']
-                        tile = np.fromfile(fid, dtype=dtype, count=sizez * sizey * sizex)
+                        tile = np.fromfile(fid, dtype=self.dtype, count=sizez * sizey * sizex)
                         data[timei, channeli, coordz:coordz + sizez, coordy:coordy + sizey, coordx:coordx + sizex] = tile.reshape((sizez, sizey, sizex))
 
         self.data = data
@@ -280,6 +280,12 @@ class ImageDbSource(ImageSource):
             self.data_well_id = well_id
         return self._extract_site(field_id)
 
+    def get_image_window(self, well_id=None, field_id=None, data=None):
+        # Assume data is not RGB(A) & uint8
+        window_scanner = WindowScanner()
+        window_scanner.process(data, self.get_dim_order())
+        return window_scanner.get_window()
+
     def get_name(self):
         """
         Gets the experiment or file name.
@@ -344,7 +350,7 @@ class ImageDbSource(ImageSource):
         Returns:
             str: Dimension order.
         """
-        return self.metadata.get('dim_order', 'tczyx')
+        return self.dim_order
 
     def get_dtype(self):
         """
@@ -353,7 +359,7 @@ class ImageDbSource(ImageSource):
         Returns:
             dtype: Numpy dtype.
         """
-        return self.metadata.get('dtype')
+        return self.dtype
 
     def get_pixel_size_um(self):
         """

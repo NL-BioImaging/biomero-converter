@@ -11,48 +11,21 @@ from converter import init_logging, convert
 from src.helper import create_source
 from src.TiffSource import TiffSource
 from src.Timer import Timer
-from src.util import print_dict
+from src.util import print_dict, print_hbytes
 
 
 class TestConvert:
-    #basedir = 'C:/Project/slides/DB/'
-    #basedir = 'D:/slides/DB/'
-    #basedir = 'C:/Project/slides/Ome-tiff/'
-    #basedir = 'E:/Personal/Crick/slides/test_images/'
-    #basedir = 'C:/Project/slides/isyntax/'
-    #basedir = 'D:/slides/isyntax/'
-    basedir = 'D:/slides/'
+    filenames = ['DB/TestData1/experiment.db', 'isyntax/small.isyntax', 'EM04573_01small.ome.tif']
+    input_filenames = ['D:/slides/' + filename for filename in filenames]
 
-    #filename = 'TestData1/experiment.db'
-    #filename = '2ChannelPlusTL/experiment.db'
-    #filename = 'PicoData16ProcCoverag/experiment.db'
-    #filename = '241209 - TC1 TC9 test MSP MUB/experiment.db'
-    #filename = '20220714_TKI_482/experiment.db'
-    #filename = 'Cells/experiment.db'
-    #filename = 'NIRHTa-001.ome.tiff'
-    #filename = 'signed single-channel.ome.tiff'
-    #filename = 'volumetric Broken_NE_cropped.tif'
-    filename = 'rgb.tiff'
-    #filename = 'small.isyntax'
-    #filename = 'test-isyntax.isyntax'
-
-    input_filename = basedir + filename
+    output_formats = ['omezarr2', 'omezarr3', 'ometiff']
 
     @pytest.mark.parametrize(
-        "input_filename, output_format",
-        [
-            (
-                input_filename,
-                'omezarr2',
-            ),
-            (
-                input_filename,
-                'omezarr3',
-            ),
-        ],
+        "input_filename", input_filenames,
+        "output_format", output_formats,
     )
-    def test_convert(self, tmp_path, input_filename, output_format, alt_output_folder=None, show_progess=True, verbose=False):
-        init_logging('log/db_to_zarr.log', verbose=verbose)
+    def test_convert(self, tmp_path, input_filename, output_format, alt_output_folder=None, show_progess=False, verbose=False):
+        init_logging('log/db_to_zarr.log', verbose=True)
         with Timer(f'convert {input_filename} to {output_format}'):
             output = convert(input_filename, tmp_path, alt_output_folder=alt_output_folder, output_format=output_format, show_progress=show_progess, verbose=verbose)
 
@@ -65,6 +38,7 @@ class TestConvert:
             if source.is_screen():
                 print(source.print_well_matrix())
                 print(source.print_timepoint_well_matrix())
+            print(f'Total data size:    {print_hbytes(source.get_total_data_size())}')
 
         #print(print_dict(metadata))
         source_pixel_size = source.get_pixel_size_um()
@@ -102,8 +76,9 @@ class TestConvert:
         elif '3' in output_format:
             assert float(node.zarr.version) >= 0.5
 
-        print(f'Source    pixel size: {source_pixel_size}')
-        print(f'Converted pixel size: {pixel_size}')
+        if verbose:
+            print(f'Source    pixel size: {source_pixel_size}')
+            print(f'Converted pixel size: {pixel_size}')
         assert pixel_size.get('x') == source_pixel_size.get('x')
         assert pixel_size.get('y') == source_pixel_size.get('y')
         if source.is_screen():
@@ -115,7 +90,6 @@ if __name__ == '__main__':
     from pathlib import Path
 
     test = TestConvert()
-    input_filename = test.input_filename
-    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'ometiff', alt_output_folder=tempfile.TemporaryDirectory().name, verbose=True)
-    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr2', alt_output_folder=tempfile.TemporaryDirectory().name, verbose=True)
-    test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, 'omezarr3', alt_output_folder=tempfile.TemporaryDirectory().name, verbose=True)
+    for filename in test.input_filenames:
+        for output_format in test.output_formats:
+            test.test_convert(Path(tempfile.TemporaryDirectory().name), filename, output_format, show_progess=True)
