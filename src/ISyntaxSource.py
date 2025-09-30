@@ -107,6 +107,7 @@ class ISyntaxSource(ImageSource):
             return da.from_delayed(lazy_array, shape=(height, width, self.nchannels), dtype=self.dtype)
 
         if as_dask:
+            dask.config.set(scheduler='single-threaded')
             shape = self.shape[-2:]
             y_chunks, x_chunks = da.core.normalize_chunks(TILE_SIZE, shape, dtype=self.dtype)
             rows = []
@@ -120,10 +121,23 @@ class ISyntaxSource(ImageSource):
                 rows.append(da.concatenate(row, axis=1))
                 y += height
             data = da.concatenate(rows, axis=0)
+            return redimension_data(data, self.source_dim_order, self.dim_order)
         else:
-            data = self.isyntax.read_region(0, 0, self.width, self.height)
-
-        return redimension_data(data, self.source_dim_order, self.dim_order)
+            #data = self.isyntax.read_region(0, 0, self.width, self.height)
+            # TODO: use Tiff.memmap?
+            def tile_generator():
+                for y in range(0, self.shape[-1], TILE_SIZE):
+                    for x in range(0, self.shape[-2], TILE_SIZE):
+                        tile = self.isyntax.read_region(x, y, TILE_SIZE, TILE_SIZE)
+                        if tile.shape[:2] != (TILE_SIZE, TILE_SIZE):
+                            pad = (
+                                (0, TILE_SIZE - tile.shape[0]),
+                                (0, TILE_SIZE - tile.shape[1]),
+                                (0, 0)
+                            )
+                            tile = np.pad(tile, pad, 'constant')
+                        yield tile
+            return tile_generator()
 
     def get_image_window(self, well_id=None, field_id=None, data=None):
         # For RGB(A) uint8 images don't change color value range
@@ -282,3 +296,4 @@ class ISyntaxSource(ImageSource):
         Closes the ISyntax file.
         """
         self.isyntax.close()
+        dask.config.set(scheduler='threads')
