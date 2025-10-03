@@ -98,7 +98,12 @@ def create_channel_metadata(dtype, channels, nchannels, window, ome_version):
         omezarr_channel = {'label': channel.get('label', channel.get('Name', f'{channeli}')), 'active': True}
         color = channel.get('color', channel.get('Color'))
         if color is not None:
-            omezarr_channel['color'] = rgba_to_hexrgb(color)
+            # If color is already a hex string, use it directly
+            if isinstance(color, str):
+                omezarr_channel['color'] = color.lstrip('#').upper()
+            else:
+                # Otherwise convert from RGBA tuple
+                omezarr_channel['color'] = rgba_to_hexrgb(color)
         if dtype.kind == 'f':
             min, max = 0, 1
         else:
