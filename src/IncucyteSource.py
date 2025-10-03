@@ -18,20 +18,70 @@ class IncucyteSource(ImageSource):
 
     Filenames follow pattern: WELL-FIELD-CHANNEL.tif
     e.g., A1-1-C1.tif, B2-1-Ph.tif
+    
+    Note: Multiple plates can exist in the same archive, identified by the XXXX folder.
+    Use plate_id parameter to select a specific plate, or use get_available_plates() 
+    to discover all plates in the archive.
     """
 
-    def __init__(self, uri, metadata={}):
+    def __init__(self, uri, metadata={}, plate_id=None):
+        """
+        Initialize IncucyteSource.
+        
+        Args:
+            uri (str): Path to the Incucyte archive folder
+            metadata (dict): Optional metadata dictionary
+            plate_id (str, optional): Specific plate ID to process (e.g., '700', '701').
+                                     If None, will use the first available plate or all 
+                                     if only one exists.
+        """
         super().__init__(uri, metadata)
         self.base_path = Path(self.uri)
         self.scan_data_path = self.base_path / "EssenFiles" / "ScanData"
         self._file_cache = {}
         # Default to True for filling missing images
         self.fill_missing_images = True
+        self.plate_id = plate_id
+    
+    @staticmethod
+    def get_available_plates(uri):
+        """
+        Discover all available plate IDs in an Incucyte archive.
+        
+        Args:
+            uri (str): Path to the Incucyte archive folder
+            
+        Returns:
+            list: List of plate IDs (strings) found in the archive
+        """
+        base_path = Path(uri)
+        scan_data_path = base_path / "EssenFiles" / "ScanData"
+        
+        if not scan_data_path.exists():
+            raise ValueError(f"Scan data path not found: {scan_data_path}")
+        
+        plate_ids = set()
+        
+        # Navigate through the directory structure to find all plate IDs
+        for year_month in scan_data_path.iterdir():
+            if not year_month.is_dir():
+                continue
+            for day in year_month.iterdir():
+                if not day.is_dir():
+                    continue
+                for time_dir in day.iterdir():
+                    if not time_dir.is_dir():
+                        continue
+                    for plate_dir in time_dir.iterdir():
+                        if plate_dir.is_dir():
+                            plate_ids.add(plate_dir.name)
+        
+        return sorted(list(plate_ids))
 
     def init_metadata(self):
         """Initialize all metadata from Incucyte structure"""
-        self._get_experiment_metadata()
-        self._scan_timepoints()
+        self._scan_timepoints()  # Must be first to set plate_id
+        self._get_experiment_metadata()  # Uses plate_id in name
         self._get_well_info()
         self._get_channel_info()
         self._get_image_info()
@@ -52,6 +102,11 @@ class IncucyteSource(ImageSource):
     def _get_experiment_metadata(self):
         """Extract experiment metadata from folder structure"""
         experiment_name = self.base_path.name
+        
+        # Add plate ID to name (plate_id is set by _scan_timepoints)
+        if self.plate_id:
+            experiment_name = f"{experiment_name}_plate{self.plate_id}"
+        
         self.metadata.update(
             {
                 "Name": experiment_name,
@@ -67,11 +122,14 @@ class IncucyteSource(ImageSource):
         wells = set()
         fields = set()
         channels = set()
+        found_plate_ids = set()
 
         print(f"Scanning directory: {self.scan_data_path}")
 
         if not self.scan_data_path.exists():
-            raise ValueError(f"Scan data path not found: {self.scan_data_path}")
+            raise ValueError(
+                f"Scan data path not found: {self.scan_data_path}"
+            )
 
         # Navigate through year/month directories (YYMM)
         for year_month in self.scan_data_path.iterdir():
@@ -85,13 +143,23 @@ class IncucyteSource(ImageSource):
                 for time_dir in day.iterdir():
                     if not time_dir.is_dir():
                         continue
-                    # Navigate through fixed ID directories (XXXX)
-                    for fixed_id in time_dir.iterdir():
-                        if not fixed_id.is_dir():
+                    # Navigate through plate ID directories (XXXX)
+                    for plate_dir in time_dir.iterdir():
+                        if not plate_dir.is_dir():
                             continue
-
-                        timepoint_path = fixed_id
-                        timestamp = f"{year_month.name}_{day.name}_{time_dir.name}"
+                        
+                        current_plate_id = plate_dir.name
+                        found_plate_ids.add(current_plate_id)
+                        
+                        # Filter by plate_id if specified
+                        if self.plate_id is not None:
+                            if current_plate_id != self.plate_id:
+                                continue
+                        
+                        timepoint_path = plate_dir
+                        timestamp = (
+                            f"{year_month.name}_{day.name}_{time_dir.name}"
+                        )
 
                         # Parse timestamp to datetime
                         try:
@@ -106,16 +174,63 @@ class IncucyteSource(ImageSource):
                             "timestamp": timestamp,
                             "datetime": dt,
                             "index": len(timepoints),
+                            "plate_id": current_plate_id,
                         }
                         timepoints.append(timepoint_info)
 
                         # Scan TIFF files in this timepoint
                         for tiff_file in timepoint_path.glob("*.tif"):
-                            well, field, channel = self._parse_filename(tiff_file.name)
+                            parsed = self._parse_filename(tiff_file.name)
+                            well, field, channel = parsed
                             if well and field is not None and channel:
                                 wells.add(well)
                                 fields.add(field)
                                 channels.add(channel)
+
+        # Handle plate selection
+        if self.plate_id is None:
+            # Auto-select plate
+            if len(found_plate_ids) == 0:
+                raise ValueError("No plates found in the archive")
+            elif len(found_plate_ids) == 1:
+                # Single plate - use it automatically
+                self.plate_id = list(found_plate_ids)[0]
+            else:
+                # Multiple plates - use first with warning
+                plate_list = ", ".join(sorted(found_plate_ids))
+                print(
+                    f"Warning: Multiple plates found ({plate_list}). "
+                    f"Using first plate: {sorted(found_plate_ids)[0]}"
+                )
+                print(
+                    "To process a specific plate, use: "
+                    "IncucyteSource(uri, plate_id='XXX')"
+                )
+                print(
+                    "To process all plates, call get_available_plates() "
+                    "and create separate sources"
+                )
+                self.plate_id = sorted(found_plate_ids)[0]
+            
+            # Filter timepoints to selected plate
+            timepoints = [
+                tp for tp in timepoints if tp["plate_id"] == self.plate_id
+            ]
+        else:
+            # Validate specified plate_id
+            if self.plate_id not in found_plate_ids:
+                raise ValueError(
+                    f"Plate ID '{self.plate_id}' not found. "
+                    f"Available plates: {', '.join(sorted(found_plate_ids))}"
+                )
+            # Filter timepoints to specified plate
+            timepoints = [
+                tp for tp in timepoints if tp["plate_id"] == self.plate_id
+            ]
+        
+        # Store found plate IDs in metadata
+        self.metadata["available_plates"] = sorted(found_plate_ids)
+        self.metadata["selected_plate"] = self.plate_id
 
         # Sort timepoints by datetime if available, otherwise by timestamp
         timepoints.sort(
@@ -136,8 +251,13 @@ class IncucyteSource(ImageSource):
             }
         )
 
+        plate_info = (
+            f" (plate: {self.plate_id})" if self.plate_id else ""
+        )
         print(
-            f"Found: {len(timepoints)} timepoints, {len(wells)} wells, {len(fields)} fields, {len(channels)} channels"
+            f"Found{plate_info}: {len(timepoints)} timepoints, "
+            f"{len(wells)} wells, {len(fields)} fields, "
+            f"{len(channels)} channels"
         )
 
     def _parse_filename(self, filename):
