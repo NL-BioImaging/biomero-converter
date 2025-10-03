@@ -5,6 +5,7 @@ import shutil
 
 from src.helper import create_source, create_writer
 from src.parameters import CONVERSION_ATTEMPTS
+from src.util import print_hbytes
 
 
 def init_logging(log_filename, verbose=False):
@@ -28,7 +29,7 @@ def init_logging(log_filename, verbose=False):
     logging.getLogger('ome_zarr').setLevel(logging.WARNING)     # mute verbose ome_zarr logging
 
 
-def convert(input_filename, output_folder, input_format=None, alt_output_folder=None,
+def convert(input_filename, output_folder, alt_output_folder=None,
             output_format='omezarr2', show_progress=False, verbose=False, **kwargs):
     attempts = 0
     while True:

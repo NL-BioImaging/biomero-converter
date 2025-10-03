@@ -39,6 +39,8 @@ class IncucyteSource(ImageSource):
         self.base_path = Path(self.uri)
         self.scan_data_path = self.base_path / "EssenFiles" / "ScanData"
         self._file_cache = {}
+        self._diag_metadata_cache = None  # Cache for Diag.log parsing
+        self._sample_image_info_cache = None  # Cache for sample image info
         # Default to True for filling missing images
         self.fill_missing_images = True
         self.plate_id = plate_id
@@ -77,6 +79,89 @@ class IncucyteSource(ImageSource):
                             plate_ids.add(plate_dir.name)
         
         return sorted(list(plate_ids))
+
+    def _parse_diag_log(self, diag_zip_path):
+        """
+        Parse Diag.log from a Diag.zip file to extract imaging metadata.
+        
+        Args:
+            diag_zip_path (Path): Path to Diag.zip file
+            
+        Returns:
+            dict: Dictionary with 'pixel_sizes' (dict of mag->size),
+                  'experiments' (dict of expid->metadata), or None if failed
+        """
+        import zipfile
+        import tempfile
+        
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                with zipfile.ZipFile(diag_zip_path, 'r') as zip_ref:
+                    zip_ref.extractall(temp_dir)
+                    diag_log_path = Path(temp_dir) / "Diag.log"
+                    
+                    if not diag_log_path.exists():
+                        return None
+                    
+                    with open(diag_log_path, 'r', encoding='utf-8', 
+                              errors='ignore') as f:
+                        content = f.read()
+                    
+                    # Parse imaging specifications
+                    pixel_sizes = {}
+                    mag_pattern = r'(\d+)x:\s+.*?Image Resolution:\s+([\d.]+)\s+microns/pixel'
+                    for match in re.finditer(mag_pattern, content, re.DOTALL):
+                        mag = match.group(1) + 'x'
+                        pixel_size = float(match.group(2))
+                        pixel_sizes[mag] = pixel_size
+                    
+                    # Parse experiment entries
+                    experiments = {}
+                    # Match ExpID and capture next 2 lines for Lmp info
+                    exp_pattern = r'ExpID=(\d+)[^\n]*Mag=(\d+x)[^\n]*(?:\n[^\n]*)?'
+                    for match in re.finditer(exp_pattern, content):
+                        exp_id = match.group(1)
+                        mag = match.group(2)
+                        
+                        # Extract all exposure times from matched section
+                        exp_section = match.group(0)
+                        acq_times = re.findall(r'AcqTime=(\d+)', exp_section)
+                        
+                        experiments[exp_id] = {
+                            'magnification': mag,
+                            'exposure_times_ms': [int(t) for t in acq_times] if acq_times else None,
+                            'pixel_size_um': pixel_sizes.get(mag)
+                        }
+                    
+                    return {
+                        'pixel_sizes': pixel_sizes,
+                        'experiments': experiments
+                    }
+        except Exception as e:
+            print(f"Warning: Could not parse Diag.log from {diag_zip_path}: {e}")
+            return None
+
+    def _find_and_parse_diag_log(self):
+        """
+        Find the first Diag.zip in the scan data and parse it.
+        Caches the result to avoid repeated parsing.
+        
+        Returns:
+            dict: Parsed diag metadata or None if not found
+        """
+        # Return cached result if available
+        if self._diag_metadata_cache is not None:
+            return self._diag_metadata_cache
+        
+        # Look for first Diag.zip in the scan data
+        diag_zip_files = list(self.scan_data_path.rglob("Diag.zip"))
+        
+        if diag_zip_files:
+            self._diag_metadata_cache = self._parse_diag_log(diag_zip_files[0])
+        else:
+            self._diag_metadata_cache = {}  # Cache empty dict to avoid re-search
+        
+        return self._diag_metadata_cache if self._diag_metadata_cache else None
 
     def init_metadata(self):
         """Initialize all metadata from Incucyte structure"""
@@ -321,43 +406,93 @@ class IncucyteSource(ImageSource):
             "max_sizex_um": sample_image_info["width"] * sample_image_info["pixel_x"],
             "max_sizey_um": sample_image_info["height"] * sample_image_info["pixel_y"],
         }
+        
+        # Add optional imaging metadata if available
+        if "magnification" in sample_image_info:
+            well_info["Magnification"] = sample_image_info["magnification"]
+        if "exposure_times_ms" in sample_image_info:
+            well_info["ExposureTimes_ms"] = sample_image_info["exposure_times_ms"]
 
         self.metadata.update({"wells": wells_dict, "well_info": well_info})
 
     def _get_sample_image_info(self):
-        """Get image dimensions and bit depth from first available TIFF"""
+        """Get image dimensions and bit depth from first available TIFF.
+        Attempts to get accurate pixel size from Diag.log if available.
+        Caches the result to avoid repeated parsing."""
+        
+        # Return cached result if available
+        if self._sample_image_info_cache is not None:
+            return self._sample_image_info_cache
+        
+        # Try to get calibrated pixel size from Diag.log
+        diag_metadata = None
+        pixel_size_from_diag = None
+        magnification = None
+        exposure_time = None
+        
+        if self.plate_id:
+            diag_metadata = self._find_and_parse_diag_log()
+            if diag_metadata and 'experiments' in diag_metadata:
+                exp_info = diag_metadata['experiments'].get(self.plate_id)
+                if exp_info:
+                    pixel_size_from_diag = exp_info.get('pixel_size_um')
+                    magnification = exp_info.get('magnification')
+                    exposure_times = exp_info.get('exposure_times_ms')
+                    # Use the exposure times list if available
+                    exposure_time = exposure_times
+                    if pixel_size_from_diag:
+                        print(f"Found calibrated pixel size from Diag.log: "
+                              f"{pixel_size_from_diag} µm/pixel "
+                              f"(Magnification: {magnification})")
+        
         for timepoint in self.metadata["timepoints"]:
             for tiff_file in timepoint["path"].glob("*.tif"):
                 try:
-                    # Use TiffSource to extract metadata
-                    temp_tiff_source = TiffSource(str(tiff_file))
-                    temp_tiff_source.init_metadata()
-
-                    # Get pixel size from TiffSource
-                    pixel_size = temp_tiff_source.get_pixel_size_um()
-
                     # Get actual image dimensions from the file
                     with tifffile.TiffFile(str(tiff_file)) as tif:
                         page = tif.pages[0]
                         array = page.asarray()
 
-                    temp_tiff_source.close()
+                    # Use calibrated pixel size from Diag.log if available
+                    if pixel_size_from_diag:
+                        pixel_x = pixel_size_from_diag
+                        pixel_y = pixel_size_from_diag
+                    else:
+                        # Fallback to TIFF metadata
+                        temp_tiff_source = TiffSource(str(tiff_file))
+                        temp_tiff_source.init_metadata()
+                        pixel_size = temp_tiff_source.get_pixel_size_um()
+                        temp_tiff_source.close()
+                        pixel_x = pixel_size.get("x", None)
+                        pixel_y = pixel_size.get("y", None)
 
-                    return {
+                    result = {
                         "width": array.shape[1],
                         "height": array.shape[0],
                         "bits": array.dtype.itemsize * 8,
                         "dtype": array.dtype,
-                        "pixel_x": pixel_size.get("x", 1.0),
-                        "pixel_y": pixel_size.get("y", 1.0),
+                        "pixel_x": pixel_x,
+                        "pixel_y": pixel_y,
                     }
+                    
+                    # Add optional metadata if available
+                    if magnification:
+                        result["magnification"] = magnification
+                    if exposure_time:
+                        result["exposure_times_ms"] = exposure_time
+                    
+                    # Cache the result
+                    self._sample_image_info_cache = result
+                    return result
+                    
                 except Exception as e:
                     print(f"Could not read sample image {tiff_file}: {e}")
                     continue
 
         # If no valid TIFF files found
         raise ValueError(
-            f"No valid TIFF files found in experiment directory: {self.scan_data_path}"
+            f"No valid TIFF files found in experiment directory: "
+            f"{self.scan_data_path}"
         )
 
     def _get_channel_info(self):
@@ -626,6 +761,13 @@ class IncucyteSource(ImageSource):
             s += line + "\n"
 
         return s
+
+    def is_rgb(self):
+        """
+        Check if the source is a RGB(A) image.
+        Incucyte data stores channels separately, not as RGB.
+        """
+        return False
 
     def close(self):
         """Clean up resources"""
