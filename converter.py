@@ -29,12 +29,13 @@ def init_logging(log_filename, verbose=False):
 
 
 def convert(input_filename, output_folder, input_format=None, alt_output_folder=None,
-            output_format='omezarr2', show_progress=False, verbose=False):
+            output_format='omezarr2', show_progress=False, verbose=False, **kwargs):
     attempts = 0
     while True:
         try:
             return _convert(input_filename, output_folder, alt_output_folder=alt_output_folder,
-                            output_format=output_format, show_progress=show_progress, verbose=verbose)
+                            output_format=output_format, show_progress=show_progress, verbose=verbose,
+                            **kwargs)
         except Exception as e:
             if attempts >= CONVERSION_ATTEMPTS - 1:
                 logging.error(e)
@@ -43,7 +44,7 @@ def convert(input_filename, output_folder, input_format=None, alt_output_folder=
 
 
 def _convert(input_filename, output_folder, alt_output_folder=None,
-             output_format='omezarr2', show_progress=False, verbose=False):
+             output_format='omezarr2', show_progress=False, verbose=False, **kwargs):
     """
     Convert an input file to OME format and write to output folder(s).
 
@@ -58,16 +59,89 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
     Returns:
         str: JSON string with conversion result info array.
     """
+    
+    # Check if input is an Incucyte archive and handle multiple plates
+    input_ext = os.path.splitext(input_filename)[1].lower()
+    if input_ext == '.icarch':
+        from src.helper import get_incucyte_plates
+
+        available_plates = get_incucyte_plates(input_filename)
+
+        # If plate_id not specified, process all plates
+        if 'plate_id' not in kwargs or kwargs['plate_id'] is None:
+            plate_list = '", "'.join(available_plates)
+            logging.info(f'Processing {len(available_plates)} '
+                         f'plate(s): {plate_list}')
+            results = []
+            for plate_id in available_plates:
+                logging.info(f'Processing plate {plate_id}')
+                plate_kwargs = kwargs.copy()
+                plate_kwargs['plate_id'] = plate_id
+                result = _convert_single(
+                    input_filename, output_folder,
+                    alt_output_folder=alt_output_folder,
+                    output_format=output_format,
+                    show_progress=show_progress,
+                    verbose=verbose,
+                    **plate_kwargs)
+                results.extend(json.loads(result))
+            return json.dumps(results)
+
+    # Single source conversion
+    return _convert_single(
+        input_filename, output_folder,
+        alt_output_folder=alt_output_folder,
+        output_format=output_format,
+        show_progress=show_progress,
+        verbose=verbose,
+        **kwargs)
+
+
+def _convert_single(input_filename, output_folder, alt_output_folder=None,
+                    output_format='omezarr2', show_progress=False,
+                    verbose=False, **kwargs):
+    """
+    Convert a single source to OME format.
+
+    Args:
+        input_filename (str): Path to the input file.
+        output_folder (str): Output folder path.
+        alt_output_folder (str, optional): Alternative output folder path.
+        output_format (str): Output format string.
+        show_progress (bool): If True, print progress.
+        verbose (bool): If True, enable verbose logging.
+        **kwargs: Source-specific parameters (e.g., plate_id for Incucyte).
+
+    Returns:
+        str: JSON string with conversion result info array.
+    """
 
     logging.info(f'Importing {input_filename}')
-    source = create_source(input_filename, input_format=input_format)
+    source = create_source(input_filename, **kwargs)
     writer, output_ext = create_writer(output_format, verbose=verbose)
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-
+    
     source.init_metadata()
+    if verbose:
+        total_size = print_hbytes(source.get_total_data_size())
+        print(f'Total data size:    {total_size}')
+
     name = source.get_name()
-    output_path = os.path.join(output_folder, name + output_ext)
+
+    # For Incucyte sources with plates, organize output in subfolders
+    from src.IncucyteSource import IncucyteSource
+    if isinstance(source, IncucyteSource) and source.plate_id:
+        # Create plate-specific subfolder
+        plate_folder = f"plate_{source.plate_id}"
+        plate_output_folder = os.path.join(output_folder, plate_folder)
+        if not os.path.exists(plate_output_folder):
+            os.makedirs(plate_output_folder)
+        output_path = os.path.join(plate_output_folder, name + output_ext)
+    else:
+        # Standard output path
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+        output_path = os.path.join(output_folder, name + output_ext)
+    
     full_output_path = writer.write(output_path, source)
     source.close()
 
@@ -83,18 +157,37 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
     message = f"Exported   {result['full_path']}"
 
     if alt_output_folder:
-        if not os.path.exists(alt_output_folder):
-            os.makedirs(alt_output_folder)
-        alt_output_path = os.path.join(alt_output_folder, name + output_ext)
+        # Use same subfolder structure for alternative output
+        if isinstance(source, IncucyteSource) and source.plate_id:
+            alt_plate_folder = os.path.join(
+                alt_output_folder, f"plate_{source.plate_id}"
+            )
+            if not os.path.exists(alt_plate_folder):
+                os.makedirs(alt_plate_folder)
+            alt_output_path = os.path.join(alt_plate_folder, name + output_ext)
+        else:
+            if not os.path.exists(alt_output_folder):
+                os.makedirs(alt_output_folder)
+            alt_output_path = os.path.join(
+                alt_output_folder, name + output_ext
+            )
+        
         if isinstance(full_output_path, list):
             for path in full_output_path:
-                alt_output_path = os.path.join(alt_output_folder, os.path.basename(path))
-                shutil.copy2(path, alt_output_path)
+                basename = os.path.basename(path)
+                if isinstance(source, IncucyteSource) and source.plate_id:
+                    alt_path = os.path.join(alt_plate_folder, basename)
+                else:
+                    alt_path = os.path.join(alt_output_folder, basename)
+                shutil.copy2(path, alt_path)
         elif os.path.isdir(full_output_path):
-            shutil.copytree(full_output_path, alt_output_path, dirs_exist_ok=True)
+            shutil.copytree(
+                full_output_path, alt_output_path, dirs_exist_ok=True
+            )
         else:
             shutil.copy2(full_output_path, alt_output_path)
-        result['alt_path'] = os.path.join(alt_output_folder, os.path.basename(full_path))
+        
+        result['alt_path'] = alt_output_path
         message += f' and {result["alt_path"]}'
 
     logging.info(message)
