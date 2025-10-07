@@ -1,3 +1,4 @@
+import inspect
 import numpy as np
 import os.path
 from skimage.transform import resize
@@ -112,7 +113,7 @@ class OmeTiffWriter(OmeWriter):
         """
         xml_metadata = create_metadata(source)
         resolution, resolution_unit = create_resolution_metadata(source)
-        data = source.get_data()
+        data = source.get_data(as_generator=True)
 
         size = self._write_tiff(filename, source, data,
                                 resolution=resolution, resolution_unit=resolution_unit,
@@ -131,7 +132,7 @@ class OmeTiffWriter(OmeWriter):
         Args:
             filename (str): Output file name.
             source (ImageSource): Source object.
-            data (ndarray): Image data.
+            data (ndarray or generator): Image data.
             resolution (tuple, optional): Pixel resolution.
             resolution_unit (str, optional): Resolution unit.
             tile_size (int or tuple, optional): Tile size.
@@ -143,9 +144,16 @@ class OmeTiffWriter(OmeWriter):
         Returns:
             int: Data size in bytes.
         """
-        dim_order = source.get_dim_order()
-        shape = list(data.shape)
-        if source.is_rgb() and source.get_nchannels() in (3, 4) and dim_order[-1] != 'c':
+        is_generator = inspect.isgeneratorfunction(data)
+        if is_generator:
+            data_generator = data
+            shape = list(source.source_shape)
+            dim_order = source.source_dim_order
+        else:
+            shape = list(source.get_shape())
+            dim_order = source.get_dim_order()
+        if source.is_rgb() and dim_order[-1] != 'c' and not is_generator:
+            # For Tiff allow RGB written with color channel at end for better compression
             old_dimc = dim_order.index('c')
             data = np.moveaxis(data, old_dimc, -1)
             dim_order = dim_order[:old_dimc] + dim_order[old_dimc+1:] + 'c'
@@ -153,16 +161,12 @@ class OmeTiffWriter(OmeWriter):
 
         x_index = dim_order.index('x')
         y_index = dim_order.index('y')
-        source_type = source.get_dtype()
+        dtype = source.get_dtype()
         if tile_size is not None:
             if isinstance(tile_size, int):
                 tile_size = [tile_size] * 2
             if tile_size[0] > shape[y_index] or tile_size[1] > shape[x_index]:
                 tile_size = None
-
-        if resolution is not None:
-            # tifffile only supports x/y pyramid resolution
-            resolution = tuple(resolution[0:2])
 
         if xml_metadata is not None:
             # set ome=False to provide custom OME xml in description
@@ -173,7 +177,10 @@ class OmeTiffWriter(OmeWriter):
             is_ome = True
 
         # maximum size (w/o compression)
-        data_size = data.size * data.itemsize
+        if is_generator:
+            data_size = np.prod(shape) * dtype.itemsize
+        else:
+            data_size = data.size * data.itemsize
         max_size = 0
         scale = 1
         for level in range(1 + pyramid_levels):
@@ -183,20 +190,24 @@ class OmeTiffWriter(OmeWriter):
 
         with TiffWriter(filename, bigtiff=bigtiff, ome=is_ome) as writer:
             for level in range(pyramid_levels + 1):
+                if is_generator:
+                    data = data_generator(level)
                 if level == 0:
                     scale = 1
                     subifds = pyramid_levels
                     subfiletype = None
+                    new_shape = shape
                 else:
                     scale /= pyramid_downscale
                     new_shape = list(shape)
                     new_shape[x_index] = int(shape[x_index] * scale)
                     new_shape[y_index] = int(shape[y_index] * scale)
-                    data = resize(data, new_shape, preserve_range=True).astype(source_type)
+                    if not is_generator:
+                        data = resize(data, new_shape, preserve_range=True).astype(dtype)
                     subifds = None
                     subfiletype = 1
                     xml_metadata_bytes = None
-                writer.write(data, subifds=subifds, subfiletype=subfiletype,
+                writer.write(data, shape=tuple(new_shape), dtype=dtype, subifds=subifds, subfiletype=subfiletype,
                              resolution=resolution, resolutionunit=resolution_unit, tile=tile_size,
                              compression=compression, compressionargs=compressionargs,
                              description=xml_metadata_bytes)
