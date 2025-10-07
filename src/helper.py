@@ -22,6 +22,9 @@ def create_source(filename):
     elif input_ext == '.isyntax':
         from src.ISyntaxSource import ISyntaxSource
         source = ISyntaxSource(filename)
+    elif 'zar' in input_ext:
+        from src.OmeZarrSource import OmeZarrSource
+        source = OmeZarrSource(filename)
     elif 'tif' in input_ext:
         from src.TiffSource import TiffSource
         source = TiffSource(filename)
