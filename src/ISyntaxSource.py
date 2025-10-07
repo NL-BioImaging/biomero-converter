@@ -62,6 +62,8 @@ class ISyntaxSource(ImageSource):
         self.is_plate = 'screen' in self.image_type or 'plate' in self.image_type or 'wells' in self.image_type
 
         self.isyntax = ISyntax.open(self.uri)
+        self.widths = [size[0] for size in self.isyntax.level_dimensions]
+        self.heights = [size[1] for size in self.isyntax.level_dimensions]
         self.width, self.height = self.isyntax.dimensions
 
         # original color channels get converted in pyisyntax package to 8-bit RGBA
@@ -127,8 +129,8 @@ class ISyntaxSource(ImageSource):
         elif as_generator:
             # TODO: use Tiff.memmap?
             def tile_generator(level=0):
-                for y in range(0, self.shape[-2], TILE_SIZE):
-                    for x in range(0, self.shape[-1], TILE_SIZE):
+                for y in range(0, self.heights[level], TILE_SIZE):
+                    for x in range(0, self.widths[level], TILE_SIZE):
                         yield self.isyntax.read_region(x, y, TILE_SIZE, TILE_SIZE, level)
             return tile_generator
         else:
