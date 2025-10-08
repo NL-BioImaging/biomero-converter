@@ -190,8 +190,6 @@ class OmeTiffWriter(OmeWriter):
 
         with TiffWriter(filename, bigtiff=bigtiff, ome=is_ome) as writer:
             for level in range(pyramid_levels + 1):
-                if is_generator:
-                    data = data_generator(level)
                 if level == 0:
                     scale = 1
                     subifds = pyramid_levels
@@ -207,6 +205,8 @@ class OmeTiffWriter(OmeWriter):
                     subifds = None
                     subfiletype = 1
                     xml_metadata_bytes = None
+                if is_generator:
+                    data = data_generator(scale)
                 writer.write(data, shape=tuple(new_shape), dtype=dtype, subifds=subifds, subfiletype=subfiletype,
                              resolution=resolution, resolutionunit=resolution_unit, tile=tile_size,
                              compression=compression, compressionargs=compressionargs,

@@ -6,6 +6,7 @@ import dask
 import dask.array as da
 from isyntax import ISyntax
 import numpy as np
+from skimage.transform import resize
 from xml.etree import ElementTree
 
 from src.ImageSource import ImageSource
@@ -64,6 +65,7 @@ class ISyntaxSource(ImageSource):
         self.isyntax = ISyntax.open(self.uri)
         self.widths = [size[0] for size in self.isyntax.level_dimensions]
         self.heights = [size[1] for size in self.isyntax.level_dimensions]
+        self.scales = [1 / scale for scale in self.isyntax.level_downsamples]
         self.width, self.height = self.isyntax.dimensions
 
         # original color channels get converted in pyisyntax package to 8-bit RGBA
@@ -128,10 +130,24 @@ class ISyntaxSource(ImageSource):
             return redimension_data(data, self.source_dim_order, self.dim_order)
         elif as_generator:
             # TODO: use Tiff.memmap?
-            def tile_generator(level=0):
-                for y in range(0, self.heights[level], TILE_SIZE):
-                    for x in range(0, self.widths[level], TILE_SIZE):
-                        yield self.isyntax.read_region(x, y, TILE_SIZE, TILE_SIZE, level)
+            def get_level_from_scale(target_scale=1):
+                best_level_scale = 0, target_scale
+                for level, scale in enumerate(self.scales):
+                    if np.isclose(scale, target_scale):
+                        return level, 1
+                    if scale > target_scale:
+                        best_level_scale = level, target_scale / scale
+                return best_level_scale
+
+            def tile_generator(scale=1):
+                level, rescale = get_level_from_scale(scale)
+                read_size = int(TILE_SIZE / rescale)
+                for y in range(0, self.heights[level], read_size):
+                    for x in range(0, self.widths[level], read_size):
+                        data = self.isyntax.read_region(x, y, read_size, read_size, level)
+                        if rescale != 1:
+                            data = resize(data, (TILE_SIZE, TILE_SIZE), preserve_range=True).astype(data.dtype)
+                        yield data
             return tile_generator
         else:
             data = self.isyntax.read_region(0, 0, self.width, self.height)
