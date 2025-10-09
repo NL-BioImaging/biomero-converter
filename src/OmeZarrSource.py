@@ -1,14 +1,31 @@
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
-import zarr
+import os.path
 
 from src.ImageSource import ImageSource
 from src.ome_zarr_util import *
-from src.parameters import *
-from src.util import split_well_name, print_hbytes
 
 
 class OmeZarrSource(ImageSource):
+
+    def _get_reader(self, add_path=None):
+        uri = self.uri
+        if add_path:
+            uri = os.path.join(uri, add_path)
+        location = parse_url(uri)
+        if location is None:
+            raise FileNotFoundError(f'Error parsing ome-zarr file {uri}')
+        reader = Reader(location)
+        nodes = list(reader())
+        return reader, nodes
+
+    def _get_metadata(self, add_path=None):
+        metadata = {}
+        _, nodes = self._get_reader(add_path)
+        if len(nodes) > 0:
+            metadata = nodes[0].metadata
+        return metadata
+
     def init_metadata(self):
         """
         Initializes and loads metadata from the (OME) TIFF file.
@@ -16,28 +33,18 @@ class OmeZarrSource(ImageSource):
         Returns:
             dict: Metadata dictionary.
         """
-        location = parse_url(self.uri)
-        if location is None:
-            raise FileNotFoundError(f'Error parsing ome-zarr file {self.uri}')
-        reader = Reader(location)
-        # nodes may include images, labels etc
-        nodes = list(reader())
-        # first node will be the image pixel data
-        if len(nodes) == 0 and 'bioformats2raw.layout' in location.root_attrs:
-            # try to read bioformats2raw format
+        reader, nodes = self._get_reader()
+        if 'bioformats2raw.layout' in reader.zarr.root_attrs:
             # TODO: use paths provided in metadata
-            reader = Reader(parse_url(self.uri + '/0'))
-            nodes = list(reader())
-            if len(nodes) == 0:
-                raise FileNotFoundError(f'No image data found in ome-zarr file {self.uri}')
+            reader, nodes = self._get_reader('/0')
+        # nodes may include images, labels etc
+        if len(nodes) == 0:
+            raise FileNotFoundError(f'No image data found in ome-zarr file {self.uri}')
+        # first node will be the image pixel data
         image_node = nodes[0]
-        self.data = image_node.data
-        self.shape = self.data[0].shape
-        self.dtype = self.data[0].dtype
-
         self.metadata = image_node.metadata
         # channel metadata from ome-zarr-py limited; get from root_attrs manually
-        self.root_metadata = reader.zarr.root_attrs
+        #self.root_metadata = reader.zarr.root_attrs
 
         axes = self.metadata.get('axes', [])
         self.dim_order = ''.join([axis.get('name') for axis in axes])
@@ -50,18 +57,17 @@ class OmeZarrSource(ImageSource):
         self.pixel_size = {axis: pixel_size for axis, pixel_size in zip(self.dim_order, pixel_sizes0) if axis in 'xyz'}
         if self.is_plate:
             self.name = self.plate.get('name', '')
-            self.wells = [well['path'].replace('/', '') for well in self.plate.get('wells')]
+            self.rows = [row['name'] for row in self.plate.get('rows', [])]
+            self.columns = [column['name'] for column in self.plate.get('columns', [])]
+            self.wells = {well['path'].replace('/', ''): well['path'] for well in self.plate.get('wells')}
             self.fields = list(range(self.plate.get('field_count', 0)))
-            paths = []
-            for well in self.plate.get('wells'):
-                path = well['path']
-                if self.fields:
-                    paths.extend([f'{path}/{field}' for field in self.fields])
-                else:
-                    paths.append(path)
-            # TODO: read paths
+            self.paths = {well_id: {field: f'{well_path}/{field}' for field in self.fields} for well_id, well_path in self.wells.items()}
+            self.acquisitions = self.plate.get('acquisitions', [])
         else:
             self.name = self.metadata.get('name', '')
+            self.data = image_node.data
+        self.shape = image_node.data[0].shape
+        self.dtype = image_node.data[0].dtype
 
     def is_screen(self):
         """
@@ -89,12 +95,19 @@ class OmeZarrSource(ImageSource):
             ndarray: Image data.
         """
 
-        return self.data[level]
+        if well_id is None and field_id is None:
+            return self.data[level]
+        else:
+            _, nodes = self._get_reader(self.paths[well_id][field_id])
+            return nodes[0].data[level]
 
     def get_image_window(self, well_id=None, field_id=None, data=None):
-
-        return [], []
-
+        if well_id is None and field_id is None:
+            metadata = self.metadata
+        else:
+            metadata = self._get_metadata(self.paths[well_id][field_id])
+        window = np.transpose(metadata.get('contrast_limits', ([], [])))
+        return window
 
     def get_name(self):
         """
@@ -139,7 +152,11 @@ class OmeZarrSource(ImageSource):
         Returns:
             dict: Position in micrometers.
         """
-        return self.position
+        metadata = self._get_metadata(self.paths[well_id][0])
+        for transforms in metadata['coordinateTransformations'][0]:
+            if transforms['type'] == 'translation':
+                return {dim:value for dim, value in zip(self.dim_order, transforms['translation'])}
+        return {}
 
     def get_channels(self):
         """
@@ -148,7 +165,14 @@ class OmeZarrSource(ImageSource):
         Returns:
             list: List of channel dicts.
         """
-        return self.channels
+        channels = []
+        colormaps = self.metadata['colormap']
+        for channeli, channel_name in enumerate(self.metadata['channel_names']):
+            channel = {'label': channel_name}
+            if channeli < len(colormaps):
+                channel['color'] = colormaps[channeli][-1]
+            channels.append(channel)
+        return channels
 
     def get_nchannels(self):
         """
@@ -163,7 +187,7 @@ class OmeZarrSource(ImageSource):
         """
         Check if the source is a RGB(A) image.
         """
-        return self.get_nchannels() == 3
+        return self.get_nchannels() in (3, 4)
 
     def get_rows(self):
         """
@@ -199,10 +223,7 @@ class OmeZarrSource(ImageSource):
         Returns:
             list: Time point IDs.
         """
-        nt = 1
-        if 't' in self.dim_order:
-            t_index = self.dim_order.index('t')
-            nt = self.tiff.pages.first.shape[t_index]
+        nt = self.shape[self.dim_order.index('t')] if 't' in self.dim_order else 1
         return list(range(nt))
 
     def get_fields(self):
@@ -219,7 +240,7 @@ class OmeZarrSource(ImageSource):
         Returns acquisition metadata (empty for TIFF).
 
         Returns:
-            list: Empty list.
+            list: acquisition metadata.
         """
         return self.acquisitions
 

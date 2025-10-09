@@ -149,9 +149,11 @@ class OmeTiffWriter(OmeWriter):
             data_generator = data
             shape = list(source.source_shape)
             dim_order = source.source_dim_order
+            dtype = source.get_dtype()
         else:
-            shape = list(source.get_shape())
+            shape = list(data.shape)
             dim_order = source.get_dim_order()
+            dtype = data.dtype
         if source.is_rgb() and dim_order[-1] != 'c' and not is_generator:
             # For Tiff allow RGB written with color channel at end for better compression
             old_dimc = dim_order.index('c')
@@ -161,7 +163,6 @@ class OmeTiffWriter(OmeWriter):
 
         x_index = dim_order.index('x')
         y_index = dim_order.index('y')
-        dtype = source.get_dtype()
         if tile_size is not None:
             if isinstance(tile_size, int):
                 tile_size = [tile_size] * 2

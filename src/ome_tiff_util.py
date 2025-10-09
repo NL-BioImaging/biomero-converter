@@ -83,7 +83,7 @@ def create_image_metadata(source, image_uuid=None, image_filename=None):
     channels = source.get_channels()
     ome_channels = []
     if len(channels) < c:
-        if source.is_rgb() and c in (3, 4):
+        if source.is_rgb():
             ome_channels.append(Channel(name='rgb', samples_per_pixel=3))
         else:
             ome_channels = [Channel(name=f'{channeli}', samples_per_pixel=1) for channeli in range(c)]
