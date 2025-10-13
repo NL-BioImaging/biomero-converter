@@ -38,6 +38,12 @@ def create_source(filename, input_format=None, **kwargs):
         from src.IncucyteSource import IncucyteSource
         # Pass kwargs to IncucyteSource (e.g., plate_id)
         source = IncucyteSource(archive_folder, **kwargs)
+    elif input_ext == '.isyntax':
+        from src.ISyntaxSource import ISyntaxSource
+        source = ISyntaxSource(filename)
+    elif 'zar' in input_ext:
+        from src.OmeZarrSource import OmeZarrSource
+        source = OmeZarrSource(filename)
     elif 'tif' in input_ext:
         from src.TiffSource import TiffSource
         source = TiffSource(filename)

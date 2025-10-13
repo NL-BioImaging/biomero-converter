@@ -6,6 +6,7 @@ import dask
 import dask.array as da
 from isyntax import ISyntax
 import numpy as np
+from skimage.transform import resize
 from xml.etree import ElementTree
 
 from src.ImageSource import ImageSource
@@ -61,18 +62,23 @@ class ISyntaxSource(ImageSource):
 
         self.is_plate = 'screen' in self.image_type or 'plate' in self.image_type or 'wells' in self.image_type
 
+        self.isyntax = ISyntax.open(self.uri)
+        self.widths = [size[0] for size in self.isyntax.level_dimensions]
+        self.heights = [size[1] for size in self.isyntax.level_dimensions]
+        self.scales = [1 / scale for scale in self.isyntax.level_downsamples]
+        self.width, self.height = self.isyntax.dimensions
+
         # original color channels get converted in pyisyntax package to 8-bit RGBA
         nbits = 8
         self.channels = []
         self.nchannels = 4
+        self.source_shape = self.height, self.width, self.nchannels
         self.source_dim_order = 'yxc'
-        self.dim_order = 'tczyx'
         self.is_rgb_channels = True
-
-        self.isyntax = ISyntax.open(self.uri)
-        self.width, self.height = self.isyntax.dimensions
-        self.shape = 1, self.nchannels, 1, self.height, self.width
         self.dtype = np.dtype(f'uint{nbits}')
+
+        self.shape = 1, self.nchannels, 1, self.height, self.width
+        self.dim_order = 'tczyx'
 
         return self.metadata
 
@@ -94,7 +100,7 @@ class ISyntaxSource(ImageSource):
         """
         return self.shape
 
-    def get_data(self, well_id=None, field_id=None, as_dask=False):
+    def get_data(self, well_id=None, field_id=None, as_dask=False, as_generator=False, **kwargs):
         """
         Gets image data for a specific well and field.
 
@@ -122,22 +128,31 @@ class ISyntaxSource(ImageSource):
                 y += height
             data = da.concatenate(rows, axis=0)
             return redimension_data(data, self.source_dim_order, self.dim_order)
-        else:
-            #data = self.isyntax.read_region(0, 0, self.width, self.height)
+        elif as_generator:
             # TODO: use Tiff.memmap?
-            def tile_generator():
-                for y in range(0, self.shape[-1], TILE_SIZE):
-                    for x in range(0, self.shape[-2], TILE_SIZE):
-                        tile = self.isyntax.read_region(x, y, TILE_SIZE, TILE_SIZE)
-                        if tile.shape[:2] != (TILE_SIZE, TILE_SIZE):
-                            pad = (
-                                (0, TILE_SIZE - tile.shape[0]),
-                                (0, TILE_SIZE - tile.shape[1]),
-                                (0, 0)
-                            )
-                            tile = np.pad(tile, pad, 'constant')
-                        yield tile
-            return tile_generator()
+            def get_level_from_scale(target_scale=1):
+                best_level_scale = 0, target_scale
+                for level, scale in enumerate(self.scales):
+                    if np.isclose(scale, target_scale):
+                        return level, 1
+                    if scale > target_scale:
+                        best_level_scale = level, target_scale / scale
+                return best_level_scale
+
+            def tile_generator(scale=1):
+                level, rescale = get_level_from_scale(scale)
+                read_size = int(TILE_SIZE / rescale)
+                for y in range(0, self.heights[level], read_size):
+                    for x in range(0, self.widths[level], read_size):
+                        data = self.isyntax.read_region(x, y, read_size, read_size, level)
+                        if rescale != 1:
+                            data = resize(data, (TILE_SIZE, TILE_SIZE), preserve_range=True).astype(data.dtype)
+                        yield data
+            return tile_generator
+        else:
+            data = self.isyntax.read_region(0, 0, self.width, self.height)
+            return redimension_data(data, self.source_dim_order, self.dim_order)
+
 
     def get_image_window(self, well_id=None, field_id=None, data=None):
         # For RGB(A) uint8 images don't change color value range
@@ -179,7 +194,7 @@ class ISyntaxSource(ImageSource):
         Returns the pixel size in micrometers.
 
         Returns:
-            dict: Pixel size for x and y.
+            dict: Pixel size dict for x and y.
         """
         return {'x': self.isyntax.mpp_x, 'y': self.isyntax.mpp_y}
 
@@ -197,9 +212,9 @@ class ISyntaxSource(ImageSource):
         Returns the position in micrometers (empty for ISyntax).
 
         Returns:
-            dict: Empty dict.
+            dict: Position dict for x and y.
         """
-        return {}
+        return {'x': self.isyntax.offset_x, 'y': self.isyntax.offset_y}
 
     def get_channels(self):
         """

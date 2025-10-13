@@ -268,7 +268,7 @@ class ImageDbSource(ImageSource):
         """
         return len(self.metadata['wells']) > 0
 
-    def get_data(self, well_id=None, field_id=None, as_dask=False):
+    def get_data(self, well_id=None, field_id=None, as_dask=False, **kwargs):
         """
         Gets image data for a specific well and field.
 

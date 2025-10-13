@@ -174,7 +174,7 @@ class TiffSource(ImageSource):
         """
         return self.shape
 
-    def get_data(self, well_id=None, field_id=None, as_dask=False):
+    def get_data(self, well_id=None, field_id=None, as_dask=False, **kwargs):
         """
         Gets image data from the TIFF file.
 

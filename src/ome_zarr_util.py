@@ -62,7 +62,7 @@ def create_transformation_metadata(dimension_order, pixel_size_um, scale, transl
             translation_scale.append(translation1)
 
     metadata.append({'type': 'scale', 'scale': pixel_size_scale})
-    if not all(v == 0 for v in translation_scale):
+    if translation_um is not None:
         metadata.append({'type': 'translation', 'translation': translation_scale})
     return metadata
 
