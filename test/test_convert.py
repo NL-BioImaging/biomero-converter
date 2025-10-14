@@ -82,7 +82,7 @@ class TestConvert:
         assert pixel_size.get('x') == source_pixel_size.get('x')
         assert pixel_size.get('y') == source_pixel_size.get('y')
         if source.is_screen():
-            assert wells == source_wells
+            assert list(wells) == list(source_wells)
 
 
 if __name__ == '__main__':

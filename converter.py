@@ -122,10 +122,6 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
     writer, output_ext = create_writer(output_format, verbose=verbose)
     
     source.init_metadata()
-    if verbose:
-        total_size = print_hbytes(source.get_total_data_size())
-        print(f'Total data size:    {total_size}')
-
     name = source.get_name()
 
     # For Incucyte sources with plates, organize output in subfolders

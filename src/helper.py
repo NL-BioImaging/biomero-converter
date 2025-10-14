@@ -1,13 +1,12 @@
 import os.path
 
 
-def create_source(filename, input_format=None, **kwargs):
+def create_source(filename, **kwargs):
     """
     Create an image source object based on the input file extension.
 
     Args:
         filename (str): Path to the input file or Incucyte .icarch file.
-        input_format (str, optional): Deprecated - format is auto-detected.
         **kwargs: Source-specific parameters (e.g., plate_id for Incucyte).
 
     Returns:
@@ -48,10 +47,7 @@ def create_source(filename, input_format=None, **kwargs):
         from src.TiffSource import TiffSource
         source = TiffSource(filename)
     else:
-        raise ValueError(
-            f'Unsupported input file format: {input_ext}. '
-            f'Supported formats: .db, .icarch, .tif, .tiff'
-        )
+        raise ValueError(f'Unsupported input file format: {input_ext}')
     return source
 
 
