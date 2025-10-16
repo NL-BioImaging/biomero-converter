@@ -139,7 +139,7 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
             os.makedirs(output_folder)
         output_path = os.path.join(output_folder, name + output_ext)
     
-    full_output_path = writer.write(output_path, source)
+    full_output_path = writer.write(output_path, source, **kwargs)
     source.close()
 
     if show_progress:

@@ -24,10 +24,11 @@ class TestConvert:
         "input_filename", input_filenames,
         "output_format", output_formats,
     )
-    def test_convert(self, tmp_path, input_filename, output_format, alt_output_folder=None, show_progess=False, verbose=False):
+    def test_convert(self, tmp_path, input_filename, output_format, alt_output_folder=None, show_progess=False, verbose=False, **kwargs):
         init_logging('log/db_to_zarr.log', verbose=True)
         with Timer(f'convert {input_filename} to {output_format}'):
-            output = convert(input_filename, tmp_path, alt_output_folder=alt_output_folder, output_format=output_format, show_progress=show_progess, verbose=verbose)
+            output = convert(input_filename, tmp_path, alt_output_folder=alt_output_folder, output_format=output_format,
+                             show_progress=show_progess, verbose=verbose, **kwargs)
 
         source = create_source(input_filename)
         metadata = source.init_metadata()
@@ -41,9 +42,6 @@ class TestConvert:
             print(f'Total data size:    {print_hbytes(source.get_total_data_size())}')
 
         #print(print_dict(metadata))
-        source_pixel_size = source.get_pixel_size_um()
-        if source.is_screen():
-            source_wells = source.get_wells()
 
         output_path = json.loads(output)[0]['full_path']
         if 'tif' in output_format:
@@ -76,6 +74,8 @@ class TestConvert:
         elif '3' in output_format:
             assert float(node.zarr.version) >= 0.5
 
+        source_pixel_size = source.get_pixel_size_um()
+        source_wells = kwargs.get('wells', source.get_wells())
         if verbose:
             print(f'Source    pixel size: {source_pixel_size}')
             print(f'Converted pixel size: {pixel_size}')
@@ -92,4 +92,4 @@ if __name__ == '__main__':
     test = TestConvert()
     for filename in test.input_filenames:
         for output_format in test.output_formats:
-            test.test_convert(Path(tempfile.TemporaryDirectory().name), filename, output_format, show_progess=True)
+            test.test_convert(Path(tempfile.TemporaryDirectory().name), filename, output_format, show_progess=True, wells=['A1', 'B1'])

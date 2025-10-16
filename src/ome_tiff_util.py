@@ -20,12 +20,15 @@ def create_uuid():
     return f'urn:uuid:{uuid.uuid4()}'
 
 
-def create_metadata(source, uuid=None, image_uuids=None, image_filenames=None):
+def create_metadata(source, uuid=None, image_uuids=None, image_filenames=None, wells=None):
     ome = OME()
     if uuid is None:
         uuid = create_uuid()
     ome.uuid = uuid
     ome.creator = f'nl.biomero.OmeTiffWriter {VERSION}'
+
+    if wells is None:
+        wells = source.get_wells()
 
     if source.is_screen():
         columns = source.get_columns()
@@ -39,15 +42,15 @@ def create_metadata(source, uuid=None, image_uuids=None, image_filenames=None):
         plate.column_naming_convention = get_col_row_type(columns)
 
         image_index = 0
-        for well_id in source.get_wells():
+        for well_id in wells:
             row, col = split_well_name(well_id)
             col_index = columns.index(col)
             row_index = rows.index(row)
             well = Well(column=col_index, row=row_index)
-            well.id = f'Well:{well_id}'
+            well.id = f'Well:{col_index}:{row_index}'
             for field in source.get_fields():
                 sample = WellSample(index=image_index)
-                sample.id = f'WellSample:{well_id}:{field}'
+                sample.id = f'WellSample:{col_index}:{row_index}:{field}'
                 position = source.get_position_um(well_id)
                 if 'x' in position:
                     sample.position_x = position['x']
@@ -56,7 +59,9 @@ def create_metadata(source, uuid=None, image_uuids=None, image_filenames=None):
                     sample.position_y = position['y']
                     sample.position_y_unit = UnitsLength.MICROMETER
 
+                image_name = f'Well {well_id}, Field #{field + 1}'
                 image = create_image_metadata(source,
+                                              image_name,
                                               image_uuids[image_index],
                                               image_filenames[image_index])
                 ome.images.append(image)
@@ -71,12 +76,12 @@ def create_metadata(source, uuid=None, image_uuids=None, image_filenames=None):
 
         ome.plates = [plate]
     else:
-        ome.images = [create_image_metadata(source, ome.uuid, source.get_name())]
+        ome.images = [create_image_metadata(source, source.get_name(), ome.uuid, image_filenames[0])]
 
     return to_xml(ome)
 
 
-def create_image_metadata(source, image_uuid=None, image_filename=None):
+def create_image_metadata(source, image_name, image_uuid=None, image_filename=None):
     dim_order = source.get_dim_order()
     t, c, z, y, x = source.get_shape()
     pixel_size = source.get_pixel_size_um()
@@ -117,7 +122,7 @@ def create_image_metadata(source, image_uuid=None, image_filename=None):
         pixels.physical_size_z = pixel_size['z']
         pixels.physical_size_z_unit = UnitsLength.MICROMETER
 
-    image = Image(name=image_filename, pixels=pixels)
+    image = Image(name=image_name, pixels=pixels)
     index = pixels.id.split(':')[1]
     for channeli, channel in enumerate(pixels.channels):
         channel.id = f'Channel:{index}:{channeli}'

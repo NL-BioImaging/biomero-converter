@@ -31,7 +31,7 @@ class OmeTiffWriter(OmeWriter):
         Args:
             filepath (str): Output file path.
             source (ImageSource): Source object.
-            **kwargs: Additional options.
+            **kwargs: Additional options (e.g. wells selection).
 
         Returns:
             str or list: Output file path(s).
@@ -53,7 +53,7 @@ class OmeTiffWriter(OmeWriter):
         Args:
             filename (str): Output file name.
             source (ImageSource): Source object.
-            **kwargs: Additional options.
+            **kwargs: Additional options (e.g. wells selection).
 
         Returns:
             tuple: (List of output paths, total data size)
@@ -66,10 +66,12 @@ class OmeTiffWriter(OmeWriter):
         companion_filename = os.path.join(filepath, filetitle + '.companion.ome')
         companion_uuid = create_uuid()
 
+        wells = kwargs.get('wells', source.get_wells())
+
         total_size = 0
         image_uuids = []
         image_filenames = []
-        for well_id in source.get_wells():
+        for well_id in wells:
             for field in source.get_fields():
                 resolution, resolution_unit = create_resolution_metadata(source)
                 data = source.get_data(well_id, field)
@@ -92,7 +94,7 @@ class OmeTiffWriter(OmeWriter):
                 output_paths.append(filename)
                 total_size += size
 
-        xml_metadata = create_metadata(source, companion_uuid, image_uuids, image_filenames)
+        xml_metadata = create_metadata(source, companion_uuid, image_uuids, image_filenames, wells=wells)
         with open(companion_filename, 'wb') as file:
             file.write(xml_metadata.encode())
 
@@ -111,7 +113,7 @@ class OmeTiffWriter(OmeWriter):
         Returns:
             tuple: (Output path, data size)
         """
-        xml_metadata = create_metadata(source)
+        xml_metadata = create_metadata(source, image_filenames=[filename])
         resolution, resolution_unit = create_resolution_metadata(source)
         data = source.get_data(as_generator=True)
 

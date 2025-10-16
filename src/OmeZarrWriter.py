@@ -12,7 +12,20 @@ from src.util import split_well_name, print_hbytes
 
 
 class OmeZarrWriter(OmeWriter):
+    """
+    Writer for exporting image or screen data to OME-Zarr format.
+    Supports both single images and high-content screening (HCS) plates.
+    """
+
     def __init__(self, zarr_version=2, ome_version='0.4', verbose=False):
+        """
+        Initialize the OmeZarrWriter.
+
+        Args:
+            zarr_version (int): Zarr format version (2 or 3).
+            ome_version (str): OME-Zarr metadata version ('0.4' or '0.5').
+            verbose (bool): If True, print additional information.
+        """
         super().__init__()
         self.zarr_version = zarr_version
         self.ome_version = ome_version
@@ -27,10 +40,21 @@ class OmeZarrWriter(OmeWriter):
         self.verbose = verbose
 
     def write(self, filepath, source, **kwargs):
+        """
+        Write the provided source data to an OME-Zarr file.
+
+        Args:
+            filepath (str): Output path for the Zarr file.
+            source: source reader supporting required interface.
+            **kwargs: Additional arguments (e.g. wells selection).
+
+        Returns:
+            str: The filepath of the written Zarr file.
+        """
         if source.is_screen():
             zarr_root, total_size = self._write_screen(filepath, source, **kwargs)
         else:
-            zarr_root, total_size = self._write_image(filepath, source)
+            zarr_root, total_size = self._write_image(filepath, source, **kwargs)
 
         zarr_root.attrs['_creator'] = {'name': 'nl.biomero.OmeZarrWriter', 'version': VERSION}
 
@@ -40,13 +64,24 @@ class OmeZarrWriter(OmeWriter):
         return filepath
 
     def _write_screen(self, filepath, source, **kwargs):
+        """
+        Write a high-content screening (HCS) plate to OME-Zarr.
+
+        Args:
+            filepath (str): Output path for the Zarr file.
+            source: source reader supporting required interface.
+            **kwargs: Additional arguments (e.g., wells).
+
+        Returns:
+            tuple: (zarr_root, total_size) where zarr_root is the root group and total_size is bytes written.
+        """
         #zarr_location = parse_url(filename, mode='w', fmt=self.ome_format)
         zarr_location = filepath
         zarr_root = zarr.open_group(zarr_location, mode='w', zarr_version=self.zarr_version)
 
         row_names = source.get_rows()
         col_names = source.get_columns()
-        wells = source.get_wells()
+        wells = kwargs.get('wells', source.get_wells())
         well_paths = ['/'.join(split_well_name(well)) for well in wells]
         fields = list(map(str, source.get_fields()))
 
@@ -71,7 +106,18 @@ class OmeZarrWriter(OmeWriter):
 
         return zarr_root, total_size
 
-    def _write_image(self, filepath, source):
+    def _write_image(self, filepath, source, **kwargs):
+        """
+        Write a single image to OME-Zarr.
+
+        Args:
+            filepath (str): Output path for the Zarr file.
+            source: source reader for image data.
+            **kwargs: Additional arguments.
+
+        Returns:
+            tuple: (zarr_root, size) where zarr_root is the root group and size is bytes written.
+        """
         #zarr_location = parse_url(filename, mode='w', fmt=self.ome_format)
         zarr_location = filepath
         zarr_root = zarr.open_group(zarr_location, mode='w', zarr_version=self.zarr_version)
@@ -82,6 +128,19 @@ class OmeZarrWriter(OmeWriter):
         return zarr_root, size
 
     def _write_data(self, group, data, source, window, position=None):
+        """
+        Write image data and metadata to a Zarr group.
+
+        Args:
+            group: Zarr group to write into.
+            data: Image data array.
+            source: source reader.
+            window: Image window information.
+            position: Optional position information.
+
+        Returns:
+            int: Number of bytes written.
+        """
         dim_order = source.get_dim_order()
         dtype = source.get_dtype()
         channels = source.get_channels()
@@ -115,6 +174,18 @@ class OmeZarrWriter(OmeWriter):
         return size
 
     def _create_scale_metadata(self, source, dim_order, translation, scaler=None):
+        """
+        Create coordinate transformation metadata for multiscale images.
+
+        Args:
+            source: source reader.
+            dim_order (str): Dimension order string.
+            translation: Translation or position information.
+            scaler: Optional Scaler object.
+
+        Returns:
+            tuple: (pixel_size_scales, scaler)
+        """
         if scaler is None:
             scaler = Scaler(downscale=PYRAMID_DOWNSCALE, max_layer=PYRAMID_LEVELS)
         pixel_size_scales = []
