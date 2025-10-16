@@ -5,7 +5,6 @@ import shutil
 
 from src.helper import create_source, create_writer
 from src.parameters import CONVERSION_ATTEMPTS
-from src.util import print_hbytes
 
 
 def init_logging(log_filename, verbose=False):
