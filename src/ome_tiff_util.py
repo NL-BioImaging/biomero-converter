@@ -59,7 +59,7 @@ def create_metadata(source, uuid=None, image_uuids=None, image_filenames=None, w
                     sample.position_y = position['y']
                     sample.position_y_unit = UnitsLength.MICROMETER
 
-                image_name = f'Well {well_id}, Field #{field + 1}'
+                image_name = f'Well {well_id}, Field #{int(field) + 1}'
                 image = create_image_metadata(source,
                                               image_name,
                                               image_uuids[image_index],
