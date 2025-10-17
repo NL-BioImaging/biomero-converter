@@ -128,15 +128,13 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
     if isinstance(source, IncucyteSource) and source.plate_id:
         # Create plate-specific subfolder
         plate_folder = f"plate_{source.plate_id}"
-        plate_output_folder = os.path.join(output_folder, plate_folder)
-        if not os.path.exists(plate_output_folder):
-            os.makedirs(plate_output_folder)
-        output_path = os.path.join(plate_output_folder, name + output_ext)
-    else:
-        # Standard output path
-        if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
-        output_path = os.path.join(output_folder, name + output_ext)
+        output_folder = os.path.join(output_folder, plate_folder)
+        if alt_output_folder:
+            alt_output_folder = os.path.join(alt_output_folder, plate_folder)
+
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    output_path = os.path.join(output_folder, name + output_ext)
     
     full_output_path = writer.write(output_path, source, **kwargs)
     source.close()
@@ -150,41 +148,24 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
     else:
         full_path = full_output_path
     result['full_path'] = full_path
-    message = f"Exported   {result['full_path']}"
+    message = f'Exported   {full_path}'
 
     if alt_output_folder:
-        # Use same subfolder structure for alternative output
-        if isinstance(source, IncucyteSource) and source.plate_id:
-            alt_plate_folder = os.path.join(
-                alt_output_folder, f"plate_{source.plate_id}"
-            )
-            if not os.path.exists(alt_plate_folder):
-                os.makedirs(alt_plate_folder)
-            alt_output_path = os.path.join(alt_plate_folder, name + output_ext)
-        else:
-            if not os.path.exists(alt_output_folder):
-                os.makedirs(alt_output_folder)
-            alt_output_path = os.path.join(
-                alt_output_folder, name + output_ext
-            )
-        
+        if not os.path.exists(alt_output_folder):
+            os.makedirs(alt_output_folder)
+
+        alt_output_path = os.path.join(alt_output_folder, os.path.basename(full_path))
         if isinstance(full_output_path, list):
             for path in full_output_path:
-                basename = os.path.basename(path)
-                if isinstance(source, IncucyteSource) and source.plate_id:
-                    alt_path = os.path.join(alt_plate_folder, basename)
-                else:
-                    alt_path = os.path.join(alt_output_folder, basename)
+                alt_path = os.path.join(alt_output_folder, os.path.basename(path))
                 shutil.copy2(path, alt_path)
         elif os.path.isdir(full_output_path):
-            shutil.copytree(
-                full_output_path, alt_output_path, dirs_exist_ok=True
-            )
+            shutil.copytree(full_output_path, alt_output_path, dirs_exist_ok=True)
         else:
             shutil.copy2(full_output_path, alt_output_path)
-        
+
         result['alt_path'] = alt_output_path
-        message += f' and {result["alt_path"]}'
+        message += f' and {alt_output_path}'
 
     logging.info(message)
     if show_progress:
