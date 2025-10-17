@@ -92,4 +92,4 @@ if __name__ == '__main__':
     test = TestConvert()
     for filename in test.input_filenames:
         for output_format in test.output_formats:
-            test.test_convert(Path(tempfile.TemporaryDirectory().name), filename, output_format, show_progess=True, wells=['A1', 'B1'])
+            test.test_convert(Path(tempfile.TemporaryDirectory().name), filename, output_format, show_progess=True)

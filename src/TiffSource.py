@@ -68,6 +68,7 @@ class TiffSource(ImageSource):
             metadata = metadata_to_dict(self.tiff.ome_metadata)
             if metadata and not 'BinaryOnly' in metadata:
                 self.metadata = metadata
+            image0 = ensure_list(self.metadata.get('Image', []))[0]
             self.is_plate = 'Plate' in self.metadata
             if self.is_plate:
                 plate = self.metadata['Plate']
@@ -75,7 +76,7 @@ class TiffSource(ImageSource):
                 rows = set()
                 columns = set()
                 wells = {}
-                for well in plate['Well']:
+                for well in ensure_list(plate['Well']):
                     row = create_col_row_label(well['Row'], plate['RowNamingConvention'])
                     column = create_col_row_label(well['Column'], plate['ColumnNamingConvention'])
                     rows.add(row)
@@ -86,11 +87,11 @@ class TiffSource(ImageSource):
                 self.columns = list(columns)
                 self.wells = list(wells.keys())
             else:
-                self.name = self.metadata['Image'].get('Name')
+                self.name = image0.get('Name')
             if not self.name:
                 self.name = get_filetitle(self.uri)
             self.name = self.name.rstrip('.tiff').rstrip('.tif').rstrip('.ome')
-            pixels = ensure_list(self.metadata.get('Image', []))[0].get('Pixels', {})
+            pixels = image0.get('Pixels', {})
             self.shape = pixels.get('SizeT'), pixels.get('SizeC'), pixels.get('SizeZ'), pixels.get('SizeY'), pixels.get('SizeX')
             #self.source_dim_order = ''.join(reversed(pixels['DimensionOrder'].lower()))
             self.dtype = np.dtype(pixels['Type'])
