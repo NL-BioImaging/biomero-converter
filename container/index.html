@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://nl-bioimaging.github.io/convert-to-ome/overview/">
+        <link rel="canonical" href="https://nl-bioimaging.github.io/convert-to-ome/container/">
       
       
-        <link rel="prev" href="../convert/">
+        <link rel="prev" href="..">
       
       
-        <link rel="next" href="../references/">
+        <link rel="next" href="../main/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -24,7 +24,7 @@
     
     
       
-        <title>Converter Overview - convert-to-ome</title>
+        <title>General container requirements - convert-to-ome</title>
       
     
     
@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#converter-overview" class="md-skip">
+        <a href="#general-container-requirements" class="md-skip">
           Skip to content
         </a>
       
@@ -103,7 +103,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Converter Overview
+              General container requirements
             
           </span>
         </div>
@@ -241,10 +241,32 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../container/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    General container requirements
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -255,6 +277,59 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#input-arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Input arguments
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#output-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      Output format
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Output format">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#keyvalues-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      keyvalues example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -307,32 +382,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    Converter Overview
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
         
   
   
@@ -343,35 +396,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
-    <span class="md-ellipsis">
-      Architecture
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -425,11 +449,35 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
+  <a href="#input-arguments" class="md-nav__link">
     <span class="md-ellipsis">
-      Architecture
+      Input arguments
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#output-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      Output format
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Output format">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#keyvalues-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      keyvalues example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -452,28 +500,32 @@
   
 
 
-<h1 id="converter-overview">Converter Overview</h1>
-<p>This project provides a converter that transforms source image data into OME-Tiff or OME-Zarr format.
-When creating a github release, a Docker image is built and published to Docker Hub with corresponding version tags
-<a href="https://hub.docker.com/r/cellularimagingcf/image-db-to-ome">here</a>.</p>
-<h2 id="architecture">Architecture</h2>
-<p>The converter workflow consists of:</p>
+<h1 id="general-container-requirements">General container requirements</h1>
+<h2 id="input-arguments">Input arguments</h2>
 <ul>
-<li>Creating a <strong>Source</strong> reader to access image data and metadata.</li>
-<li>Creating a <strong>Writer</strong> to generate OME output.</li>
-<li>The <strong>Writer</strong> queries the <strong>Source</strong> for metadata and data, then writes the output.</li>
+<li>--inputfile (required): Path to the input file</li>
+<li>--outputfolder (required): Output directory for converted files</li>
+<li>--altoutputfolder (optional): Alternative output directory</li>
+<li>--show_progress (optional): Show progress bar during conversion (boolean value)</li>
 </ul>
-<pre class="mermaid"><code>flowchart TD
-    Converter["Converter"]
-    Source["Source Reader"]
-    Writer["Writer"]
-    Output["OME Output"]
-
-    Converter --&gt; Source
-    Converter --&gt; Writer
-    Writer --&gt;|Query Metadata| Source
-    Writer --&gt;|Query Data| Source
-    Writer --&gt; Output</code></pre>
+<h2 id="output-format">Output format</h2>
+<p>The container should return the following output as JSON string</p>
+<p>A list containing a dictionary of:
+- name: base name of the created or relevant file (without extension)
+- full_path: absolute path to the output file
+- alt_path: absolute path to the file in altoutputfolder (if used and file exists), else null
+- keyvalues (optional): a list with a dictionary containing per-channel intensity stats and optional metadata</p>
+<h3 id="keyvalues-example">keyvalues example</h3>
+<div class="highlight"><pre><span></span><code>&quot;keyvalues&quot;:
+[
+  {
+    &quot;channel_mins&quot;: [1097, 2257, 335, 175],
+    &quot;channel_maxs&quot;: [7423, 5907, 10261, 3716],
+    &quot;channel_display_black_values&quot;: [1179, 2357, 372, 202],
+    &quot;channel_display_white_values&quot;: [6798, 5641, 7002, 2969]
+  }
+]
+</code></pre></div>
 
 
 
