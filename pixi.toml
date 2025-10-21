@@ -1,7 +1,7 @@
 [project]
 authors = ["Maarten Paul <maarten.paul@gmail.com>"]
 channels = ["conda-forge"]
-name = "image-db-to-ome"
+name = "convert-to-ome"
 platforms = ["win-64"]
 version = "0.1.0"
 
