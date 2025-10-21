@@ -1,9 +1,9 @@
-site_name: image-db-to-ome
-site_url: https://nl-bioimaging.github.io/image-db-to-ome/
+site_name: convert-to-ome
+site_url: https://nl-bioimaging.github.io/convert-to-ome/
 site_description: convert source image to OME-TIFF or OME-Zarr format
 
-repo_name: image-db-to-ome
-repo_url: https://github.com/NL-BioImaging/image-db-to-ome
+repo_name: convert-to-ome
+repo_url: https://github.com/NL-BioImaging/convert-to-ome
 
 plugins:
   - search
@@ -24,6 +24,7 @@ markdown_extensions:
 
 nav:
   - index.md
+  - container.md
   - main.md
   - convert.md
   - overview.md
