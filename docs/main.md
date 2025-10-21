@@ -8,7 +8,7 @@ You can use Docker to run the conversion process by mounting your input and outp
 docker run --rm \
   -v /local/input_folder:/data/input \
   -v /local/output_folder:/data/output \
-  image-db-to-ome:latest \
+  convert-to-ome:latest \
   python main.py \
     --inputfile /data/input/input_file.tiff \
     --outputfolder /data/output \
