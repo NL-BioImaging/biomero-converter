@@ -2,7 +2,7 @@
 
 This project provides a converter that transforms source image data into OME-Tiff or OME-Zarr format.
 When creating a github release, a Docker image is built and published to Docker Hub with corresponding version tags
-[here](https://hub.docker.com/r/cellularimagingcf/image-db-to-ome).
+[here](https://hub.docker.com/r/cellularimagingcf/convert-to-ome).
 
 ## Architecture
 
