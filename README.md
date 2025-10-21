@@ -3,5 +3,5 @@
 - Export to ome-tiff and ome-zarr supporting Screen Plate Well / High Content Screening format
 
 # Documentation
-### [nl-bioimaging.github.io/convert-to-ome](https://nl-bioimaging.github.io/concert-to-ome/)
+### [nl-bioimaging.github.io/convert-to-ome](https://nl-bioimaging.github.io/convert-to-ome/)
 ![logo](docs/images/logo.png)
