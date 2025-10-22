@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://nl-bioimaging.github.io/convert-to-ome/</loc>
-         <lastmod>2025-10-21</lastmod>
+         <loc>https://nl-bioimaging.github.io/biomero-converter/</loc>
+         <lastmod>2025-10-22</lastmod>
     </url>
     <url>
-         <loc>https://nl-bioimaging.github.io/convert-to-ome/container/</loc>
-         <lastmod>2025-10-21</lastmod>
+         <loc>https://nl-bioimaging.github.io/biomero-converter/container/</loc>
+         <lastmod>2025-10-22</lastmod>
     </url>
     <url>
-         <loc>https://nl-bioimaging.github.io/convert-to-ome/convert/</loc>
-         <lastmod>2025-10-21</lastmod>
+         <loc>https://nl-bioimaging.github.io/biomero-converter/convert/</loc>
+         <lastmod>2025-10-22</lastmod>
     </url>
     <url>
-         <loc>https://nl-bioimaging.github.io/convert-to-ome/main/</loc>
-         <lastmod>2025-10-21</lastmod>
+         <loc>https://nl-bioimaging.github.io/biomero-converter/main/</loc>
+         <lastmod>2025-10-22</lastmod>
     </url>
     <url>
-         <loc>https://nl-bioimaging.github.io/convert-to-ome/overview/</loc>
-         <lastmod>2025-10-21</lastmod>
+         <loc>https://nl-bioimaging.github.io/biomero-converter/overview/</loc>
+         <lastmod>2025-10-22</lastmod>
     </url>
     <url>
-         <loc>https://nl-bioimaging.github.io/convert-to-ome/references/</loc>
-         <lastmod>2025-10-21</lastmod>
+         <loc>https://nl-bioimaging.github.io/biomero-converter/references/</loc>
+         <lastmod>2025-10-22</lastmod>
     </url>
 </urlset>
