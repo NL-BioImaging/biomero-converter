@@ -1,4 +1,4 @@
-name: convert-to-ome-env
+name: biomero-converter-env
 channels:
  - conda-forge
  - defaults

@@ -8,7 +8,7 @@ You can use Docker to run the conversion process by mounting your input and outp
 docker run --rm \
   -v /local/input_folder:/data/input \
   -v /local/output_folder:/data/output \
-  convert-to-ome:latest \
+  biomero-converter:latest \
   python main.py \
     --inputfile /data/input/input_file.tiff \
     --outputfolder /data/output \
@@ -18,7 +18,7 @@ docker run --rm \
 ```
 
 Replace `/local/input_folder` and `/local/output_folder` with your actual local paths.  
-Adjust the image name (`image-db-to-ome:latest`) as needed.
+Adjust the image name (`biomero-converter:latest`) as needed.
 
 ## Arguments
 

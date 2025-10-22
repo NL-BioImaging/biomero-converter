@@ -1,7 +1,7 @@
 [project]
 authors = ["Maarten Paul <maarten.paul@gmail.com>"]
 channels = ["conda-forge"]
-name = "convert-to-ome"
+name = "biomero-converter"
 platforms = ["win-64"]
 version = "0.1.0"
 
