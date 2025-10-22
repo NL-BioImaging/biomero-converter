@@ -210,7 +210,8 @@ class OmeTiffWriter(OmeWriter):
                     xml_metadata_bytes = None
                 if is_generator:
                     data = data_generator(scale)
-                writer.write(data, shape=tuple(new_shape), dtype=dtype, subifds=subifds, subfiletype=subfiletype,
+                writer.write(data, shape=tuple(new_shape), dtype=dtype, metadata={'axes':dim_order},
+                             subifds=subifds, subfiletype=subfiletype,
                              resolution=resolution, resolutionunit=resolution_unit, tile=tile_size,
                              compression=compression, compressionargs=compressionargs,
                              description=xml_metadata_bytes)

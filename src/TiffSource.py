@@ -34,10 +34,15 @@ class TiffSource(ImageSource):
             # read metadata
             with open(uri, 'rb') as file:
                 self.metadata = metadata_to_dict(file.read().decode())
-            # try to open first ome-tiff file
-            filename = ensure_list(self.metadata.get('Image', {}))[0].get('Pixels', {}).get('TiffData', {}).get('UUID', {}).get('FileName')
-            if filename:
-                image_filename = os.path.join(os.path.dirname(uri), filename)
+            # try to open a ome-tiff file
+            self.image_filenames = {}
+            for image in ensure_list(self.metadata.get('Image', {})):
+                filename = image.get('Pixels', {}).get('TiffData', {}).get('UUID', {}).get('FileName')
+                if filename:
+                    filepath = os.path.join(os.path.dirname(uri), filename)
+                    self.image_filenames[image['ID']] = filepath
+                    if image_filename is None:
+                        image_filename = filepath
         else:
             raise RuntimeError(f'Unsupported tiff extension: {ext}')
 
@@ -76,6 +81,8 @@ class TiffSource(ImageSource):
                 rows = set()
                 columns = set()
                 wells = {}
+                fields = []
+                image_refs = {}
                 for well in ensure_list(plate['Well']):
                     row = create_col_row_label(well['Row'], plate['RowNamingConvention'])
                     column = create_col_row_label(well['Column'], plate['ColumnNamingConvention'])
@@ -83,9 +90,17 @@ class TiffSource(ImageSource):
                     columns.add(column)
                     label = f'{row}{column}'
                     wells[label] = well['ID']
+                    image_refs[label] = {}
+                    for sample in ensure_list(well.get('WellSample')):
+                        index = sample.get('Index', 0)
+                        image_refs[label][str(index)] = sample['ImageRef']['ID']
+                        if index not in fields:
+                            fields.append(index)
                 self.rows = sorted(rows)
                 self.columns = list(columns)
                 self.wells = list(wells.keys())
+                self.fields = fields
+                self.image_refs = image_refs
             else:
                 self.name = image0.get('Name')
             if not self.name:
@@ -182,11 +197,14 @@ class TiffSource(ImageSource):
         Returns:
             ndarray: Image data.
         """
-        if as_dask:
+        if as_dask and not self.is_plate:
             lazy_array = dask.delayed(imread)(self.uri)
             data = da.from_delayed(lazy_array, shape=self.source_shape, dtype=self.dtype)
             data = data.rechunk(TILE_SIZE)
         else:
+            if well_id is not None:
+                index = self.image_refs[well_id][str(field_id)]
+                self.tiff = TiffFile(self.image_filenames[index])
             data = self.tiff.asarray()
         return redimension_data(data, self.source_dim_order, self.dim_order)
 
@@ -200,7 +218,7 @@ class TiffSource(ImageSource):
             if hasattr(page, 'levels'):
                 small = None
                 for level in page.levels:
-                    if level.sizes['width'] * level.sizes['height'] < 1e7:
+                    if level.nbytes < 1e8:  # less than 100 MB
                         small = level
                         break
                 if small:

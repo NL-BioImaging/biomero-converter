@@ -43,7 +43,7 @@ def create_source(filename, **kwargs):
     elif 'zar' in input_ext:
         from src.OmeZarrSource import OmeZarrSource
         source = OmeZarrSource(filename)
-    elif 'tif' in input_ext:
+    elif 'tif' in input_ext or input_ext == '.ome':
         from src.TiffSource import TiffSource
         source = TiffSource(filename)
     else:

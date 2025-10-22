@@ -10,7 +10,7 @@ dependencies:
  - tifffile
  - imagecodecs
  - dask[array]
- - ome-types
  - pip
  - pip:
+   - ome-types==0.6.2
    - pyisyntax

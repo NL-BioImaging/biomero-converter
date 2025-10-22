@@ -1,6 +1,6 @@
 ome-zarr
 tifffile
 imagecodecs
-ome-types
+ome-types==0.6.2
 dask[array]
 pyisyntax
