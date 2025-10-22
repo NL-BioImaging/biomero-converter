@@ -1,4 +1,4 @@
-VERSION = '0.1.0'
+VERSION = 'v0.1.1'
 
 TILE_SIZE = 1024
 
