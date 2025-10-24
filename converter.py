@@ -124,8 +124,7 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
     name = source.get_name()
 
     # For Incucyte sources with plates, organize output in subfolders
-    from src.IncucyteSource import IncucyteSource
-    if isinstance(source, IncucyteSource) and source.plate_id:
+    if os.path.splitext(input_filename)[1].lower() == '.icarch' and source.plate_id:
         # Create plate-specific subfolder
         plate_folder = f"plate_{source.plate_id}"
         output_folder = os.path.join(output_folder, plate_folder)

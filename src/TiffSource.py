@@ -57,7 +57,7 @@ class TiffSource(ImageSource):
         """
         self.is_ome = self.tiff.is_ome
         self.is_imagej = self.tiff.is_imagej
-        pixel_size = {'x': 1, 'y': 1}
+        pixel_size = {}
         position = {}
         channels = []
 
@@ -145,12 +145,9 @@ class TiffSource(ImageSource):
                     pixel_size['z'] = convert_to_um(self.imagej_metadata['spacing'], pixel_size_unit)
             self.metadata = tags_to_dict(self.tiff.pages.first.tags)
             self.name = os.path.splitext(self.tiff.filename)[0]
-            nt = self.source_shape[self.source_dim_order.index('t')] if 't' in self.source_dim_order else 1
-            nc = self.source_shape[self.source_dim_order.index('c')] if 'c' in self.source_dim_order else 1
-            nz = self.source_shape[self.source_dim_order.index('z')] if 'z' in self.source_dim_order else 1
-            ny = self.source_shape[self.source_dim_order.index('y')] if 'y' in self.source_dim_order else 1
-            nx = self.source_shape[self.source_dim_order.index('x')] if 'x' in self.source_dim_order else 1
-            self.shape = nt, nc, nz, ny, nx
+            self.dim_order = 'tczyx'
+            self.shape = [self.source_shape[self.source_dim_order.index(dim)] if dim in self.source_dim_order else 1
+                          for dim in self.dim_order if dim]
             self.dtype = page.dtype
             res_unit = self.metadata.get('ResolutionUnit', '')
             if isinstance(res_unit, Enum):
@@ -158,18 +155,17 @@ class TiffSource(ImageSource):
             res_unit = res_unit.lower()
             if res_unit == 'none':
                 res_unit = ''
-            if 'x' in pixel_size:
+            if 'x' not in pixel_size:
                 res0 = convert_rational_value(self.metadata.get('XResolution'))
                 if res0 is not None and res0 != 0:
                     pixel_size['x'] = convert_to_um(1 / res0, res_unit)
-            if 'y' in pixel_size:
+            if 'y' not in pixel_size:
                 res0 = convert_rational_value(self.metadata.get('YResolution'))
                 if res0 is not None and res0 != 0:
                     pixel_size['y'] = convert_to_um(1 / res0, res_unit)
         self.pixel_size = pixel_size
         self.position = position
         self.channels = channels
-        self.dim_order = 'tczyx'
         return self.metadata
 
     def is_screen(self):
@@ -262,7 +258,10 @@ class TiffSource(ImageSource):
         Returns:
             dict: Pixel size for x, y, (and z).
         """
-        return self.pixel_size
+        if self.pixel_size:
+            return self.pixel_size
+        else:
+            return {'x': 1, 'y': 1}
 
     def get_position_um(self, well_id=None):
         """
