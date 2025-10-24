@@ -58,16 +58,17 @@ class ImageSource(ABC):
         """
         raise NotImplementedError("The 'get_data' method must be implemented by subclasses.")
 
-    def get_image_window(self, well_id=None, field_id=None, data=None):
+    def get_image_window(self, window_scanner, well_id=None, field_id=None, data=None):
         """
-        Get image value range window (for a well and field).
+        Get image value range window (for a well & field or from provided data).
 
         Args:
+            window_scanner (WindowScanner): WindowScanner object to compute window.
             well_id (str, optional): Well identifier
             field_id (int, optional): Field identifier
             data (ndarray, optional): Image data to compute window from.
         """
-        return [], []
+        return window_scanner.get_window()
 
     def get_name(self):
         """

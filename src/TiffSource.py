@@ -10,7 +10,6 @@ from src.color_conversion import int_to_rgba
 from src.ome_tiff_util import metadata_to_dict, create_col_row_label
 from src.parameters import TILE_SIZE
 from src.util import convert_to_um, ensure_list, redimension_data, get_filetitle
-from src.WindowScanner import WindowScanner
 
 
 class TiffSource(ImageSource):
@@ -68,6 +67,7 @@ class TiffSource(ImageSource):
         self.is_photometric_rgb = (self.tiff.pages.first.photometric == PHOTOMETRIC.RGB)
         self.source_shape = page.shape
         self.source_dim_order = page.axes.lower().replace('s', 'c').replace('r', '')
+        self.dim_order = 'tczyx'
 
         if self.is_ome:
             metadata = metadata_to_dict(self.tiff.ome_metadata)
@@ -145,7 +145,6 @@ class TiffSource(ImageSource):
                     pixel_size['z'] = convert_to_um(self.imagej_metadata['spacing'], pixel_size_unit)
             self.metadata = tags_to_dict(self.tiff.pages.first.tags)
             self.name = os.path.splitext(self.tiff.filename)[0]
-            self.dim_order = 'tczyx'
             self.shape = [self.source_shape[self.source_dim_order.index(dim)] if dim in self.source_dim_order else 1
                           for dim in self.dim_order if dim]
             self.dtype = page.dtype
@@ -204,24 +203,34 @@ class TiffSource(ImageSource):
             data = self.tiff.asarray()
         return redimension_data(data, self.source_dim_order, self.dim_order)
 
-    def get_image_window(self, well_id=None, field_id=None, data=None):
+    def get_image_window(self, window_scanner, well_id=None, field_id=None, data=None):
+        """
+        Get image value range window (for a well & field or from provided data).
+
+        Args:
+            window_scanner (WindowScanner): WindowScanner object to compute window.
+            well_id (str, optional): Well identifier
+            field_id (int, optional): Field identifier
+            data (ndarray, optional): Image data to compute window from.
+        """
         # For RGB(A) uint8 images don't change color value range
         if not (self.is_photometric_rgb and self.dtype == np.uint8):
-            if self.tiff.series:
-                page = self.tiff.series[0]
-            else:
-                page = self.tiff.pages.first
-            if hasattr(page, 'levels'):
-                small = None
-                for level in page.levels:
-                    if level.nbytes < 1e8:  # less than 100 MB
-                        small = level
-                        break
-                if small:
-                    window_scanner = WindowScanner()
-                    window_scanner.process(small.asarray(), self.source_dim_order)
-                    return window_scanner.get_window()
-        return [], []
+            if data is None:
+                if self.tiff.series:
+                    page = self.tiff.series[0]
+                else:
+                    page = self.tiff.pages.first
+                if hasattr(page, 'levels'):
+                    small_page = None
+                    for level_page in page.levels:
+                        if level_page.nbytes < 1e8:  # less than 100 MB
+                            small_page = level_page
+                            break
+                    if small_page:
+                        data = small_page.asarray()
+            if data is not None:
+                window_scanner.process(data, self.source_dim_order)
+        return window_scanner.get_window()
 
 
     def get_name(self):

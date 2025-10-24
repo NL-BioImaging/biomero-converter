@@ -6,13 +6,13 @@ import dask
 import dask.array as da
 from isyntax import ISyntax
 import numpy as np
-from skimage.transform import resize
+import ome_zarr.dask_utils as dask_utils
+import skimage.transform as sk_transform
 from xml.etree import ElementTree
 
 from src.ImageSource import ImageSource
 from src.parameters import *
-from src.util import get_filetitle, xml_content_to_dict, redimension_data
-from src.WindowScanner import WindowScanner
+from src.util import get_filetitle, xml_content_to_dict, redimension_data, get_level_from_scale
 
 
 class ISyntaxSource(ImageSource):
@@ -100,7 +100,7 @@ class ISyntaxSource(ImageSource):
         """
         return self.shape
 
-    def get_data(self, well_id=None, field_id=None, as_dask=False, as_generator=False, **kwargs):
+    def get_data(self, well_id=None, field_id=None, as_dask=False, as_dask_pyramid=False, as_generator=False, **kwargs):
         """
         Gets image data for a specific well and field.
 
@@ -108,19 +108,19 @@ class ISyntaxSource(ImageSource):
             ndarray: Image data.
         """
 
-        def get_lazy_tile(x, y, width, height):
-            lazy_array = dask.delayed(self.isyntax.read_region)(x, y, width, height)
+        def get_lazy_tile(x, y, width, height, level=0):
+            lazy_array = dask.delayed(self.isyntax.read_region)(x, y, width, height, level)
             return da.from_delayed(lazy_array, shape=(height, width, self.nchannels), dtype=self.dtype)
 
+        shape2 = self.source_shape[:2]
         if as_dask:
             dask.config.set(scheduler='single-threaded')
-            shape = self.shape[-2:]
-            y_chunks, x_chunks = da.core.normalize_chunks(TILE_SIZE, shape, dtype=self.dtype)
+            y_chunks, x_chunks = da.core.normalize_chunks(TILE_SIZE, shape2, dtype=self.dtype)
             rows = []
-            x = 0
             y = 0
             for height in y_chunks:
                 row = []
+                x = 0
                 for width in x_chunks:
                     row.append(get_lazy_tile(x, y, width, height))
                     x += width
@@ -128,25 +128,42 @@ class ISyntaxSource(ImageSource):
                 y += height
             data = da.concatenate(rows, axis=0)
             return redimension_data(data, self.source_dim_order, self.dim_order)
+        elif as_dask_pyramid:
+            dask.config.set(scheduler='single-threaded')
+            pyramid = []
+            scale = 1
+            for level in range(PYRAMID_LEVELS + 1):
+                shape = np.multiply(shape2, scale).astype(int)
+                level, rescale = get_level_from_scale(self.scales, scale)
+                y_chunks, x_chunks = da.core.normalize_chunks(TILE_SIZE, list(shape), dtype=self.dtype)
+                rows = []
+                y = 0
+                for height in y_chunks:
+                    row = []
+                    x = 0
+                    for width in x_chunks:
+                        row.append(get_lazy_tile(x, y, width, height, level=level))
+                        x += width
+                    rows.append(da.concatenate(row, axis=1))
+                    y += height
+                data = da.concatenate(rows, axis=0)
+                if rescale != 1:
+                    shape3 = tuple(list(shape) + [self.nchannels])
+                    data = dask_utils.resize(data, shape3)
+                data = redimension_data(data, self.source_dim_order, self.dim_order)
+                pyramid.append(data)
+                scale /= PYRAMID_DOWNSCALE
+            return pyramid
         elif as_generator:
-            # TODO: use Tiff.memmap?
-            def get_level_from_scale(target_scale=1):
-                best_level_scale = 0, target_scale
-                for level, scale in enumerate(self.scales):
-                    if np.isclose(scale, target_scale):
-                        return level, 1
-                    if scale > target_scale:
-                        best_level_scale = level, target_scale / scale
-                return best_level_scale
-
             def tile_generator(scale=1):
-                level, rescale = get_level_from_scale(scale)
+                level, rescale = get_level_from_scale(self.scales, scale)
                 read_size = int(TILE_SIZE / rescale)
                 for y in range(0, self.heights[level], read_size):
                     for x in range(0, self.widths[level], read_size):
                         data = self.isyntax.read_region(x, y, read_size, read_size, level)
                         if rescale != 1:
-                            data = resize(data, (TILE_SIZE, TILE_SIZE), preserve_range=True).astype(data.dtype)
+                            shape = np.multiply(shape2, scale).astype(int)
+                            data = sk_transform.resize(data, shape, preserve_range=True).astype(data.dtype)
                         yield data
             return tile_generator
         else:
@@ -154,22 +171,22 @@ class ISyntaxSource(ImageSource):
             return redimension_data(data, self.source_dim_order, self.dim_order)
 
 
-    def get_image_window(self, well_id=None, field_id=None, data=None):
+    def get_image_window(self,window_scanner, well_id=None, field_id=None, data=None):
         # For RGB(A) uint8 images don't change color value range
         if not (self.is_rgb_channels and self.dtype == np.uint8):
-            level = None
-            dims = None
-            for level0, dims0 in enumerate(self.isyntax.level_dimensions):
-                if np.prod(dims0) < 1e7:
-                    level = level0
-                    dims = dims0
-                    break
-            if level is not None:
-                window_scanner = WindowScanner()
-                data = self.isyntax.read_region(0, 0, dims[0], dims[1], level=level)
+            if data is None:
+                level = None
+                dims = None
+                for level0, dims0 in enumerate(self.isyntax.level_dimensions):
+                    if np.prod(dims0) < 1e7:
+                        level = level0
+                        dims = dims0
+                        break
+                if level is not None:
+                    data = self.isyntax.read_region(0, 0, dims[0], dims[1], level=level)
+            if data is not None:
                 window_scanner.process(data, self.source_dim_order)
-                return window_scanner.get_window()
-        return [], []
+        return window_scanner.get_window()
 
     def get_name(self):
         """

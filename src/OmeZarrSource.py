@@ -101,7 +101,7 @@ class OmeZarrSource(ImageSource):
             _, nodes = self._get_reader(self.paths[well_id][field_id])
             return nodes[0].data[level]
 
-    def get_image_window(self, well_id=None, field_id=None, data=None):
+    def get_image_window(self, window_scanner, well_id=None, field_id=None, data=None):
         if well_id is None and field_id is None:
             metadata = self.metadata
         else:

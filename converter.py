@@ -135,13 +135,14 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
         os.makedirs(output_folder)
     output_path = os.path.join(output_folder, name + output_ext)
     
-    full_output_path = writer.write(output_path, source, **kwargs)
+    output = writer.write(output_path, source, **kwargs)
     source.close()
 
     if show_progress:
         print(f'Converting {input_filename} to {output_path}')
 
     result = {'name': name}
+    full_output_path = output['output_path']
     if isinstance(full_output_path, list):
         full_path = full_output_path[0]
     else:
@@ -165,6 +166,10 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
 
         result['alt_path'] = alt_output_path
         message += f' and {alt_output_path}'
+
+    if 'window' in output:
+        window = output['window']
+        result['keyvalues'] = [{"channel_mins": window[0], "channel_maxs": window[1]}]
 
     logging.info(message)
     if show_progress:

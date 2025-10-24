@@ -17,7 +17,7 @@ class OmeWriter(ABC):
             **kwargs: Additional options.
 
         Returns:
-            str: Output file path(s).
+            dict: Containing output_path: str or list Output file path(s), and other optional output.
         """
         # Expect to return output path (or filepath)
         raise NotImplementedError("This method should be implemented by subclasses.")

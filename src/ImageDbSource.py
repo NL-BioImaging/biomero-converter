@@ -8,7 +8,6 @@ from src.color_conversion import hexrgb_to_rgba
 from src.DbReader import DBReader
 from src.ImageSource import ImageSource
 from src.util import *
-from src.WindowScanner import WindowScanner
 
 
 class ImageDbSource(ImageSource):
@@ -268,7 +267,7 @@ class ImageDbSource(ImageSource):
         """
         return len(self.metadata['wells']) > 0
 
-    def get_data(self, well_id=None, field_id=None, as_dask=False, **kwargs):
+    def get_data(self, well_id=None, field_id=None, **kwargs):
         """
         Gets image data for a specific well and field.
 
@@ -280,10 +279,19 @@ class ImageDbSource(ImageSource):
             self.data_well_id = well_id
         return self._extract_site(field_id)
 
-    def get_image_window(self, well_id=None, field_id=None, data=None):
-        # Assume data is not RGB(A) & uint8
-        window_scanner = WindowScanner()
-        window_scanner.process(data, self.get_dim_order())
+    def get_image_window(self, window_scanner, well_id=None, field_id=None, data=None):
+        """
+        Get image value range window (for a well & field or from provided data).
+
+        Args:
+            window_scanner (WindowScanner): WindowScanner object to compute window.
+            well_id (str, optional): Well identifier
+            field_id (int, optional): Field identifier
+            data (ndarray, optional): Image data to compute window from.
+        """
+        # For RGB(A) uint8 images don't change color value range
+        if not self.dtype == np.uint8:
+            window_scanner.process(data, self.dim_order)
         return window_scanner.get_window()
 
     def get_name(self):

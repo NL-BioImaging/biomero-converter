@@ -8,6 +8,7 @@ from src.ome_tiff_util import create_metadata, create_binaryonly_metadata, creat
 from src.OmeWriter import OmeWriter
 from src.parameters import *
 from src.util import *
+from src.WindowScanner import WindowScanner
 
 
 class OmeTiffWriter(OmeWriter):
@@ -34,17 +35,17 @@ class OmeTiffWriter(OmeWriter):
             **kwargs: Additional options (e.g. wells selection).
 
         Returns:
-            str or list: Output file path(s).
+            dict: Containing output_path: str or list Output file path(s) and data window.
         """
         if source.is_screen():
-            filepath, total_size = self._write_screen(filepath, source, **kwargs)
+            filepath, total_size, window = self._write_screen(filepath, source, **kwargs)
         else:
-            filepath, total_size = self._write_image(filepath, source, **kwargs)
+            filepath, total_size, window = self._write_image(filepath, source, **kwargs)
 
         if self.verbose:
             print(f'Total data written: {print_hbytes(total_size)}')
 
-        return filepath
+        return {'output_path': filepath, 'total_size':total_size, 'window': window}
 
     def _write_screen(self, filename, source, **kwargs):
         """
@@ -56,9 +57,10 @@ class OmeTiffWriter(OmeWriter):
             **kwargs: Additional options (e.g. wells selection).
 
         Returns:
-            tuple: (List of output paths, total data size)
+            tuple: (List of output paths, total data size, image window)
         """
         # writes separate tiff files for each field, and separate metadata companion file
+        window = []
         output_paths = []
         filepath, filename = os.path.split(filename)
         filetitle = os.path.splitext(filename)[0].rstrip('.ome')
@@ -83,11 +85,12 @@ class OmeTiffWriter(OmeWriter):
                 filename = os.path.join(filepath, filename + '.ome.tiff')
                 xml_metadata, image_uuid = create_binaryonly_metadata(os.path.basename(companion_filename), companion_uuid)
 
-                size = self._write_tiff(filename, source, data,
-                                        resolution=resolution, resolution_unit=resolution_unit,
-                                        tile_size=TILE_SIZE, compression=TIFF_COMPRESSION,
-                                        xml_metadata=xml_metadata,
-                                        pyramid_levels=PYRAMID_LEVELS, pyramid_downscale=PYRAMID_DOWNSCALE)
+                size, window = self._write_tiff(filename, source, data,
+                                                resolution=resolution, resolution_unit=resolution_unit,
+                                                tile_size=TILE_SIZE, compression=TIFF_COMPRESSION,
+                                                xml_metadata=xml_metadata,
+                                                pyramid_levels=PYRAMID_LEVELS, pyramid_downscale=PYRAMID_DOWNSCALE,
+                                                well_id=well_id, field_id=field, **kwargs)
 
                 image_uuids.append(image_uuid)
                 image_filenames.append(os.path.basename(filename))
@@ -99,7 +102,8 @@ class OmeTiffWriter(OmeWriter):
             file.write(xml_metadata.encode())
 
         output_paths = [companion_filename] + output_paths
-        return output_paths, total_size
+
+        return output_paths, total_size, window
 
     def _write_image(self, filename, source, **kwargs):
         """
@@ -117,17 +121,18 @@ class OmeTiffWriter(OmeWriter):
         resolution, resolution_unit = create_resolution_metadata(source)
         data = source.get_data(as_generator=True)
 
-        size = self._write_tiff(filename, source, data,
-                                resolution=resolution, resolution_unit=resolution_unit,
-                                tile_size=TILE_SIZE, compression=TIFF_COMPRESSION,
-                                xml_metadata=xml_metadata,
-                                pyramid_levels=PYRAMID_LEVELS, pyramid_downscale=PYRAMID_DOWNSCALE)
+        size, window = self._write_tiff(filename, source, data,
+                                        resolution=resolution, resolution_unit=resolution_unit,
+                                        tile_size=TILE_SIZE, compression=TIFF_COMPRESSION,
+                                        xml_metadata=xml_metadata,
+                                        pyramid_levels=PYRAMID_LEVELS, pyramid_downscale=PYRAMID_DOWNSCALE,
+                                        **kwargs)
 
-        return filename, size
+        return filename, size, window
 
     def _write_tiff(self, filename, source, data,
                     resolution=None, resolution_unit=None, tile_size=None, compression=None, compressionargs=None,
-                    xml_metadata=None, pyramid_levels=0, pyramid_downscale=2):
+                    xml_metadata=None, pyramid_levels=0, pyramid_downscale=2, well_id=None, field_id=None, **kwargs):
         """
         Writes image data to a TIFF file with optional pyramids and metadata.
 
@@ -191,6 +196,7 @@ class OmeTiffWriter(OmeWriter):
             scale /= pyramid_downscale
         bigtiff = (max_size > 2 ** 32)
 
+        window_scanner = WindowScanner()
         with TiffWriter(filename, bigtiff=bigtiff, ome=is_ome) as writer:
             for level in range(pyramid_levels + 1):
                 if level == 0:
@@ -215,4 +221,6 @@ class OmeTiffWriter(OmeWriter):
                              resolution=resolution, resolutionunit=resolution_unit, tile=tile_size,
                              compression=compression, compressionargs=compressionargs,
                              description=xml_metadata_bytes)
-        return data_size
+                if level == pyramid_levels:
+                    window = source.get_image_window(window_scanner, well_id=well_id, field_id=field_id, data=data)
+        return data_size, window

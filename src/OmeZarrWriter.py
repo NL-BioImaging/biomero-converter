@@ -2,13 +2,14 @@
 
 #from ome_zarr.io import parse_url
 from ome_zarr.scale import Scaler
-from ome_zarr.writer import write_image, write_plate_metadata, write_well_metadata
+from ome_zarr.writer import write_image, write_plate_metadata, write_well_metadata, write_multiscale
 import zarr
 
 from src.OmeWriter import OmeWriter
 from src.ome_zarr_util import *
 from src.parameters import *
 from src.util import split_well_name, print_hbytes
+from src.WindowScanner import WindowScanner
 
 
 class OmeZarrWriter(OmeWriter):
@@ -49,7 +50,7 @@ class OmeZarrWriter(OmeWriter):
             **kwargs: Additional arguments (e.g. wells selection).
 
         Returns:
-            str: The filepath of the written Zarr file.
+            dict: Containing output_path: str Output file path.
         """
         if source.is_screen():
             zarr_root, total_size = self._write_screen(filepath, source, **kwargs)
@@ -61,7 +62,7 @@ class OmeZarrWriter(OmeWriter):
         if self.verbose:
             print(f'Total data written: {print_hbytes(total_size)}')
 
-        return filepath
+        return {'output_path': filepath, 'total_size':total_size}
 
     def _write_screen(self, filepath, source, **kwargs):
         """
@@ -100,7 +101,8 @@ class OmeZarrWriter(OmeWriter):
             for field in fields:
                 image_group = well_group.require_group(field)
                 data = source.get_data(well_id, field)
-                window = source.get_image_window(well_id, field, data=data)
+                window_scanner = WindowScanner()
+                window = source.get_image_window(window_scanner, data=data)
                 size = self._write_data(image_group, data, source, window, position=position)
                 total_size += size
 
@@ -122,9 +124,10 @@ class OmeZarrWriter(OmeWriter):
         zarr_location = filepath
         zarr_root = zarr.open_group(zarr_location, mode='w', zarr_version=self.zarr_version)
 
-        data = source.get_data(as_dask=True)
-        window = source.get_image_window()
-        size = self._write_data(zarr_root, data, source, window)
+        data = source.get_data(as_dask_pyramid=True)
+        window_scanner = WindowScanner()
+        window = source.get_image_window(window_scanner)
+        size = self._write_data(zarr_root, data, source, window, position=source.get_position_um())
         return zarr_root, size
 
     def _write_data(self, group, data, source, window, position=None):
@@ -152,12 +155,17 @@ class OmeZarrWriter(OmeWriter):
         metadata = {'omero': create_channel_metadata(dtype, channels, nchannels, is_rgb, window, self.ome_version),
                     'metadata': {'method': scaler.method}}
 
+        is_pyramid = isinstance(data, list)
+        if is_pyramid:
+            data0 = data[0]
+        else:
+            data0 = data
         storage_options = None
         if self.zarr_version >= 3:
-            if not hasattr(data, 'chunksize'):
+            if not hasattr(data0, 'chunksize'):
                 chunks = []
                 shards = []
-                for dim, n in zip(dim_order, data.shape):
+                for dim, n in zip(dim_order, data0.shape):
                     if dim in 'xy':
                         chunks += [ZARR_CHUNK_SIZE]
                         shards += [ZARR_CHUNK_SIZE * ZARR_SHARD_MULTIPLIER]
@@ -166,11 +174,15 @@ class OmeZarrWriter(OmeWriter):
                         shards += [1]
                 storage_options = {'chunks': chunks, 'shards': shards}
 
-        size = data.size * data.itemsize
-        write_image(image=data, group=group, axes=axes, coordinate_transformations=pixel_size_scales,
-                    scaler=scaler, fmt=self.ome_format, storage_options=storage_options,
-                    name=source.get_name(), metadata=metadata)
-
+        size = data0.size * data0.itemsize
+        if is_pyramid:
+            write_multiscale(pyramid=data, group=group, axes=axes, coordinate_transformations=pixel_size_scales,
+                            fmt=self.ome_format, storage_options=storage_options,
+                            name=source.get_name(), metadata=metadata)
+        else:
+            write_image(image=data, group=group, axes=axes, coordinate_transformations=pixel_size_scales,
+                        scaler=scaler, fmt=self.ome_format, storage_options=storage_options,
+                        name=source.get_name(), metadata=metadata)
         return size
 
     def _create_scale_metadata(self, source, dim_order, translation, scaler=None):
