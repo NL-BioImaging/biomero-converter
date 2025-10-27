@@ -12,7 +12,8 @@ This tool can be used as biomero plugin, Docker container or stand-alone
   - Molecular Devices
   - CellReporterXpress experiment
   - image db files
-  - isyntax files
+  - isyntax archive folders (`.icarch`)
+  - Incucyte archive
 - Export to Ome formats
   - Ome-tiff
   - Ome-zarr
