@@ -181,7 +181,14 @@ class IncucyteSource(ImageSource):
         self.wells = list(self.metadata.get("wells", {}).keys())
         self.rows = self.metadata.get("well_info", {}).get("rows", [])
         self.columns = self.metadata.get("well_info", {}).get("columns", [])
-
+        # Add this line to store the shape
+        self.shape = (
+            len(self.metadata.get("time_points", [])),
+            self.metadata.get("num_channels", 1),
+            1,  # z-dimension
+            self.metadata.get("well_info", {}).get("SensorSizeYPixels", 0),
+            self.metadata.get("well_info", {}).get("SensorSizeXPixels", 0)
+        )
         return self.metadata
 
     def _get_experiment_metadata(self):
@@ -557,9 +564,18 @@ class IncucyteSource(ImageSource):
     def _format_channels_for_interface(self):
         """Format channels for interface compatibility"""
         channels = self.metadata.get("channels", [])
-        return [
-            {"label": ch["Dye"], "color": ch["Color"].lstrip("#")} for ch in channels
-        ]
+        formatted = []
+        for ch in channels:
+            color_hex = ch["Color"].lstrip("#")
+            # Convert hex to RGB tuple (0-1 range)
+            r = int(color_hex[0:2], 16) / 255.0
+            g = int(color_hex[2:4], 16) / 255.0
+            b = int(color_hex[4:6], 16) / 255.0
+            formatted.append({
+                "label": ch["Dye"],
+                "color": (r, g, b, 1.0)  # RGBA tuple with full opacity
+            })
+        return formatted
 
     def _load_image_data(self, well_id, field_id, channel_id, timepoint_id):
         """Load specific image data"""
@@ -689,7 +705,11 @@ class IncucyteSource(ImageSource):
 
     def get_fields(self):
         return self.metadata.get("well_info", {}).get("fields", [])
-
+    
+    def get_shape(self):
+        """Get the shape of the image data in TCZYX format"""
+        return self.shape
+    
     def get_well_coords_um(self, well_id):
         """Get well coordinates (placeholder - Incucyte doesn't typically have stage coordinates)"""
         return {"x": 0.0, "y": 0.0}
