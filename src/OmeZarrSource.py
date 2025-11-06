@@ -4,6 +4,7 @@ import os.path
 
 from src.ImageSource import ImageSource
 from src.ome_zarr_util import *
+from src.util import convert_to_um
 
 
 class OmeZarrSource(ImageSource):
@@ -36,7 +37,7 @@ class OmeZarrSource(ImageSource):
         reader, nodes = self._get_reader()
         if 'bioformats2raw.layout' in reader.zarr.root_attrs:
             # TODO: use paths provided in metadata
-            reader, nodes = self._get_reader('/0')
+            reader, nodes = self._get_reader('0')
         # nodes may include images, labels etc
         if len(nodes) == 0:
             raise FileNotFoundError(f'No image data found in ome-zarr file {self.uri}')
@@ -48,13 +49,15 @@ class OmeZarrSource(ImageSource):
 
         axes = self.metadata.get('axes', [])
         self.dim_order = ''.join([axis.get('name') for axis in axes])
+        units = {axis['name']: axis['unit'] for axis in axes if 'unit' in axis}
         self.plate = self.metadata.get('metadata', {}).get('plate')
         self.is_plate = self.plate is not None
 
         pixel_sizes0 = [transform for transform
                         in self.metadata['coordinateTransformations'][0]
                         if transform['type'] == 'scale'][0]['scale']
-        self.pixel_size = {axis: pixel_size for axis, pixel_size in zip(self.dim_order, pixel_sizes0) if axis in 'xyz'}
+        self.pixel_size = {dim: convert_to_um(pixel_size, units.get(dim, '')) for dim, pixel_size
+                           in zip(self.dim_order, pixel_sizes0) if dim in 'xyz'}
         if self.is_plate:
             self.name = self.plate.get('name', '')
             self.rows = [row['name'] for row in self.plate.get('rows', [])]
