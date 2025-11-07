@@ -23,4 +23,5 @@ This tool can be used as biomero plugin, Docker container or stand-alone
 
 ## Documentation
 ### [nl-bioimaging.github.io/biomero-converter](https://nl-bioimaging.github.io/biomero-converter/)
+### Generated: [deepwiki.com/NL-BioImaging/biomero-converter](https://deepwiki.com/NL-BioImaging/biomero-converter)
 ![logo](docs/images/logo.png)
