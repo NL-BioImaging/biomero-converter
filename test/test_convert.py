@@ -5,6 +5,7 @@ import os
 import pytest
 import sys
 import tempfile
+
 sys.path.append(os.getcwd())
 
 from converter import init_logging, convert
@@ -16,7 +17,8 @@ from src.util import print_dict, print_hbytes
 
 class TestConvert:
     filenames = ['DB/TestData1/experiment.db', 'isyntax/small.isyntax', 'EM04573_01small.ome.tif']
-    input_filenames = ['D:/slides/' + filename for filename in filenames]
+    filenames = ['3DHistech/HEROEH_GC/1.mrxs', '3DHistech/Mirax2-Fluorescence/Mirax2-Fluorescence-1.mrxs']
+    input_filenames = ['E:/slides/' + filename for filename in filenames]
 
     output_formats = ['omezarr2', 'omezarr3', 'ometiff']
 
@@ -28,7 +30,7 @@ class TestConvert:
         init_logging('log/db_to_zarr.log', verbose=True)
         with Timer(f'convert {input_filename} to {output_format}'):
             output = convert(input_filename, tmp_path, alt_output_folder=alt_output_folder, output_format=output_format,
-                             show_progress=show_progess, verbose=verbose, **kwargs)
+                             show_progress=show_progess, verbose=verbose, max_attempts=1, **kwargs)
 
         source = create_source(input_filename)
         metadata = source.init_metadata()

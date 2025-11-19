@@ -105,7 +105,7 @@ class TiffSource(ImageSource):
                 self.name = image0.get('Name')
             if not self.name:
                 self.name = get_filetitle(self.uri)
-            self.name = self.name.rstrip('.tiff').rstrip('.tif').rstrip('.ome')
+            self.name = str(self.name).rstrip('.tiff').rstrip('.tif').rstrip('.ome')
             pixels = image0.get('Pixels', {})
             self.shape = pixels.get('SizeT'), pixels.get('SizeC'), pixels.get('SizeZ'), pixels.get('SizeY'), pixels.get('SizeX')
             #self.source_dim_order = ''.join(reversed(pixels['DimensionOrder'].lower()))

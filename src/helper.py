@@ -40,10 +40,13 @@ def create_source(filename, **kwargs):
     elif input_ext == '.isyntax':
         from src.ISyntaxSource import ISyntaxSource
         source = ISyntaxSource(filename)
-    elif 'zar' in input_ext:
+    elif input_ext == '.mrxs':
+        from src.MiraxSource import MiraxSource
+        source = MiraxSource(filename)
+    elif '.zar' in input_ext:
         from src.OmeZarrSource import OmeZarrSource
         source = OmeZarrSource(filename)
-    elif 'tif' in input_ext or input_ext == '.ome':
+    elif '.tif' in input_ext or input_ext == '.ome':
         from src.TiffSource import TiffSource
         source = TiffSource(filename)
     else:

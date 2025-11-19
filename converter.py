@@ -4,7 +4,7 @@ import os.path
 import shutil
 
 from src.helper import create_source, create_writer
-from src.parameters import CONVERSION_ATTEMPTS
+from src.parameters import RETRY_ATTEMPTS
 
 
 def init_logging(log_filename, verbose=False):
@@ -29,7 +29,7 @@ def init_logging(log_filename, verbose=False):
 
 
 def convert(input_filename, output_folder, alt_output_folder=None,
-            output_format='omezarr2', show_progress=False, verbose=False, **kwargs):
+            output_format='omezarr2', show_progress=False, verbose=False, max_attempts=RETRY_ATTEMPTS, **kwargs):
     attempts = 0
     while True:
         try:
@@ -37,9 +37,9 @@ def convert(input_filename, output_folder, alt_output_folder=None,
                             output_format=output_format, show_progress=show_progress, verbose=verbose,
                             **kwargs)
         except Exception as e:
-            if attempts >= CONVERSION_ATTEMPTS - 1:
+            if attempts >= max_attempts - 1:
                 logging.error(e)
-                raise Exception(f'Conversion failed after {CONVERSION_ATTEMPTS} attempts: {input_filename}')
+                raise Exception(f'Conversion failed after {RETRY_ATTEMPTS} attempts: {input_filename}')
         attempts += 1
 
 

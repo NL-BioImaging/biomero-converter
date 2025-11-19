@@ -65,7 +65,7 @@ class ISyntaxSource(ImageSource):
         self.isyntax = ISyntax.open(self.uri)
         self.widths = [size[0] for size in self.isyntax.level_dimensions]
         self.heights = [size[1] for size in self.isyntax.level_dimensions]
-        self.scales = [1 / scale for scale in self.isyntax.level_downsamples]
+        self.scales = [1 / downsample for downsample in self.isyntax.level_downsamples]
         self.width, self.height = self.isyntax.dimensions
 
         # original color channels get converted in pyisyntax package to 8-bit RGBA

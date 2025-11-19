@@ -14,3 +14,5 @@ dependencies:
  - pip:
    - ome-types==0.6.2
    - pyisyntax
+   - openslide-python
+   - openslide-bin
