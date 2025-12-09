@@ -13,15 +13,53 @@ The converter workflow consists of:
 - The **Writer** queries the **Source** for metadata and data, then writes the output.
 
 ```mermaid
-flowchart TD
-    Converter["Converter"]
-    Source["Source Reader"]
-    Writer["Writer"]
-    Output["OME Output"]
+classDiagram
+    class Converter:::main {
+        convert(source path, output path, format)
+    }
 
-    Converter --> Source
-    Converter --> Writer
-    Writer -->|Query Metadata| Source
-    Writer -->|Query Data| Source
-    Writer --> Output
+    class Source["*Source*"]:::abstract_source {
+        get_data()*
+        get_pixel_size()*
+        ...()*
+    }
+
+    class TiffSource:::source {
+        ...
+        get_data()
+        get_pixel_size()
+        ...()
+    }
+
+    class CustomSource["...Source"]:::source {
+        ...
+        get_data()
+        get_pixel_size()
+        ...()
+    }
+
+    class Writer["*Writer*"]:::abstract_writer {
+        write(output path, Source, ...)*
+    }
+
+    class OmeTiffWriter:::writer {
+        write(output path, Source, ...)
+    }
+
+    class OmeZarrWriter:::writer {
+        write(output path, Source, ...)
+    }
+
+    Source <|-- TiffSource
+    Source <|-- CustomSource
+    Writer <|-- OmeTiffWriter
+    Writer <|-- OmeZarrWriter
+    Source <.. Writer
+    Converter ..> Writer
+
+    classDef main fill:#ffeecc,stroke:#775500
+    classDef source fill:#e8f5e9,stroke:#1b5e20
+    classDef abstract_source fill:#ffffff
+    classDef writer fill:#e0f7fa,stroke:#006064
+    classDef abstract_writer fill:#ffffff
 ```
