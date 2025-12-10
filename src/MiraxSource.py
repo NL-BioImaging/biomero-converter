@@ -30,7 +30,7 @@ class MiraxSource(ImageSource):
         self.heights = [size[1] for size in self.slide.level_dimensions]
         self.width, self.height = self.widths[0], self.heights[0]
         self.scales = [1 / downsample for downsample in self.slide.level_downsamples]
-        self.nchannels = 4      # Mirax is RGBA
+        self.nchannels = 3      # Mirax is RGBA
         self.source_shape = self.height, self.width, self.nchannels
         self.source_dim_order = 'yxc'
         self.name = get_filetitle(self.uri)
@@ -50,7 +50,6 @@ class MiraxSource(ImageSource):
         mpp_y = float(self.metadata.get(openslide.PROPERTY_NAME_MPP_Y, 0))
         self.pixel_size = {'x': mpp_x, 'y': mpp_y}
 
-
     def is_screen(self):
         # Mirax files are not multi-well screens
         return False
@@ -67,8 +66,7 @@ class MiraxSource(ImageSource):
         """
 
         def read_tile_array(x, y, width, height, level=0):
-            #print(f'reading {level}: ', y * width + x)
-            return np.array(self.slide.read_region((x, y), level, (width, height)))
+            return np.array(self.slide.read_region((x, y), level, (width, height)).convert('RGB'))
 
         def get_lazy_tile(x, y, width, height, level=0):
             lazy_array = dask.delayed(read_tile_array)(x, y, width, height, level)
@@ -90,12 +88,20 @@ class MiraxSource(ImageSource):
             data = da.concatenate(rows, axis=0)
             return redimension_data(data, self.source_dim_order, self.dim_order)
         elif as_dask_pyramid:
+            # TODO: check (x/y) source data is read in order first to last (currently last to first) using dask, or use generator/stream to dask?
+            # TODO: extract as_dask_pyramid and as_dask (re-use), and get_lazy_tile to reuse also for ISyntaxSource in image_utils
+            # TODO: get_data(): get expected data size for tiff / zarr seperately, or be able to request dim_order / #channels from source?
+            # or don't redim in source at all, and return dim_order on initial get_data() call? Then convert in writer?
+
+            # read_tile_array(50000, 180000, 1000, 1000, 0)
+
             pyramid = []
             scale = 1
-            for level in range(PYRAMID_LEVELS + 1):
-                shape = np.multiply(shape2, scale).astype(int)
+            scale = 0.0625  # TODO: ******************* remove this!!!
+            for index in range(PYRAMID_LEVELS + 1):
                 level, rescale = get_level_from_scale(self.scales, scale)
-                y_chunks, x_chunks = da.core.normalize_chunks(TILE_SIZE, list(shape), dtype=self.dtype)
+                level_shape = self.dimensions[level][::-1]
+                y_chunks, x_chunks = da.core.normalize_chunks(TILE_SIZE, list(level_shape), dtype=self.dtype)
                 rows = []
                 y = 0
                 for height in y_chunks:
@@ -108,7 +114,7 @@ class MiraxSource(ImageSource):
                     y += height
                 data = da.concatenate(rows, axis=0)
                 if rescale != 1:
-                    shape3 = tuple(list(shape) + [self.nchannels])
+                    shape3 = tuple(list(np.multiply(shape2, scale).astype(int)) + [self.nchannels])
                     data = dask_utils.resize(data, shape3)
                 data = redimension_data(data, self.source_dim_order, self.dim_order)
                 pyramid.append(data)
@@ -152,7 +158,7 @@ class MiraxSource(ImageSource):
             {"name": "Red", "color": [1, 0, 0, 1]},
             {"name": "Green", "color": [0, 1, 0, 1]},
             {"name": "Blue", "color": [0, 0, 1, 1]},
-            {"name": "Alpha", "color": [1, 1, 1, 1]}
+            #{"name": "Alpha", "color": [1, 1, 1, 1]}
         ]
 
     def get_nchannels(self):

@@ -17,7 +17,7 @@ from src.util import print_dict, print_hbytes
 
 class TestConvert:
     filenames = ['DB/TestData1/experiment.db', 'isyntax/small.isyntax', 'EM04573_01small.ome.tif']
-    filenames = ['3DHistech/HEROEH_GC/1.mrxs', '3DHistech/Mirax2-Fluorescence/Mirax2-Fluorescence-1.mrxs']
+    filenames = ['3DHistech/sample4.mrxs']
     input_filenames = ['E:/slides/' + filename for filename in filenames]
 
     output_formats = ['omezarr2', 'omezarr3', 'ometiff']

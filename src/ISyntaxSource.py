@@ -71,7 +71,7 @@ class ISyntaxSource(ImageSource):
         # original color channels get converted in pyisyntax package to 8-bit RGBA
         nbits = 8
         self.channels = []
-        self.nchannels = 4
+        self.nchannels = 3
         self.source_shape = self.height, self.width, self.nchannels
         self.source_dim_order = 'yxc'
         self.is_rgb_channels = True
@@ -108,8 +108,11 @@ class ISyntaxSource(ImageSource):
             ndarray: Image data.
         """
 
+        def read_tile_array(x, y, width, height, level=0):
+            return self.slide.read_region(x, y, width, height, level)[:3]
+
         def get_lazy_tile(x, y, width, height, level=0):
-            lazy_array = dask.delayed(self.isyntax.read_region)(x, y, width, height, level)
+            lazy_array = dask.delayed(read_tile_array)(x, y, width, height, level)
             return da.from_delayed(lazy_array, shape=(height, width, self.nchannels), dtype=self.dtype)
 
         shape2 = self.source_shape[:2]
