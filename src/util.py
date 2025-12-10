@@ -46,6 +46,10 @@ def get_level_from_scale(source_scales, target_scale=1):
     return best_level_scale
 
 
+def validate_filename(filename):
+    return re.sub(r'[^\w_.)(-]', '_', filename)
+
+
 def get_filetitle(filename):
     return os.path.basename(os.path.splitext(filename)[0])
 

@@ -5,6 +5,7 @@ import shutil
 
 from src.helper import create_source, create_writer
 from src.parameters import RETRY_ATTEMPTS
+from src.util import validate_filename
 
 
 def init_logging(log_filename, verbose=False):
@@ -133,7 +134,7 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
 
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-    output_path = os.path.join(output_folder, name + output_ext)
+    output_path = os.path.join(output_folder, validate_filename(name) + output_ext)
     
     output = writer.write(output_path, source, **kwargs)
     source.close()
