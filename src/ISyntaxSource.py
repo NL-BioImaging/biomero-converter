@@ -109,7 +109,7 @@ class ISyntaxSource(ImageSource):
         """
 
         def read_tile_array(x, y, width, height, level=0):
-            return self.slide.read_region(x, y, width, height, level)[:3]
+            return self.isyntax.read_region(x, y, width, height, level)[..., :3]
 
         def get_lazy_tile(x, y, width, height, level=0):
             lazy_array = dask.delayed(read_tile_array)(x, y, width, height, level)
