@@ -174,8 +174,9 @@ class OmeTiffWriter(OmeWriter):
             shape = list(data.shape)
             dtype = data.dtype
 
-        x_index = source.dim_order.index('x')
-        y_index = source.dim_order.index('y')
+        source_dim_order = source.get_dim_order()
+        x_index = source_dim_order.index('x')
+        y_index = source_dim_order.index('y')
         if tile_size is not None:
             if isinstance(tile_size, int):
                 tile_size = [tile_size] * 2

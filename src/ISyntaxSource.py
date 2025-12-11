@@ -6,7 +6,6 @@ import dask
 import dask.array as da
 from isyntax import ISyntax
 import numpy as np
-import ome_zarr.dask_utils as dask_utils
 import skimage.transform as sk_transform
 from xml.etree import ElementTree
 
@@ -122,14 +121,15 @@ class ISyntaxSource(ImageSource):
         return redimension_data(data, self.dim_order, dim_order)
 
     def get_data_as_generator(self, dim_order, **kwargs):
-        def data_generator(self, scale=1):
+        def data_generator(scale=1):
             level, rescale = get_level_from_scale(self.scales, scale)
             read_size = int(TILE_SIZE / rescale)
             for y in range(0, self.heights[level], read_size):
                 for x in range(0, self.widths[level], read_size):
-                    data = self.isyntax.read_region(x, y, read_size, read_size, level)
+                    data = self.isyntax.read_region(x, y, read_size, read_size, level)[..., :self.nchannels]
                     if rescale != 1:
-                        data = sk_transform.resize(data, (TILE_SIZE, TILE_SIZE), preserve_range=True).astype(data.dtype)
+                        shape = np.multiply(data.shape[:2], rescale).astype(int)
+                        data = sk_transform.resize(data, shape, preserve_range=True).astype(data.dtype)
                     yield redimension_data(data, self.dim_order, dim_order)
         return data_generator
 

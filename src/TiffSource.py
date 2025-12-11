@@ -66,6 +66,8 @@ class TiffSource(ImageSource):
         else:
             pages = self.tiff.pages
             page = self.tiff.pages.first
+        if hasattr(page, 'levels'):
+            pages = page.levels
         self.shapes = [page.shape for page in pages]
         self.shape = page.shape
         self.dim_order = page.axes.lower().replace('s', 'c').replace('r', '')
