@@ -127,7 +127,6 @@ class OmeZarrWriter(OmeWriter):
 
         pyramid_data = []
         scale = 1
-        scale=0.25
         for _ in range(PYRAMID_LEVELS + 1):
             level, rescale = get_level_from_scale(source.scales, scale)
             data = source.get_data_as_dask(self.dim_order, level=level)

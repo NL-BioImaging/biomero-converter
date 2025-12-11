@@ -92,18 +92,18 @@ class ISyntaxSource(ImageSource):
     def get_shape(self):
         return self.shape
 
+    def read_array(self, x, y, width, height, level=0):
+        return self.isyntax.read_region(x, y, width, height, level)[..., :self.nchannels]
+
     def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
-        data = self.isyntax.read_region(0, 0, self.widths[level], self.heights[level], level=level)
+        data = self.read_array(0, 0, self.widths[level], self.heights[level], level=level)
         return redimension_data(data, self.dim_order, dim_order)
 
     def get_data_as_dask(self, dim_order, level=0, **kwargs):
         dask.config.set(scheduler='single-threaded')
 
-        def read_tile_array(x, y, width, height, level=0):
-            return self.isyntax.read_region(x, y, width, height, level)[..., :self.nchannels]
-
         def get_lazy_tile(x, y, width, height, level=0):
-            lazy_array = dask.delayed(read_tile_array)(x, y, width, height, level)
+            lazy_array = dask.delayed(self.read_array)(x, y, width, height, level)
             return da.from_delayed(lazy_array, shape=(height, width, self.nchannels), dtype=self.dtype)
 
         y_chunks, x_chunks = da.core.normalize_chunks(TILE_SIZE, self.shapes[level][:2], dtype=self.dtype)
@@ -126,7 +126,7 @@ class ISyntaxSource(ImageSource):
             read_size = int(TILE_SIZE / rescale)
             for y in range(0, self.heights[level], read_size):
                 for x in range(0, self.widths[level], read_size):
-                    data = self.isyntax.read_region(x, y, read_size, read_size, level)[..., :self.nchannels]
+                    data = self.read_array(x, y, read_size, read_size, level)
                     if rescale != 1:
                         shape = np.multiply(data.shape[:2], rescale).astype(int)
                         data = sk_transform.resize(data, shape, preserve_range=True).astype(data.dtype)

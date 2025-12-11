@@ -186,12 +186,6 @@ class TiffSource(ImageSource):
         return self.shape
 
     def get_data(self, dim_order, well_id=None, field_id=None, **kwargs):
-        """
-        Gets image data from the TIFF file.
-
-        Returns:
-            ndarray: Image data.
-        """
         if well_id is not None:
             index = self.image_refs[well_id][str(field_id)]
             tiff = TiffFile(self.image_filenames[index])
@@ -201,12 +195,6 @@ class TiffSource(ImageSource):
         return redimension_data(data, self.dim_order, dim_order)
 
     def get_data_as_dask(self, dim_order, level=0, **kwargs):
-        """
-        Gets image data from the TIFF file.
-
-        Returns:
-            ndarray: Image data.
-        """
         lazy_array = dask.delayed(imread)(self.uri, level=level)
         data = da.from_delayed(lazy_array, shape=self.shapes[level], dtype=self.dtype)
         data = data.rechunk(TILE_SIZE)

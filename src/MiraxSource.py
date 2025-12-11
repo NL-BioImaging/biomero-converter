@@ -3,12 +3,11 @@
 import dask
 import dask.array as da
 import numpy as np
-from ome_zarr import dask_utils
 import openslide
-import os.path
 import skimage.transform as sk_transform
 
 from src.ImageSource import ImageSource
+from src.color_conversion import hexrgb_to_rgba
 from src.parameters import *
 from src.util import redimension_data, get_level_from_scale, get_filetitle
 
@@ -26,9 +25,10 @@ class MiraxSource(ImageSource):
         self.metadata = {key.lower(): value for key, value in dict(self.slide.properties).items()}
 
         self.dimensions = self.slide.level_dimensions
-        self.widths = [width for width, height in self.isyntax.level_dimensions]
-        self.heights = [height for width, height in self.isyntax.level_dimensions]
-        self.scales = [1 / downsample for downsample in self.slide.level_downsamples]
+        self.widths = [width for width, height in self.slide.level_dimensions]
+        self.heights = [height for width, height in self.slide.level_dimensions]
+        self.level_downsamples = self.slide.level_downsamples
+        self.scales = [1 / downsample for downsample in self.level_downsamples]
         self.nchannels = 3      # Mirax is RGBA; convert to RGB
         self.shapes = [(height, width, self.nchannels) for (width, height) in self.dimensions]
         self.shape = self.shapes[0]
@@ -43,9 +43,11 @@ class MiraxSource(ImageSource):
         self.dtype = np.dtype(f'uint{nbits}')
 
         # OpenSlide stores microns per pixel in properties
-        mpp_x = float(self.metadata.get(openslide.PROPERTY_NAME_MPP_X, 0))
-        mpp_y = float(self.metadata.get(openslide.PROPERTY_NAME_MPP_Y, 0))
+        mpp_x = float(self.metadata.get(openslide.PROPERTY_NAME_MPP_X, 1))
+        mpp_y = float(self.metadata.get(openslide.PROPERTY_NAME_MPP_Y, 1))
         self.pixel_size = {'x': mpp_x, 'y': mpp_y}
+        background_float = hexrgb_to_rgba(self.metadata.get(openslide.PROPERTY_NAME_BACKGROUND_COLOR, '000000'))[:3]
+        self.background = [np.uint8(value * 255) for value in background_float]
 
         self.name = get_filetitle(self.uri)
         return self.metadata
@@ -57,84 +59,56 @@ class MiraxSource(ImageSource):
     def get_shape(self):
         return self.shape
 
-    def get_data(self, well_id=None, field_id=None, as_dask=False, as_dask_pyramid=False, as_generator=False, **kwargs):
-        """
-        Gets image data.
+    # TODO: check (x/y) source data is read in order first to last (currently last to first) using dask, or use generator/stream to dask?
+    # read_tile_array(50000, 180000, 1000, 1000, 0)
 
-        Returns:
-            ndarray: Image data.
-        """
+    def read_array(self, x, y, width, height, level=0):
+        # OpenSlide uses (x, y) coordinates in level 0 reference size
+        x0 = int(x * self.level_downsamples[level])
+        y0 = int(y * self.level_downsamples[level])
+        #return np.array(self.slide.read_region((x0, y0), level, (width, height)).convert('RGB'))   # discard alpha
+        rgba = np.array(self.slide.read_region((x0, y0), level, (width, height)))
+        alpha = np.atleast_3d(rgba[..., 3] / np.float32(255))
+        rgb = (rgba[..., :3] * alpha + self.background * (1 - alpha)).astype(np.uint8)
+        return rgb
 
-        def read_tile_array(x, y, width, height, level=0):
-            return np.array(self.slide.read_region((x, y), level, (width, height)).convert('RGB'))
+    def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
+        data = self.read_array(0, 0, self.widths[level], self.heights[level], level=level)
+        return redimension_data(data, self.dim_order, dim_order)
+
+    def get_data_as_dask(self, dim_order, level=0, **kwargs):
+        dask.config.set(scheduler='single-threaded')
 
         def get_lazy_tile(x, y, width, height, level=0):
-            lazy_array = dask.delayed(read_tile_array)(x, y, width, height, level)
+            lazy_array = dask.delayed(self.read_array)(x, y, width, height, level)
             return da.from_delayed(lazy_array, shape=(height, width, self.nchannels), dtype=self.dtype)
 
-        shape2 = self.source_shape[:2]
-        if as_dask:
-            y_chunks, x_chunks = da.core.normalize_chunks(TILE_SIZE, shape2, dtype=self.dtype)
-            rows = []
-            y = 0
-            for height in y_chunks:
-                row = []
-                x = 0
-                for width in x_chunks:
-                    row.append(get_lazy_tile(x, y, width, height))
-                    x += width
-                rows.append(da.concatenate(row, axis=1))
-                y += height
-            data = da.concatenate(rows, axis=0)
-            return redimension_data(data, self.source_dim_order, self.dim_order)
-        elif as_dask_pyramid:
-            # TODO: check (x/y) source data is read in order first to last (currently last to first) using dask, or use generator/stream to dask?
-            # TODO: extract as_dask_pyramid and as_dask (re-use), and get_lazy_tile to reuse also for ISyntaxSource in image_utils
-            # TODO: get_data(): get expected data size for tiff / zarr seperately, or be able to request dim_order / #channels from source?
-            # or don't redim in source at all, and return dim_order on initial get_data() call? Then convert in writer?
+        y_chunks, x_chunks = da.core.normalize_chunks(TILE_SIZE, self.shapes[level][:2], dtype=self.dtype)
+        rows = []
+        y = 0
+        for height in y_chunks:
+            row = []
+            x = 0
+            for width in x_chunks:
+                row.append(get_lazy_tile(x, y, width, height, level=level))
+                x += width
+            rows.append(da.concatenate(row, axis=1))
+            y += height
+        data = da.concatenate(rows, axis=0)
+        return redimension_data(data, self.dim_order, dim_order)
 
-            # read_tile_array(50000, 180000, 1000, 1000, 0)
-
-            pyramid = []
-            scale = 1
-            scale=0.0625  # TODO: ******************* remove this!!!
-            for index in range(PYRAMID_LEVELS + 1):
-                level, rescale = get_level_from_scale(self.scales, scale)
-                level_shape = self.dimensions[level][::-1]
-                y_chunks, x_chunks = da.core.normalize_chunks(TILE_SIZE, list(level_shape), dtype=self.dtype)
-                rows = []
-                y = 0
-                for height in y_chunks:
-                    row = []
-                    x = 0
-                    for width in x_chunks:
-                        row.append(get_lazy_tile(x, y, width, height, level=level))
-                        x += width
-                    rows.append(da.concatenate(row, axis=1))
-                    y += height
-                data = da.concatenate(rows, axis=0)
-                if rescale != 1:
-                    shape3 = tuple(list(np.multiply(shape2, scale).astype(int)) + [self.nchannels])
-                    data = dask_utils.resize(data, shape3)
-                data = redimension_data(data, self.source_dim_order, self.dim_order)
-                pyramid.append(data)
-                scale /= PYRAMID_DOWNSCALE
-            return pyramid
-        elif as_generator:
-            def tile_generator(scale=1):
-                level, rescale = get_level_from_scale(self.scales, scale)
-                read_size = int(TILE_SIZE / rescale)
-                for y in range(0, self.heights[level], read_size):
-                    for x in range(0, self.widths[level], read_size):
-                        data = np.array(self.slide.read_region((x, y), level, (read_size, read_size)))
-                        if rescale != 1:
-                            shape = np.multiply(shape2, scale).astype(int)
-                            data = sk_transform.resize(data, shape, preserve_range=True).astype(data.dtype)
-                        yield data
-            return tile_generator
-        else:
-            data = read_tile_array(0, 0, self.width[level], self.height[level], level=level)
-            return redimension_data(data, self.source_dim_order, self.dim_order)
+    def get_data_as_generator(self, dim_order, **kwargs):
+        def data_generator(scale=1):
+            level, rescale = get_level_from_scale(self.scales, scale)
+            read_size = int(TILE_SIZE / rescale)
+            for y in range(0, self.heights[level], read_size):
+                for x in range(0, self.widths[level], read_size):
+                    data = self.read_array(x, y, read_size, read_size, level)
+                    if rescale != 1:
+                        shape = np.multiply(data.shape[:2], rescale).astype(int)
+                        data = sk_transform.resize(data, shape, preserve_range=True).astype(data.dtype)
+                    yield redimension_data(data, self.dim_order, dim_order)
+        return data_generator
 
     def get_name(self):
         return self.name
