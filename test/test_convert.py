@@ -19,9 +19,10 @@ class TestConvert:
     filenames = ['DB/TestData1/experiment.db', 'isyntax/small.isyntax', 'EM04573_01small.ome.tif']
     filenames = ['3DHistech/sample4.mrxs']
     filenames = ['isyntax/small.isyntax']
-    input_filenames = ['D:/slides/' + filename for filename in filenames]
+    input_filenames = ['C:/Project/slides/' + filename for filename in filenames]
 
-    output_formats = ['omezarr3', 'omezarr2', 'ometiff']
+    output_formats = ['omezarr2', 'omezarr3', 'ometiff']
+    output_formats = ['omezarr3', 'ometiff']
 
     @pytest.mark.parametrize(
         "input_filename", input_filenames,

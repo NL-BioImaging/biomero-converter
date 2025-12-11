@@ -26,14 +26,14 @@ class MiraxSource(ImageSource):
         self.metadata = {key.lower(): value for key, value in dict(self.slide.properties).items()}
 
         self.dimensions = self.slide.level_dimensions
-        self.widths = [size[0] for size in self.slide.level_dimensions]
-        self.heights = [size[1] for size in self.slide.level_dimensions]
-        self.width, self.height = self.widths[0], self.heights[0]
+        self.widths = [width for width, height in self.isyntax.level_dimensions]
+        self.heights = [height for width, height in self.isyntax.level_dimensions]
         self.scales = [1 / downsample for downsample in self.slide.level_downsamples]
-        self.nchannels = 3      # Mirax is RGBA
-        self.source_shape = self.height, self.width, self.nchannels
-        self.source_dim_order = 'yxc'
-        self.name = get_filetitle(self.uri)
+        self.nchannels = 3      # Mirax is RGBA; convert to RGB
+        self.shapes = [(height, width, self.nchannels) for (width, height) in self.dimensions]
+        self.shape = self.shapes[0]
+        self.dim_order = 'yxc'
+        self.is_rgb_channels = True
         nbits = 8
         for key, value in self.metadata.items():
             if 'slide_name' in key:
@@ -42,13 +42,13 @@ class MiraxSource(ImageSource):
                 nbits = int(value)
         self.dtype = np.dtype(f'uint{nbits}')
 
-        self.shape = 1, self.nchannels, 1, self.height, self.width
-        self.dim_order = 'tczyx'
-
         # OpenSlide stores microns per pixel in properties
         mpp_x = float(self.metadata.get(openslide.PROPERTY_NAME_MPP_X, 0))
         mpp_y = float(self.metadata.get(openslide.PROPERTY_NAME_MPP_Y, 0))
         self.pixel_size = {'x': mpp_x, 'y': mpp_y}
+
+        self.name = get_filetitle(self.uri)
+        return self.metadata
 
     def is_screen(self):
         # Mirax files are not multi-well screens
@@ -97,7 +97,7 @@ class MiraxSource(ImageSource):
 
             pyramid = []
             scale = 1
-            scale = 0.0625  # TODO: ******************* remove this!!!
+            scale=0.0625  # TODO: ******************* remove this!!!
             for index in range(PYRAMID_LEVELS + 1):
                 level, rescale = get_level_from_scale(self.scales, scale)
                 level_shape = self.dimensions[level][::-1]
@@ -133,7 +133,7 @@ class MiraxSource(ImageSource):
                         yield data
             return tile_generator
         else:
-            data = read_tile_array(0, 0, self.width, self.height, level=0)
+            data = read_tile_array(0, 0, self.width[level], self.height[level], level=level)
             return redimension_data(data, self.source_dim_order, self.dim_order)
 
     def get_name(self):
@@ -186,8 +186,7 @@ class MiraxSource(ImageSource):
         return []
 
     def get_total_data_size(self):
-        shape = self.get_shape()
-        return np.prod(shape) * np.dtype(self.get_dtype()).itemsize
+        return np.prod(self.shape) * np.dtype(self.get_dtype()).itemsize
 
     def close(self):
         self.slide.close()

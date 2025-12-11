@@ -61,13 +61,15 @@ class TiffSource(ImageSource):
         channels = []
 
         if self.tiff.series:
-            page = self.tiff.series[0]
+            pages = self.tiff.series
+            page = pages[0]
         else:
+            pages = self.tiff.pages
             page = self.tiff.pages.first
+        self.shapes = [page.shape for page in pages]
+        self.shape = page.shape
+        self.dim_order = page.axes.lower().replace('s', 'c').replace('r', '')
         self.is_photometric_rgb = (self.tiff.pages.first.photometric == PHOTOMETRIC.RGB)
-        self.source_shape = page.shape
-        self.source_dim_order = page.axes.lower().replace('s', 'c').replace('r', '')
-        self.dim_order = 'tczyx'
 
         if self.is_ome:
             metadata = metadata_to_dict(self.tiff.ome_metadata)
@@ -107,8 +109,6 @@ class TiffSource(ImageSource):
                 self.name = get_filetitle(self.uri)
             self.name = str(self.name).rstrip('.tiff').rstrip('.tif').rstrip('.ome')
             pixels = image0.get('Pixels', {})
-            self.shape = pixels.get('SizeT'), pixels.get('SizeC'), pixels.get('SizeZ'), pixels.get('SizeY'), pixels.get('SizeX')
-            #self.source_dim_order = ''.join(reversed(pixels['DimensionOrder'].lower()))
             self.dtype = np.dtype(pixels['Type'])
             if 'PhysicalSizeX' in pixels:
                 pixel_size['x'] = convert_to_um(float(pixels.get('PhysicalSizeX')), pixels.get('PhysicalSizeXUnit'))
@@ -145,8 +145,6 @@ class TiffSource(ImageSource):
                     pixel_size['z'] = convert_to_um(self.imagej_metadata['spacing'], pixel_size_unit)
             self.metadata = tags_to_dict(self.tiff.pages.first.tags)
             self.name = os.path.splitext(self.tiff.filename)[0]
-            self.shape = [self.source_shape[self.source_dim_order.index(dim)] if dim in self.source_dim_order else 1
-                          for dim in self.dim_order if dim]
             self.dtype = page.dtype
             res_unit = self.metadata.get('ResolutionUnit', '')
             if isinstance(res_unit, Enum):
@@ -185,23 +183,32 @@ class TiffSource(ImageSource):
         """
         return self.shape
 
-    def get_data(self, well_id=None, field_id=None, as_dask=False, **kwargs):
+    def get_data(self, dim_order, well_id=None, field_id=None, **kwargs):
         """
         Gets image data from the TIFF file.
 
         Returns:
             ndarray: Image data.
         """
-        if as_dask and not self.is_plate:
-            lazy_array = dask.delayed(imread)(self.uri)
-            data = da.from_delayed(lazy_array, shape=self.source_shape, dtype=self.dtype)
-            data = data.rechunk(TILE_SIZE)
+        if well_id is not None:
+            index = self.image_refs[well_id][str(field_id)]
+            tiff = TiffFile(self.image_filenames[index])
         else:
-            if well_id is not None:
-                index = self.image_refs[well_id][str(field_id)]
-                self.tiff = TiffFile(self.image_filenames[index])
-            data = self.tiff.asarray()
-        return redimension_data(data, self.source_dim_order, self.dim_order)
+            tiff = self.tiff
+        data = tiff.asarray()
+        return redimension_data(data, self.dim_order, dim_order)
+
+    def get_data_as_dask(self, dim_order, level=0, **kwargs):
+        """
+        Gets image data from the TIFF file.
+
+        Returns:
+            ndarray: Image data.
+        """
+        lazy_array = dask.delayed(imread)(self.uri, level=level)
+        data = da.from_delayed(lazy_array, shape=self.shapes[level], dtype=self.dtype)
+        data = data.rechunk(TILE_SIZE)
+        return redimension_data(data, self.dim_order, dim_order)
 
     def get_image_window(self, window_scanner, well_id=None, field_id=None, data=None):
         """

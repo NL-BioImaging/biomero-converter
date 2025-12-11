@@ -63,23 +63,22 @@ class ISyntaxSource(ImageSource):
         self.is_plate = 'screen' in self.image_type or 'plate' in self.image_type or 'wells' in self.image_type
 
         self.isyntax = ISyntax.open(self.uri)
-        self.widths = [size[0] for size in self.isyntax.level_dimensions]
-        self.heights = [size[1] for size in self.isyntax.level_dimensions]
+        self.dimensions = self.isyntax.level_dimensions
+        self.widths = [width for width, height in self.isyntax.level_dimensions]
+        self.heights = [height for width, height in self.isyntax.level_dimensions]
         self.scales = [1 / downsample for downsample in self.isyntax.level_downsamples]
-        self.width, self.height = self.isyntax.dimensions
 
-        # original color channels get converted in pyisyntax package to 8-bit RGBA
+        # original color channels get converted in pyisyntax package to 8-bit RGBA; convert to RGB
         nbits = 8
         self.channels = []
         self.nchannels = 3
-        self.source_shape = self.height, self.width, self.nchannels
-        self.source_dim_order = 'yxc'
+        self.shapes = [(height, width, self.nchannels) for (width, height) in self.dimensions]
+        self.shape = self.shapes[0]
+        self.dim_order = 'yxc'
         self.is_rgb_channels = True
         self.dtype = np.dtype(f'uint{nbits}')
 
-        self.shape = 1, self.nchannels, 1, self.height, self.width
-        self.dim_order = 'tczyx'
-
+        self.name = get_filetitle(self.uri)
         return self.metadata
 
     def is_screen(self):
@@ -92,87 +91,47 @@ class ISyntaxSource(ImageSource):
         return self.is_plate
 
     def get_shape(self):
-        """
-        Returns the shape of the image data.
-
-        Returns:
-            tuple: Shape of the image data.
-        """
         return self.shape
 
-    def get_data(self, well_id=None, field_id=None, as_dask=False, as_dask_pyramid=False, as_generator=False, **kwargs):
-        """
-        Gets image data for a specific well and field.
+    def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
+        data = self.isyntax.read_region(0, 0, self.widths[level], self.heights[level], level=level)
+        return redimension_data(data, self.dim_order, dim_order)
 
-        Returns:
-            ndarray: Image data.
-        """
+    def get_data_as_dask(self, dim_order, level=0, **kwargs):
+        dask.config.set(scheduler='single-threaded')
 
         def read_tile_array(x, y, width, height, level=0):
-            return self.isyntax.read_region(x, y, width, height, level)[..., :3]
+            return self.isyntax.read_region(x, y, width, height, level)[..., :self.nchannels]
 
         def get_lazy_tile(x, y, width, height, level=0):
             lazy_array = dask.delayed(read_tile_array)(x, y, width, height, level)
             return da.from_delayed(lazy_array, shape=(height, width, self.nchannels), dtype=self.dtype)
 
-        shape2 = self.source_shape[:2]
-        if as_dask:
-            dask.config.set(scheduler='single-threaded')
-            y_chunks, x_chunks = da.core.normalize_chunks(TILE_SIZE, shape2, dtype=self.dtype)
-            rows = []
-            y = 0
-            for height in y_chunks:
-                row = []
-                x = 0
-                for width in x_chunks:
-                    row.append(get_lazy_tile(x, y, width, height))
-                    x += width
-                rows.append(da.concatenate(row, axis=1))
-                y += height
-            data = da.concatenate(rows, axis=0)
-            return redimension_data(data, self.source_dim_order, self.dim_order)
-        elif as_dask_pyramid:
-            dask.config.set(scheduler='single-threaded')
-            pyramid = []
-            scale = 1
-            for level in range(PYRAMID_LEVELS + 1):
-                shape = np.multiply(shape2, scale).astype(int)
-                level, rescale = get_level_from_scale(self.scales, scale)
-                y_chunks, x_chunks = da.core.normalize_chunks(TILE_SIZE, list(shape), dtype=self.dtype)
-                rows = []
-                y = 0
-                for height in y_chunks:
-                    row = []
-                    x = 0
-                    for width in x_chunks:
-                        row.append(get_lazy_tile(x, y, width, height, level=level))
-                        x += width
-                    rows.append(da.concatenate(row, axis=1))
-                    y += height
-                data = da.concatenate(rows, axis=0)
-                if rescale != 1:
-                    shape3 = tuple(list(shape) + [self.nchannels])
-                    data = dask_utils.resize(data, shape3)
-                data = redimension_data(data, self.source_dim_order, self.dim_order)
-                pyramid.append(data)
-                scale /= PYRAMID_DOWNSCALE
-            return pyramid
-        elif as_generator:
-            def tile_generator(scale=1):
-                level, rescale = get_level_from_scale(self.scales, scale)
-                read_size = int(TILE_SIZE / rescale)
-                for y in range(0, self.heights[level], read_size):
-                    for x in range(0, self.widths[level], read_size):
-                        data = self.isyntax.read_region(x, y, read_size, read_size, level)
-                        if rescale != 1:
-                            shape = np.multiply(shape2, scale).astype(int)
-                            data = sk_transform.resize(data, shape, preserve_range=True).astype(data.dtype)
-                        yield data
-            return tile_generator
-        else:
-            data = self.isyntax.read_region(0, 0, self.width, self.height)
-            return redimension_data(data, self.source_dim_order, self.dim_order)
+        y_chunks, x_chunks = da.core.normalize_chunks(TILE_SIZE, self.shapes[level][:2], dtype=self.dtype)
+        rows = []
+        y = 0
+        for height in y_chunks:
+            row = []
+            x = 0
+            for width in x_chunks:
+                row.append(get_lazy_tile(x, y, width, height, level=level))
+                x += width
+            rows.append(da.concatenate(row, axis=1))
+            y += height
+        data = da.concatenate(rows, axis=0)
+        return redimension_data(data, self.dim_order, dim_order)
 
+    def get_data_as_generator(self, dim_order, **kwargs):
+        def data_generator(self, scale=1):
+            level, rescale = get_level_from_scale(self.scales, scale)
+            read_size = int(TILE_SIZE / rescale)
+            for y in range(0, self.heights[level], read_size):
+                for x in range(0, self.widths[level], read_size):
+                    data = self.isyntax.read_region(x, y, read_size, read_size, level)
+                    if rescale != 1:
+                        data = sk_transform.resize(data, (TILE_SIZE, TILE_SIZE), preserve_range=True).astype(data.dtype)
+                    yield redimension_data(data, self.dim_order, dim_order)
+        return data_generator
 
     def get_image_window(self,window_scanner, well_id=None, field_id=None, data=None):
         # For RGB(A) uint8 images don't change color value range
@@ -198,7 +157,7 @@ class ISyntaxSource(ImageSource):
         Returns:
             str: Name.
         """
-        return get_filetitle(self.uri)
+        return self.name
 
     def get_dim_order(self):
         """

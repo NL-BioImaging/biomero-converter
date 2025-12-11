@@ -1,5 +1,5 @@
 # https://ome-zarr.readthedocs.io/en/stable/python.html#writing-hcs-datasets-to-ome-ngff
-
+from ome_zarr import dask_utils
 #from ome_zarr.io import parse_url
 from ome_zarr.scale import Scaler
 from ome_zarr.writer import write_image, write_plate_metadata, write_well_metadata, write_multiscale
@@ -8,7 +8,7 @@ import zarr
 from src.OmeWriter import OmeWriter
 from src.ome_zarr_util import *
 from src.parameters import *
-from src.util import split_well_name, print_hbytes
+from src.util import split_well_name, print_hbytes, get_level_from_scale
 from src.WindowScanner import WindowScanner
 
 
@@ -39,6 +39,7 @@ class OmeZarrWriter(OmeWriter):
         else:
             self.ome_format = None
         self.verbose = verbose
+        self.dim_order = 'tczyx'
 
     def write(self, filepath, source, **kwargs):
         """
@@ -100,7 +101,7 @@ class OmeZarrWriter(OmeWriter):
             position = source.get_position_um(well_id)
             for field in fields:
                 image_group = well_group.require_group(field)
-                data = source.get_data(well_id, field)
+                data = source.get_data(self.dim_order, well_id, field)
                 window_scanner = WindowScanner()
                 window = source.get_image_window(window_scanner, data=data)
                 size = self._write_data(image_group, data, source, window, position=position)
@@ -124,10 +125,22 @@ class OmeZarrWriter(OmeWriter):
         zarr_location = filepath
         zarr_root = zarr.open_group(zarr_location, mode='w', zarr_version=self.zarr_version)
 
-        data = source.get_data(as_dask_pyramid=True)
+        pyramid_data = []
+        scale = 1
+        scale=0.25
+        for _ in range(PYRAMID_LEVELS + 1):
+            level, rescale = get_level_from_scale(source.scales, scale)
+            data = source.get_data_as_dask(self.dim_order, level=level)
+            if rescale != 1:
+                shape = list(data.shape)
+                shape[-2:] = np.multiply(shape[-2:], rescale).astype(int)
+                data = dask_utils.resize(data, shape)
+            pyramid_data.append(data)
+            scale /= PYRAMID_DOWNSCALE
+
         window_scanner = WindowScanner()
         window = source.get_image_window(window_scanner)
-        size = self._write_data(zarr_root, data, source, window, position=source.get_position_um())
+        size = self._write_data(zarr_root, pyramid_data, source, window, position=source.get_position_um())
         return zarr_root, size
 
     def _write_data(self, group, data, source, window, position=None):
@@ -144,7 +157,7 @@ class OmeZarrWriter(OmeWriter):
         Returns:
             int: Number of bytes written.
         """
-        dim_order = source.get_dim_order()
+        dim_order = self.dim_order
         dtype = source.get_dtype()
         channels = source.get_channels()
         nchannels = source.get_nchannels()
