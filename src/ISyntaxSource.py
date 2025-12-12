@@ -76,6 +76,7 @@ class ISyntaxSource(ImageSource):
         self.dim_order = 'yxc'
         self.is_rgb_channels = True
         self.dtype = np.dtype(f'uint{nbits}')
+        self.pixel_size = {'x': self.isyntax.mpp_x, 'y': self.isyntax.mpp_y}
 
         self.name = get_filetitle(self.uri)
         return self.metadata
@@ -93,7 +94,10 @@ class ISyntaxSource(ImageSource):
         return self.shape
 
     def read_array(self, x, y, width, height, level=0):
-        return self.isyntax.read_region(x, y, width, height, level)[..., :self.nchannels]
+        rgba = self.isyntax.read_region(x, y, width, height, level)
+        alpha = np.atleast_3d(rgba[..., 3] / np.float32(255))
+        rgb = (rgba[..., :3] * alpha).astype(np.uint8)
+        return rgb
 
     def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
         data = self.read_array(0, 0, self.widths[level], self.heights[level], level=level)
@@ -107,17 +111,13 @@ class ISyntaxSource(ImageSource):
             return da.from_delayed(lazy_array, shape=(height, width, self.nchannels), dtype=self.dtype)
 
         y_chunks, x_chunks = da.core.normalize_chunks(TILE_SIZE, self.shapes[level][:2], dtype=self.dtype)
-        rows = []
-        y = 0
-        for height in y_chunks:
-            row = []
-            x = 0
-            for width in x_chunks:
-                row.append(get_lazy_tile(x, y, width, height, level=level))
-                x += width
-            rows.append(da.concatenate(row, axis=1))
-            y += height
-        data = da.concatenate(rows, axis=0)
+        y_pos = np.cumsum([0] + list(y_chunks)[:-1])
+        x_pos = np.cumsum([0] + list(x_chunks)[:-1])
+        data = da.concatenate(
+            [da.concatenate(
+                [get_lazy_tile(x, y, width, height, level=level)
+                 for x, width in zip(x_pos, x_chunks)], axis=1)
+             for y, height in zip(y_pos, y_chunks)], axis=0)
         return redimension_data(data, self.dim_order, dim_order)
 
     def get_data_as_generator(self, dim_order, **kwargs):
@@ -175,7 +175,7 @@ class ISyntaxSource(ImageSource):
         Returns:
             dict: Pixel size dict for x and y.
         """
-        return {'x': self.isyntax.mpp_x, 'y': self.isyntax.mpp_y}
+        return self.pixel_size
 
     def get_dtype(self):
         """
