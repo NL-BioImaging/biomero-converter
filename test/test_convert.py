@@ -49,8 +49,6 @@ class TestConvert:
             reader = TiffSource(output_path)
             metadata = reader.init_metadata()
             pixel_size = reader.get_pixel_size_um()
-            if source.is_screen():
-                wells = reader.get_wells()
         else:
             reader = Reader(parse_url(output_path))
             node = list(reader())[0]
@@ -58,31 +56,30 @@ class TestConvert:
             axes = [axis['name'] for axis in metadata['axes']]
             pixel_sizes0 = [transform for transform in metadata['coordinateTransformations'][0] if transform['type'] == 'scale'][0]['scale']
             pixel_size = {axis: pixel_size for axis, pixel_size in zip(axes, pixel_sizes0) if axis in 'xyz'}
-            if source.is_screen():
-                wells = [well['path'].replace('/', '') for well in metadata['metadata']['plate']['wells']]
+
+            if '2' in output_format:
+                assert float(reader.zarr.version) == 0.4
+            elif '3' in output_format:
+                assert float(reader.zarr.version) >= 0.5
+
+            if '2' in output_format:
+                assert float(node.zarr.version) == 0.4
+            elif '3' in output_format:
+                assert float(node.zarr.version) >= 0.5
 
         if verbose:
             print('CONVERTED METADATA')
             print(print_dict(metadata))
 
-        if '2' in output_format:
-            assert float(reader.zarr.version) == 0.4
-        elif '3' in output_format:
-            assert float(reader.zarr.version) >= 0.5
-
-        if '2' in output_format:
-            assert float(node.zarr.version) == 0.4
-        elif '3' in output_format:
-            assert float(node.zarr.version) >= 0.5
-
         source_pixel_size = source.get_pixel_size_um()
-        source_wells = kwargs.get('wells', source.get_wells())
         if verbose:
             print(f'Source    pixel size: {source_pixel_size}')
             print(f'Converted pixel size: {pixel_size}')
         assert pixel_size.get('x') == source_pixel_size.get('x')
         assert pixel_size.get('y') == source_pixel_size.get('y')
         if source.is_screen():
+            wells = reader.get_wells()
+            source_wells = kwargs.get('wells', source.get_wells())
             assert list(wells) == list(source_wells)
 
 
