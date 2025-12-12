@@ -1,4 +1,3 @@
-import dask
 import dask.array as da
 from enum import Enum
 import numpy as np
@@ -71,7 +70,11 @@ class TiffSource(ImageSource):
         self.shapes = [page.shape for page in pages]
         self.shape = page.shape
         self.dim_order = page.axes.lower().replace('s', 'c').replace('r', '')
+        x_index, y_index = self.dim_order.index('x'), self.dim_order.index('y')
+        self.scales = [float(np.mean([shape[x_index] / self.shape[x_index], shape[y_index] / self.shape[y_index]]))
+                       for shape in self.shapes]
         self.is_photometric_rgb = (self.tiff.pages.first.photometric == PHOTOMETRIC.RGB)
+        self.nchannels = self.shape[self.dim_order.index('c')] if 'c' in self.dim_order else 1
 
         if self.is_ome:
             metadata = metadata_to_dict(self.tiff.ome_metadata)
@@ -168,22 +171,13 @@ class TiffSource(ImageSource):
         return self.metadata
 
     def is_screen(self):
-        """
-        Checks if the source is a plate/screen.
-
-        Returns:
-            bool: True if plate/screen.
-        """
         return self.is_plate
 
     def get_shape(self):
-        """
-        Returns the shape of the image data.
-
-        Returns:
-            tuple: Shape of the image data.
-        """
         return self.shape
+
+    def get_scales(self):
+        return self.scales
 
     def get_data(self, dim_order, well_id=None, field_id=None, **kwargs):
         if well_id is not None:
@@ -195,9 +189,11 @@ class TiffSource(ImageSource):
         return redimension_data(data, self.dim_order, dim_order)
 
     def get_data_as_dask(self, dim_order, level=0, **kwargs):
-        lazy_array = dask.delayed(imread)(self.uri, level=level)
-        data = da.from_delayed(lazy_array, shape=self.shapes[level], dtype=self.dtype)
-        data = data.rechunk(TILE_SIZE)
+        #lazy_array = dask.delayed(imread)(self.uri, level=level)
+        #data = da.from_delayed(lazy_array, shape=self.shapes[level], dtype=self.dtype)
+        data = da.from_zarr(imread(self.uri, level=level, aszarr=True))
+        if data.chunksize == data.shape:
+            data = data.rechunk(TILE_SIZE)
         return redimension_data(data, self.dim_order, dim_order)
 
     def get_image_window(self, window_scanner, well_id=None, field_id=None, data=None):
@@ -294,7 +290,7 @@ class TiffSource(ImageSource):
         Returns:
             int: Number of channels.
         """
-        return self.shape[1]
+        return self.nchannels
 
     def is_rgb(self):
         """

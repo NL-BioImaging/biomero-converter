@@ -19,12 +19,6 @@ class ISyntaxSource(ImageSource):
     Loads image and metadata from ISyntax format files.
     """
     def init_metadata(self):
-        """
-        Initializes and loads metadata from the ISyntax file.
-
-        Returns:
-            dict: Metadata dictionary.
-        """
         # read XML metadata header
         data = b''
         block_size = 1024 * 1024
@@ -69,7 +63,6 @@ class ISyntaxSource(ImageSource):
 
         # original color channels get converted in pyisyntax package to 8-bit RGBA; convert to RGB
         nbits = 8
-        self.channels = []
         self.nchannels = 3
         self.shapes = [(height, width, self.nchannels) for (width, height) in self.dimensions]
         self.shape = self.shapes[0]
@@ -82,16 +75,13 @@ class ISyntaxSource(ImageSource):
         return self.metadata
 
     def is_screen(self):
-        """
-        Checks if the source is a plate/screen.
-
-        Returns:
-            bool: True if plate/screen.
-        """
         return self.is_plate
 
     def get_shape(self):
         return self.shape
+
+    def get_scales(self):
+        return self.scales
 
     def read_array(self, x, y, width, height, level=0):
         rgba = self.isyntax.read_region(x, y, width, height, level)
@@ -196,98 +186,45 @@ class ISyntaxSource(ImageSource):
         return {'x': self.isyntax.offset_x, 'y': self.isyntax.offset_y}
 
     def get_channels(self):
-        """
-        Returns channel metadata.
-
-        Returns:
-            list: List of channel dicts.
-        """
-        return self.channels
+        def get_channels(self):
+            # Mirax is RGB, return NGFF-style channel metadata
+            return [
+                {"name": "Red", "color": [1, 0, 0, 1]},
+                {"name": "Green", "color": [0, 1, 0, 1]},
+                {"name": "Blue", "color": [0, 0, 1, 1]},
+                #{"name": "Alpha", "color": [1, 1, 1, 1]}
+            ]
 
     def get_nchannels(self):
-        """
-        Returns the number of channels.
-
-        Returns:
-            int: Number of channels.
-        """
         return self.nchannels
 
     def is_rgb(self):
-        """
-        Check if the source is a RGB(A) image.
-        """
         return self.is_rgb_channels
 
     def get_rows(self):
-        """
-        Returns the list of row identifiers (empty for ISyntax).
-
-        Returns:
-            list: Empty list.
-        """
         return []
 
     def get_columns(self):
-        """
-        Returns the list of column identifiers (empty for ISyntax).
-
-        Returns:
-            list: Empty list.
-        """
         return []
 
     def get_wells(self):
-        """
-        Returns the list of well identifiers (empty for ISyntax).
-
-        Returns:
-            list: Empty list.
-        """
         return []
 
     def get_time_points(self):
-        """
-        Returns the list of time points (empty for ISyntax).
-
-        Returns:
-            list: Empty list.
-        """
         return []
 
     def get_fields(self):
-        """
-        Returns the list of field indices (empty for ISyntax).
-
-        Returns:
-            list: Empty list.
-        """
         return []
 
     def get_acquisitions(self):
-        """
-        Returns acquisition metadata (empty for ISyntax).
-
-        Returns:
-            list: Empty list.
-        """
         return []
 
     def get_total_data_size(self):
-        """
-        Returns the estimated total data size.
-
-        Returns:
-            int: Total data size in bytes.
-        """
         total_size = np.prod(self.shape)
         if self.is_plate:
             total_size *= len(self.get_wells()) * len(self.get_fields())
         return total_size
 
     def close(self):
-        """
-        Closes the ISyntax file.
-        """
         self.isyntax.close()
         dask.config.set(scheduler='threads')

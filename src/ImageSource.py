@@ -44,6 +44,15 @@ class ImageSource(ABC):
         """
         raise NotImplementedError("The 'get_shape' method must be implemented by subclasses.")
 
+    def get_scales(self):
+        """
+        Get the list of image scales.
+
+        Raises:
+            NotImplementedError: Must be implemented by subclasses.
+        """
+        raise NotImplementedError("The 'get_scales' method must be implemented by subclasses.")
+
     def get_data(self, dim_order, well_id=None, field_id=None, **kwargs):
         """
         Get image data for a well and field.
@@ -59,20 +68,26 @@ class ImageSource(ABC):
         """
         raise NotImplementedError("The 'get_data' method must be implemented by subclasses.")
 
-    def get_data_as_dask(self, dim_order, **kwargs):
+    def get_data_as_dask(self, dim_order, level=0, **kwargs):
         """
-        Get image data for a well and field.
+        Get image data (WSI) as dask array.
 
         Args:
             dim_order: Dimension order of data
-            well_id (str, optional): Well identifier
-            field_id (int, optional): Field identifier
+            level (int, optional): Image resolution level
             kwargs (optional): Format specific keyword arguments.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_data' method must be implemented by subclasses.")
+        return self.get_data(dim_order, level=level, **kwargs)
+
+    def get_data_as_generator(self, dim_order, **kwargs):
+        """
+        Get image data (WSI) as generator.
+
+        Args:
+            dim_order: Dimension order of data
+            kwargs (optional): Format specific keyword arguments.
+        """
+        return self.get_data(dim_order, **kwargs)
 
     def get_image_window(self, window_scanner, well_id=None, field_id=None, data=None):
         """

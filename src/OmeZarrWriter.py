@@ -1,4 +1,12 @@
 # https://ome-zarr.readthedocs.io/en/stable/python.html#writing-hcs-datasets-to-ome-ngff
+
+
+import ngff_zarr
+from ngff_zarr import Multiscales
+from ngff_zarr.v05.zarr_metadata import Axis, Transform, Metadata
+from ome_zarr_models.v05 import Image
+from ome_zarr_models.v05.multiscales import Dataset
+
 from ome_zarr import dask_utils
 #from ome_zarr.io import parse_url
 from ome_zarr.scale import Scaler
@@ -128,7 +136,7 @@ class OmeZarrWriter(OmeWriter):
         pyramid_data = []
         scale = 1
         for _ in range(PYRAMID_LEVELS + 1):
-            level, rescale = get_level_from_scale(source.scales, scale)
+            level, rescale = get_level_from_scale(source.get_scales(), scale)
             data = source.get_data_as_dask(self.dim_order, level=level)
             if rescale != 1:
                 shape = list(data.shape)
@@ -188,6 +196,15 @@ class OmeZarrWriter(OmeWriter):
 
         size = data0.size * data0.itemsize
         if is_pyramid:
+            #images = [Image.fromarray(data1) for data1 in data]
+            #ngff_zarr.from_ngff_zarr() # use this to see construction
+            #axes1 = [Axis()]
+            #datasets1 = [Dataset()]
+            #coordinateTransformations1 = Transform()
+            #metadata = Metadata(axes1, datasets1, coordinateTransformations1)
+            #multiscales = Multiscales(images, metadata)
+            #ngff_zarr.to_ngff_zarr(group, multiscales=multiscales)
+
             write_multiscale(pyramid=data, group=group, axes=axes, coordinate_transformations=pixel_size_scales,
                             fmt=self.ome_format, storage_options=storage_options,
                             name=source.get_name(), metadata=metadata)
@@ -220,3 +237,4 @@ class OmeZarrWriter(OmeWriter):
                                                scale, translation))
             scale /= scaler.downscale
         return pixel_size_scales, scaler
+

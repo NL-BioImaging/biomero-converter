@@ -59,6 +59,9 @@ class MiraxSource(ImageSource):
     def get_shape(self):
         return self.shape
 
+    def get_scales(self):
+        return self.scales
+
     # TODO: check (x/y) source data is read in order first to last (currently last to first) using dask, or use generator/stream to dask?
     # read_tile_array(50000, 180000, 1000, 1000, 0)
 

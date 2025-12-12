@@ -28,12 +28,6 @@ class OmeZarrSource(ImageSource):
         return metadata
 
     def init_metadata(self):
-        """
-        Initializes and loads metadata from the (OME) TIFF file.
-
-        Returns:
-            dict: Metadata dictionary.
-        """
         reader, nodes = self._get_reader()
         if 'bioformats2raw.layout' in reader.zarr.root_attrs:
             # TODO: use paths provided in metadata
@@ -53,11 +47,13 @@ class OmeZarrSource(ImageSource):
         self.plate = self.metadata.get('metadata', {}).get('plate')
         self.is_plate = self.plate is not None
 
-        pixel_sizes0 = [transform for transform
-                        in self.metadata['coordinateTransformations'][0]
-                        if transform['type'] == 'scale'][0]['scale']
+        scales = [transform['scale'] for transform_set in self.metadata['coordinateTransformations']
+                  for transform in transform_set if transform['type'] == 'scale']
         self.pixel_size = {dim: convert_to_um(pixel_size, units.get(dim, '')) for dim, pixel_size
-                           in zip(self.dim_order, pixel_sizes0) if dim in 'xyz'}
+                           in zip(self.dim_order, scales[0]) if dim in 'xyz'}
+        x_index, y_index = self.dim_order.index('x'), self.dim_order.index('y')
+        scale0 = np.mean([scales[0][x_index] + scales[0][y_index]])
+        self.scales = [float(scale0 / np.mean([scale[x_index] + scale[y_index]])) for scale in scales]
         if self.is_plate:
             self.name = self.plate.get('name', '')
             self.rows = [row['name'] for row in self.plate.get('rows', [])]
@@ -73,31 +69,15 @@ class OmeZarrSource(ImageSource):
         self.dtype = image_node.data[0].dtype
 
     def is_screen(self):
-        """
-        Checks if the source is a plate/screen.
-
-        Returns:
-            bool: True if plate/screen.
-        """
         return self.is_plate
 
     def get_shape(self):
-        """
-        Returns the shape of the image data.
-
-        Returns:
-            tuple: Shape of the image data.
-        """
         return self.shape
 
+    def get_scales(self):
+        return self.scales
+
     def get_data(self, well_id=None, field_id=None, level=0, **kwargs):
-        """
-        Gets image data from ZARR nodes.
-
-        Returns:
-            ndarray: Image data.
-        """
-
         if well_id is None and field_id is None:
             return self.data[level]
         else:
@@ -113,48 +93,18 @@ class OmeZarrSource(ImageSource):
         return window
 
     def get_name(self):
-        """
-        Gets the image or plate name.
-
-        Returns:
-            str: Name.
-        """
         return self.name
 
     def get_dim_order(self):
-        """
-        Returns the dimension order string.
-
-        Returns:
-            str: Dimension order.
-        """
         return self.dim_order
 
     def get_dtype(self):
-        """
-        Returns the numpy dtype of the image data.
-
-        Returns:
-            dtype: Numpy dtype.
-        """
         return self.dtype
 
     def get_pixel_size_um(self):
-        """
-        Returns the pixel size in micrometers.
-
-        Returns:
-            dict: Pixel size for x, y, (and z).
-        """
         return self.pixel_size
 
     def get_position_um(self, well_id=None):
-        """
-        Returns the position in micrometers.
-
-        Returns:
-            dict: Position in micrometers.
-        """
         metadata = self._get_metadata(self.paths[well_id][0])
         for transforms in metadata['coordinateTransformations'][0]:
             if transforms['type'] == 'translation':
@@ -162,12 +112,6 @@ class OmeZarrSource(ImageSource):
         return {}
 
     def get_channels(self):
-        """
-        Returns channel metadata.
-
-        Returns:
-            list: List of channel dicts.
-        """
         channels = []
         colormaps = self.metadata['colormap']
         for channeli, channel_name in enumerate(self.metadata['channel_names']):
@@ -178,82 +122,31 @@ class OmeZarrSource(ImageSource):
         return channels
 
     def get_nchannels(self):
-        """
-        Returns the number of channels.
-
-        Returns:
-            int: Number of channels.
-        """
         return self.shape[self.dim_order.index('c')] if 'c' in self.dim_order else 1
 
     def is_rgb(self):
-        """
-        Check if the source is a RGB(A) image.
-        """
         return self.get_nchannels() in (3, 4)
 
     def get_rows(self):
-        """
-        Returns the list of row identifiers.
-
-        Returns:
-            list: Row identifiers.
-        """
         return self.rows
 
     def get_columns(self):
-        """
-        Returns the list of column identifiers.
-
-        Returns:
-            list: Column identifiers.
-        """
         return self.columns
 
     def get_wells(self):
-        """
-        Returns the list of well identifiers.
-
-        Returns:
-            list: Well identifiers.
-        """
         return self.wells
 
     def get_time_points(self):
-        """
-        Returns the list of time points.
-
-        Returns:
-            list: Time point IDs.
-        """
         nt = self.shape[self.dim_order.index('t')] if 't' in self.dim_order else 1
         return list(range(nt))
 
     def get_fields(self):
-        """
-        Returns the list of field indices.
-
-        Returns:
-            list: Field indices.
-        """
         return self.fields
 
     def get_acquisitions(self):
-        """
-        Returns acquisition metadata (empty for TIFF).
-
-        Returns:
-            list: acquisition metadata.
-        """
         return self.acquisitions
 
     def get_total_data_size(self):
-        """
-        Returns the estimated total data size.
-
-        Returns:
-            int: Total data size in bytes.
-        """
         total_size = np.prod(self.shape)
         if self.is_plate:
             total_size *= len(self.get_wells()) * len(self.get_fields())
