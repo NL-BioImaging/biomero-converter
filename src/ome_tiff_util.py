@@ -20,17 +20,17 @@ def create_uuid():
     return f'urn:uuid:{uuid.uuid4()}'
 
 
-def create_metadata(source, uuid=None, image_uuids=None, image_filenames=None, wells=None):
+def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, image_filenames=None, wells=None):
     ome = OME()
     if uuid is None:
         uuid = create_uuid()
     ome.uuid = uuid
     ome.creator = f'nl.biomero.OmeTiffWriter {VERSION}'
 
-    if wells is None:
-        wells = source.get_wells()
-
     if source.is_screen():
+        if wells is None:
+            wells = source.get_wells()
+
         columns = source.get_columns()
         rows = source.get_rows()
 
@@ -62,6 +62,7 @@ def create_metadata(source, uuid=None, image_uuids=None, image_filenames=None, w
                 image_name = f'Well {well_id}, Field #{int(field) + 1}'
                 image = create_image_metadata(source,
                                               image_name,
+                                              dim_order,
                                               image_uuids[image_index],
                                               image_filenames[image_index])
                 ome.images.append(image)
@@ -76,23 +77,22 @@ def create_metadata(source, uuid=None, image_uuids=None, image_filenames=None, w
 
         ome.plates = [plate]
     else:
-        ome.images = [create_image_metadata(source, source.get_name(), ome.uuid, image_filenames[0])]
+        ome.images = [create_image_metadata(source, source.get_name(), dim_order, ome.uuid, image_filenames[0])]
 
     return to_xml(ome)
 
 
-def create_image_metadata(source, image_name, image_uuid=None, image_filename=None):
-    dim_order = source.get_dim_order()
-    t, c, z, y, x = source.get_shape()
+def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None, image_filename=None):
+    t, c, z, y, x = [source.get_shape()[source.dim_order.index(dim)] if dim in source.get_dim_order() else 1
+                     for dim in 'tczyx']
     pixel_size = source.get_pixel_size_um()
     channels = source.get_channels()
-    ome_channels = []
-    if len(channels) < c:
-        if source.is_rgb():
-            ome_channels.append(Channel(name='rgb', samples_per_pixel=3))
-        else:
-            ome_channels = [Channel(name=f'{channeli}', samples_per_pixel=1) for channeli in range(c)]
+    if source.is_rgb():
+        ome_channels = [Channel(name='rgb', samples_per_pixel=3)]
+    elif len(channels) < c:
+        ome_channels = [Channel(name=f'{channeli}', samples_per_pixel=1) for channeli in range(c)]
     else:
+        ome_channels = []
         for channeli, channel in enumerate(channels):
             ome_channel = Channel()
             ome_channel.name = channel.get('label', channel.get('Name', f'{channeli}'))

@@ -5,7 +5,7 @@ import tifffile
 from datetime import datetime
 
 from src.ImageSource import ImageSource
-from src.util import strip_leading_zeros
+from src.util import strip_leading_zeros, redimension_data
 from src.TiffSource import TiffSource
 
 
@@ -181,6 +181,14 @@ class IncucyteSource(ImageSource):
         self.wells = list(self.metadata.get("wells", {}).keys())
         self.rows = self.metadata.get("well_info", {}).get("rows", [])
         self.columns = self.metadata.get("well_info", {}).get("columns", [])
+        self.scales = [1]
+
+        nt = len(self.metadata["time_points"])
+        nc = self.metadata["num_channels"]
+        sample_info = self._get_sample_image_info()
+        ny, nx = sample_info["height"], sample_info["width"]
+        nz = 1  # Incucyte is typically 2D
+        self.shape = nt, nc, nz, ny, nx
 
         return self.metadata
 
@@ -610,7 +618,7 @@ class IncucyteSource(ImageSource):
     def is_screen(self):
         return self.is_plate
 
-    def get_data(self, well_id, field_id):
+    def get_data(self, dim_order, well_id=None, field_id=None, **kwargs):
         """Get data for a specific well and field"""
         well_id = strip_leading_zeros(well_id)
 
@@ -629,10 +637,8 @@ class IncucyteSource(ImageSource):
         nt = len(self.metadata["time_points"])
         nc = self.metadata["num_channels"]
         sample_info = self._get_sample_image_info()
-        ny, nx = sample_info["height"], sample_info["width"]
-        nz = 1  # Incucyte is typically 2D
 
-        data = np.zeros((nt, nc, nz, ny, nx), dtype=sample_info["dtype"])
+        data = np.zeros(self.shape, dtype=sample_info["dtype"])
 
         for t in range(nt):
             for c in range(nc):
@@ -648,7 +654,13 @@ class IncucyteSource(ImageSource):
                         image_data[..., 0] if len(image_data.shape) > 2 else image_data
                     )
 
-        return data
+        return redimension_data(data, self.dim_order, dim_order)
+
+    def get_shape(self):
+        return self.shape
+
+    def get_scales(self):
+        return self.scales
 
     def get_name(self):
         return self.name

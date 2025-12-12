@@ -37,6 +37,20 @@ class OmeTiffWriter(OmeWriter):
         Returns:
             dict: Containing output_path: str or list Output file path(s) and data window.
         """
+
+        dim_order = ''
+        source_dim_order = source.get_dim_order()
+        if source.get_time_points():
+            dim_order += 't'
+        if 'c' in source_dim_order and not source.is_rgb():
+            dim_order += 'c'
+        if 'z' in source_dim_order:
+            dim_order += 'z'
+        dim_order += 'yx'
+        if 'c' in source_dim_order and source.is_rgb():
+            dim_order += 'c'
+        self.dim_order = dim_order
+
         if source.is_screen():
             filepath, total_size, window = self._write_screen(filepath, source, **kwargs)
         else:
@@ -76,7 +90,7 @@ class OmeTiffWriter(OmeWriter):
         for well_id in wells:
             for field in source.get_fields():
                 resolution, resolution_unit = create_resolution_metadata(source)
-                data = source.get_data(well_id, field)
+                data = source.get_data(self.dim_order, well_id, field)
 
                 filename = f'{filetitle}'
                 filename += f'_{pad_leading_zero(well_id)}'
@@ -119,9 +133,9 @@ class OmeTiffWriter(OmeWriter):
         """
         xml_metadata = create_metadata(source, image_filenames=[filename])
         resolution, resolution_unit = create_resolution_metadata(source)
-        data = source.get_data(as_generator=True)
+        data_generator = source.get_data_as_generator(self.dim_order)
 
-        size, window = self._write_tiff(filename, source, data,
+        size, window = self._write_tiff(filename, source, data_generator,
                                         resolution=resolution, resolution_unit=resolution_unit,
                                         tile_size=TILE_SIZE, compression=TIFF_COMPRESSION,
                                         xml_metadata=xml_metadata,
@@ -154,22 +168,15 @@ class OmeTiffWriter(OmeWriter):
         is_generator = inspect.isgeneratorfunction(data)
         if is_generator:
             data_generator = data
-            shape = list(source.source_shape)
-            dim_order = source.source_dim_order
+            shape = list(source.shape)
             dtype = source.get_dtype()
         else:
             shape = list(data.shape)
-            dim_order = source.get_dim_order()
             dtype = data.dtype
-        if source.is_rgb() and dim_order[-1] != 'c' and not is_generator:
-            # For Tiff allow RGB written with color channel at end for better compression
-            old_dimc = dim_order.index('c')
-            data = np.moveaxis(data, old_dimc, -1)
-            dim_order = dim_order[:old_dimc] + dim_order[old_dimc+1:] + 'c'
-            shape = shape[:old_dimc] + shape[old_dimc+1:] + [shape[old_dimc]]
 
-        x_index = dim_order.index('x')
-        y_index = dim_order.index('y')
+        source_dim_order = source.get_dim_order()
+        x_index = source_dim_order.index('x')
+        y_index = source_dim_order.index('y')
         if tile_size is not None:
             if isinstance(tile_size, int):
                 tile_size = [tile_size] * 2
@@ -216,7 +223,7 @@ class OmeTiffWriter(OmeWriter):
                     xml_metadata_bytes = None
                 if is_generator:
                     data = data_generator(scale)
-                writer.write(data, shape=tuple(new_shape), dtype=dtype, metadata={'axes':dim_order},
+                writer.write(data, shape=tuple(new_shape), dtype=dtype, metadata={'axes': self.dim_order},
                              subifds=subifds, subfiletype=subfiletype,
                              resolution=resolution, resolutionunit=resolution_unit, tile=tile_size,
                              compression=compression, compressionargs=compressionargs,

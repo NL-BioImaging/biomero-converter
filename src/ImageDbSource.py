@@ -51,6 +51,9 @@ class ImageDbSource(ImageSource):
         """
         return self.shape
 
+    def get_scales(self):
+        return self.scales
+
     def _get_time_series_info(self):
         """
         Loads time series and image file info into metadata.
@@ -136,6 +139,7 @@ class ImageDbSource(ImageSource):
         if bits_per_pixel == 24:
             bits_per_pixel = 32
         self.dtype = np.dtype(f'uint{bits_per_pixel}')
+        self.scales = [1]
 
     def _get_sizes(self):
         """
