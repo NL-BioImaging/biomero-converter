@@ -1,5 +1,6 @@
 import json
 import logging
+import numpy as np
 import os.path
 import shutil
 
@@ -169,7 +170,7 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
         message += f' and {alt_output_path}'
 
     if 'window' in output:
-        window = output['window']
+        window = np.array(output['window']).tolist()
         result['keyvalues'] = [{"channel_mins": window[0], "channel_maxs": window[1]}]
 
     logging.info(message)

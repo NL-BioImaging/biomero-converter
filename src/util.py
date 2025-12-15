@@ -36,6 +36,21 @@ def redimension_data(data, old_order, new_order, **indices):
     return new_data
 
 
+def get_numpy_data(data, dim_order, t, c, z, y, x, y_size, x_size):
+    x_index = dim_order.index('x')
+    y_index = dim_order.index('y')
+    slices = [slice(None)] * len(dim_order)
+    if 't' in dim_order:
+        slices[dim_order.index('t')] = t
+    if 'c' in dim_order:
+        slices[dim_order.index('c')] = c
+    if 'z' in dim_order:
+        slices[dim_order.index('z')] = z
+    slices[y_index] = slice(y, y + y_size)
+    slices[x_index] = slice(x, x + x_size)
+    return data[tuple(slices)]
+
+
 def get_level_from_scale(source_scales, target_scale=1):
     best_level_scale = 0, target_scale
     for level, scale in enumerate(source_scales):

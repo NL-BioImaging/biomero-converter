@@ -1,10 +1,12 @@
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
 import os.path
+import skimage.transform as sk_transform
 
 from src.ImageSource import ImageSource
 from src.ome_zarr_util import *
-from src.util import convert_to_um
+from src.parameters import TILE_SIZE
+from src.util import convert_to_um, get_level_from_scale, redimension_data, get_filetitle, get_numpy_data
 
 
 class OmeZarrSource(ImageSource):
@@ -65,6 +67,11 @@ class OmeZarrSource(ImageSource):
         else:
             self.name = self.metadata.get('name', '')
             self.data = image_node.data
+            self.heights = [data.shape[y_index] for data in self.data]
+            self.widths = [data.shape[x_index] for data in self.data]
+        if not self.name:
+            self.name = get_filetitle(self.uri)
+        self.name = str(self.name).rstrip('.ome')
         self.shape = image_node.data[0].shape
         self.dtype = image_node.data[0].dtype
 
@@ -83,6 +90,25 @@ class OmeZarrSource(ImageSource):
         else:
             _, nodes = self._get_reader(self.paths[well_id][field_id])
             return nodes[0].data[level]
+
+    def get_data_as_generator(self, dim_order, **kwargs):
+        def data_generator(scale=1):
+            level, rescale = get_level_from_scale(self.scales, scale)
+            level_data = self.data[level]
+            read_size = int(TILE_SIZE / rescale)
+            nz = self.shape[self.dim_order.index('z')] if 'z' in self.dim_order else 1
+            for t in range(len(self.get_time_points())):
+                for c in range(self.get_nchannels()):
+                    for z in range(nz):
+                        for y in range(0, self.heights[level], read_size):
+                            for x in range(0, self.widths[level], read_size):
+                                data = get_numpy_data(level_data, dim_order, t, c, z, y, x, read_size, read_size)
+                                if rescale != 1:
+                                    data = sk_transform.resize(data,
+                                                               (np.array(data.shape) * rescale).astype(int),
+                                                               preserve_range=True).astype(data.dtype)
+                                yield redimension_data(data, self.dim_order, dim_order)
+        return data_generator
 
     def get_image_window(self, window_scanner, well_id=None, field_id=None, data=None):
         if well_id is None and field_id is None:
