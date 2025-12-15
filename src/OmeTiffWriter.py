@@ -83,19 +83,20 @@ class OmeTiffWriter(OmeWriter):
         companion_uuid = create_uuid()
 
         wells = kwargs.get('wells', source.get_wells())
+        fields = list(map(str, source.get_fields()))
 
         total_size = 0
         image_uuids = []
         image_filenames = []
         for well_id in wells:
-            for field in source.get_fields():
+            for field_id in fields:
                 resolution, resolution_unit = create_resolution_metadata(source)
-                data = source.get_data(self.dim_order, well_id=well_id, field_id=field)
+                data = source.get_data(self.dim_order, well_id=well_id, field_id=field_id)
 
                 filename = f'{filetitle}'
                 filename += f'_{pad_leading_zero(well_id)}'
-                if field is not None:
-                    filename += f'_{pad_leading_zero(field)}'
+                if field_id is not None:
+                    filename += f'_{pad_leading_zero(field_id)}'
                 filename = os.path.join(filepath, filename + '.ome.tiff')
                 xml_metadata, image_uuid = create_binaryonly_metadata(os.path.basename(companion_filename), companion_uuid)
 
@@ -104,7 +105,7 @@ class OmeTiffWriter(OmeWriter):
                                                 tile_size=TILE_SIZE, compression=TIFF_COMPRESSION,
                                                 xml_metadata=xml_metadata,
                                                 pyramid_levels=PYRAMID_LEVELS, pyramid_downscale=PYRAMID_DOWNSCALE,
-                                                well_id=well_id, field_id=field, **kwargs)
+                                                well_id=well_id, field_id=field_id, **kwargs)
 
                 image_uuids.append(image_uuid)
                 image_filenames.append(os.path.basename(filename))

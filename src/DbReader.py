@@ -1,7 +1,7 @@
 import sqlite3
 
 
-class DBReader:
+class DbReader:
     """
     Reads and queries a SQLite database, returning results as dictionaries.
     """
@@ -14,7 +14,7 @@ class DBReader:
             db_file (str): Path to the SQLite database file.
         """
         self.conn = sqlite3.connect(db_file)
-        self.conn.row_factory = DBReader.dict_factory
+        self.conn.row_factory = DbReader.dict_factory
 
     @staticmethod
     def dict_factory(cursor, row):

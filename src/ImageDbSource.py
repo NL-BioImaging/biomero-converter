@@ -5,7 +5,7 @@
 import numpy as np
 
 from src.color_conversion import hexrgb_to_rgba
-from src.DbReader import DBReader
+from src.DbReader import DbReader
 from src.ImageSource import ImageSource
 from src.util import *
 
@@ -16,7 +16,7 @@ class ImageDbSource(ImageSource):
     """
     def __init__(self, uri, metadata={}):
         super().__init__(uri, metadata)
-        self.db = DBReader(self.uri)
+        self.db = DbReader(self.uri)
         self.data = None
         self.data_well_id = None
         self.dim_order = 'tczyx'
