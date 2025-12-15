@@ -179,13 +179,13 @@ class TiffSource(ImageSource):
     def get_scales(self):
         return self.scales
 
-    def get_data(self, dim_order, well_id=None, field_id=None, **kwargs):
+    def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
         if well_id is not None:
             index = self.image_refs[well_id][str(field_id)]
             tiff = TiffFile(self.image_filenames[index])
         else:
             tiff = self.tiff
-        data = tiff.asarray()
+        data = tiff.asarray(level=level)
         return redimension_data(data, self.dim_order, dim_order)
 
     def get_data_as_dask(self, dim_order, level=0, **kwargs):
