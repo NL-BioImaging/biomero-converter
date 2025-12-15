@@ -31,26 +31,26 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
         if wells is None:
             wells = source.get_wells()
 
-        columns = source.get_columns()
-        rows = source.get_rows()
+        nrows, row_type = get_row_col_len_type(source.get_rows())
+        ncols, col_type = get_row_col_len_type(source.get_columns())
 
         plate = Plate()
         plate.name = source.get_name()
-        plate.columns = len(columns)
-        plate.rows = len(rows)
-        plate.row_naming_convention = get_col_row_type(rows)
-        plate.column_naming_convention = get_col_row_type(columns)
+        plate.rows = nrows
+        plate.columns = ncols
+        plate.row_naming_convention = row_type
+        plate.column_naming_convention = col_type
 
         image_index = 0
         for well_id in wells:
             row, col = split_well_name(well_id)
-            col_index = columns.index(col)
-            row_index = rows.index(row)
-            well = Well(column=col_index, row=row_index)
-            well.id = f'Well:{col_index}:{row_index}'
+            row_index = get_row_col_index(row)
+            col_index = get_row_col_index(col)
+            well = Well(row=row_index, column=col_index)
+            well.id = f'Well:{row_index}:{col_index}'
             for field in source.get_fields():
                 sample = WellSample(index=image_index)
-                sample.id = f'WellSample:{col_index}:{row_index}:{field}'
+                sample.id = f'WellSample:{row_index}:{col_index}:{field}'
                 position = source.get_position_um(well_id)
                 if 'x' in position:
                     sample.position_x = position['x']
@@ -137,16 +137,26 @@ def create_binaryonly_metadata(metadata_filename, companion_uuid):
     return to_xml(ome), ome.uuid
 
 
-def get_col_row_type(labels):
+def get_row_col_len_type(labels):
     is_digits = [label.isdigit() for label in labels]
     if np.all(is_digits):
+        max_index = max(int(label) for label in labels)
         naming_convention = NamingConvention.NUMBER
     else:
+        max_index = max(ord(label.upper()) - ord('A') for label in labels)
         naming_convention = NamingConvention.LETTER
-    return naming_convention
+    return max_index, naming_convention
 
 
-def create_col_row_label(index, naming_convention):
+def get_row_col_index(label):
+    if label.isdigit():
+        index = int(label)
+    else:
+        index = ord(label.upper()) - ord('A')
+    return index
+
+
+def create_row_col_label(index, naming_convention):
     label = index + 1
     if naming_convention.lower() == NamingConvention.LETTER.name.lower():
         label = chr(ord('A') + index)

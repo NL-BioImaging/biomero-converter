@@ -6,7 +6,7 @@ from tifffile import TiffFile, imread, PHOTOMETRIC
 
 from src.ImageSource import ImageSource
 from src.color_conversion import int_to_rgba
-from src.ome_tiff_util import metadata_to_dict, create_col_row_label
+from src.ome_tiff_util import metadata_to_dict, create_row_col_label
 from src.parameters import TILE_SIZE
 from src.util import convert_to_um, ensure_list, redimension_data, get_filetitle
 
@@ -91,8 +91,8 @@ class TiffSource(ImageSource):
                 fields = []
                 image_refs = {}
                 for well in ensure_list(plate['Well']):
-                    row = create_col_row_label(well['Row'], plate['RowNamingConvention'])
-                    column = create_col_row_label(well['Column'], plate['ColumnNamingConvention'])
+                    row = create_row_col_label(well['Row'], plate['RowNamingConvention'])
+                    column = create_row_col_label(well['Column'], plate['ColumnNamingConvention'])
                     rows.add(row)
                     columns.add(column)
                     label = f'{row}{column}'
