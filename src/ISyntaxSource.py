@@ -186,14 +186,13 @@ class ISyntaxSource(ImageSource):
         return {'x': self.isyntax.offset_x, 'y': self.isyntax.offset_y}
 
     def get_channels(self):
-        def get_channels(self):
-            # Mirax is RGB, return NGFF-style channel metadata
-            return [
-                {"name": "Red", "color": [1, 0, 0, 1]},
-                {"name": "Green", "color": [0, 1, 0, 1]},
-                {"name": "Blue", "color": [0, 0, 1, 1]},
-                #{"name": "Alpha", "color": [1, 1, 1, 1]}
-            ]
+        # Mirax is RGB, return NGFF-style channel metadata
+        return [
+            {"name": "Red", "color": [1, 0, 0, 1]},
+            {"name": "Green", "color": [0, 1, 0, 1]},
+            {"name": "Blue", "color": [0, 0, 1, 1]},
+            #{"name": "Alpha", "color": [1, 1, 1, 1]}
+        ]
 
     def get_nchannels(self):
         return self.nchannels

@@ -90,7 +90,7 @@ class OmeTiffWriter(OmeWriter):
         for well_id in wells:
             for field in source.get_fields():
                 resolution, resolution_unit = create_resolution_metadata(source)
-                data = source.get_data(self.dim_order, well_id, field)
+                data = source.get_data(self.dim_order, well_id=well_id, field_id=field)
 
                 filename = f'{filetitle}'
                 filename += f'_{pad_leading_zero(well_id)}'
@@ -111,7 +111,9 @@ class OmeTiffWriter(OmeWriter):
                 output_paths.append(filename)
                 total_size += size
 
-        xml_metadata = create_metadata(source, companion_uuid, image_uuids, image_filenames, wells=wells)
+        xml_metadata = create_metadata(source,
+                                       uuid=companion_uuid, image_uuids=image_uuids, image_filenames=image_filenames,
+                                       wells=wells)
         with open(companion_filename, 'wb') as file:
             file.write(xml_metadata.encode())
 
@@ -201,10 +203,10 @@ class OmeTiffWriter(OmeWriter):
         for level in range(1 + pyramid_levels):
             max_size += data_size * scale ** 2
             scale /= pyramid_downscale
-        bigtiff = (max_size > 2 ** 32)
+        is_bigtiff = (max_size > 2 ** 32)
 
         window_scanner = WindowScanner()
-        with TiffWriter(filename, bigtiff=bigtiff, ome=is_ome) as writer:
+        with TiffWriter(filename, bigtiff=is_bigtiff, ome=is_ome) as writer:
             for level in range(pyramid_levels + 1):
                 if level == 0:
                     scale = 1

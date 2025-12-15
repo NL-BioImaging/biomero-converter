@@ -15,13 +15,6 @@ class ImageDbSource(ImageSource):
     Loads image and metadata from a database source for high-content screening.
     """
     def __init__(self, uri, metadata={}):
-        """
-        Initialize ImageDbSource.
-
-        Args:
-            uri (str): Path to the database file.
-            metadata (dict): Optional metadata dictionary.
-        """
         super().__init__(uri, metadata)
         self.db = DBReader(self.uri)
         self.data = None
@@ -29,12 +22,6 @@ class ImageDbSource(ImageSource):
         self.dim_order = 'tczyx'
 
     def init_metadata(self):
-        """
-        Initializes and loads metadata from the database.
-
-        Returns:
-            dict: Metadata dictionary.
-        """
         self._get_time_series_info()
         self._get_experiment_metadata()
         self._get_well_info()
@@ -43,12 +30,6 @@ class ImageDbSource(ImageSource):
         return self.metadata
 
     def get_shape(self):
-        """
-        Returns the shape of the image data.
-
-        Returns:
-            tuple: Shape of the image data.
-        """
         return self.shape
 
     def get_scales(self):
@@ -263,136 +244,52 @@ class ImageDbSource(ImageSource):
             raise ValueError(f'Invalid site: {site_id}')
 
     def is_screen(self):
-        """
-        Checks if the source is a screen (has wells).
-
-        Returns:
-            bool: True if wells exist.
-        """
         return len(self.metadata['wells']) > 0
 
-    def get_data(self, well_id=None, field_id=None, **kwargs):
-        """
-        Gets image data for a specific well and field.
-
-        Returns:
-            ndarray: Image data.
-        """
+    def get_data(self, dim_order, well_id=None, field_id=None, **kwargs):
         if well_id != self.data_well_id:
             self._assemble_image_data(self._read_well_info(well_id))
             self.data_well_id = well_id
-        return self._extract_site(field_id)
+        return redimension_data(self._extract_site(field_id), self.dim_order, dim_order)
 
     def get_image_window(self, window_scanner, well_id=None, field_id=None, data=None):
-        """
-        Get image value range window (for a well & field or from provided data).
-
-        Args:
-            window_scanner (WindowScanner): WindowScanner object to compute window.
-            well_id (str, optional): Well identifier
-            field_id (int, optional): Field identifier
-            data (ndarray, optional): Image data to compute window from.
-        """
         # For RGB(A) uint8 images don't change color value range
         if not self.dtype == np.uint8:
             window_scanner.process(data, self.dim_order)
         return window_scanner.get_window()
 
     def get_name(self):
-        """
-        Gets the experiment or file name.
-
-        Returns:
-            str: Name.
-        """
         name = self.metadata.get('Name')
         if not name:
             name = splitall(os.path.splitext(self.uri)[0])[-2]
         return name
 
     def get_rows(self):
-        """
-        Returns the list of row identifiers.
-
-        Returns:
-            list: Row identifiers.
-        """
         return self.metadata['well_info']['rows']
 
     def get_columns(self):
-        """
-        Returns the list of column identifiers.
-
-        Returns:
-            list: Column identifiers.
-        """
         return self.metadata['well_info']['columns']
 
     def get_wells(self):
-        """
-        Returns the list of well identifiers.
-
-        Returns:
-            list: Well identifiers.
-        """
         return list(self.metadata['wells'])
 
     def get_time_points(self):
-        """
-        Returns the list of time points.
-
-        Returns:
-            list: Time point IDs.
-        """
         return self.metadata['time_points']
 
     def get_fields(self):
-        """
-        Returns the list of field indices.
-
-        Returns:
-            list: Field indices.
-        """
         return self.metadata['well_info']['fields']
 
     def get_dim_order(self):
-        """
-        Returns the dimension order string.
-
-        Returns:
-            str: Dimension order.
-        """
         return self.dim_order
 
     def get_dtype(self):
-        """
-        Returns the numpy dtype of the image data.
-
-        Returns:
-            dtype: Numpy dtype.
-        """
         return self.dtype
 
     def get_pixel_size_um(self):
-        """
-        Returns the pixel size in micrometers.
-
-        Returns:
-            dict: Pixel size for x and y.
-        """
         pixel_size = self.metadata['well_info'].get('PixelSizeUm', 1)
         return {'x': pixel_size, 'y': pixel_size}
 
     def get_position_um(self, well_id=None):
-        """
-        Returns the position in micrometers for a well.
-
-        Args:
-            well_id (str): Well identifier.
-
-        Returns:
-            dict: Position in micrometers.
-        """
         well = self.metadata['wells'][well_id]
         well_info = self.metadata['well_info']
         x = well.get('CoordX', 0) * well_info['max_sizex_um']
@@ -400,12 +297,6 @@ class ImageDbSource(ImageSource):
         return {'x': x, 'y': y}
 
     def get_channels(self):
-        """
-        Returns channel metadata.
-
-        Returns:
-            list: List of channel dicts.
-        """
         channels = []
         for channel0 in self.metadata['channels']:
             channel = {}
@@ -417,27 +308,12 @@ class ImageDbSource(ImageSource):
         return channels
 
     def get_nchannels(self):
-        """
-        Returns the number of channels.
-
-        Returns:
-            int: Number of channels.
-        """
         return max(self.metadata['num_channels'], 1)
 
     def is_rgb(self):
-        """
-        Check if the source is a RGB(A) image.
-        """
         return False
 
     def get_acquisitions(self):
-        """
-        Returns acquisition metadata.
-
-        Returns:
-            list: List of acquisition dicts.
-        """
         acquisitions = []
         for index, acq in enumerate(self.metadata.get('acquisitions', [])):
             acquisitions.append({
@@ -450,21 +326,9 @@ class ImageDbSource(ImageSource):
         return acquisitions
 
     def get_total_data_size(self):
-        """
-        Returns the estimated total data size.
-
-        Returns:
-            int: Total data size in bytes.
-        """
         return self.metadata['max_data_size']
 
     def print_well_matrix(self):
-        """
-        Returns a string representation of the well matrix.
-
-        Returns:
-            str: Well matrix.
-        """
         s = ''
 
         well_info = self.metadata['well_info']
@@ -486,12 +350,6 @@ class ImageDbSource(ImageSource):
         return s
 
     def print_timepoint_well_matrix(self):
-        """
-        Returns a string representation of the timepoint-well matrix.
-
-        Returns:
-            str: Timepoint-well matrix.
-        """
         s = ''
 
         time_points = self.metadata['time_points']

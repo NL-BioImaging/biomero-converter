@@ -9,7 +9,6 @@ docker run --rm \
   -v /local/input_folder:/data/input \
   -v /local/output_folder:/data/output \
   biomero-converter:latest \
-  python main.py \
     --inputfile /data/input/input_file.tiff \
     --outputfolder /data/output \
     --outputformat omezarr2 \

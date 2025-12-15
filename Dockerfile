@@ -16,7 +16,7 @@ RUN pip install -r requirements.txt
 ENTRYPOINT ["python", "main.py"]
 
 # docker build -t biomero-converter .
-# docker build -t cellularimagingcf/biomero-converter:v0.0.1 .
+# docker build -t cellularimagingcf/biomero-converter:latest .
 
 # WSL Example usage:
 
