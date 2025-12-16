@@ -660,7 +660,7 @@ class IncucyteSource(ImageSource):
                 elif len(image_data.shape) == 3 and image_data.shape[0] == 1:
                     data[t, c, 0, :, :] = image_data[0]
                 else:
-                    # Take first z-plane if 3D
+                    # Take first z-plane if 3D TODO handle 3D if needed, but unlikely for Incucyte
                     data[t, c, 0, :, :] = (
                         image_data[..., 0] if len(image_data.shape) > 2 else image_data
                     )
