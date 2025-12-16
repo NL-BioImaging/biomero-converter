@@ -6,3 +6,4 @@ dask[array]
 pyisyntax
 openslide-python
 openslide-bin
+chardet

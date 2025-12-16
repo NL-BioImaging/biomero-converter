@@ -1,3 +1,4 @@
+import chardet
 from datetime import datetime
 import numpy as np
 from pathlib import Path
@@ -113,7 +114,9 @@ class IncucyteSource(ImageSource):
                 if self.DIAG_LOG_FILENAME not in zip_ref.namelist():
                     return None
 
-                content = zip_ref.read(self.DIAG_LOG_FILENAME).decode("ansi")
+                raw = zip_ref.read(self.DIAG_LOG_FILENAME)
+                detection = chardet.detect(raw)
+                content = raw.decode(detection['encoding'], errors='ignore')
 
                 # Parse imaging specifications
                 pixel_sizes = {}
