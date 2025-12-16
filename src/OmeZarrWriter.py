@@ -1,11 +1,11 @@
 # https://ome-zarr.readthedocs.io/en/stable/python.html#writing-hcs-datasets-to-ome-ngff
 
 
-import ngff_zarr
-from ngff_zarr import Multiscales
-from ngff_zarr.v05.zarr_metadata import Axis, Transform, Metadata
-from ome_zarr_models.v05 import Image
-from ome_zarr_models.v05.multiscales import Dataset
+#import ngff_zarr
+#from ngff_zarr import Multiscales
+#from ngff_zarr.v05.zarr_metadata import Axis, Transform, Metadata
+#from ome_zarr_models.v05 import Image
+#from ome_zarr_models.v05.multiscales import Dataset
 
 from ome_zarr import dask_utils
 #from ome_zarr.io import parse_url
