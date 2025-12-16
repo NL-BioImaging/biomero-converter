@@ -89,8 +89,10 @@ class OmeZarrWriter(OmeWriter):
         zarr_location = filepath
         zarr_root = zarr.open_group(zarr_location, mode='w', zarr_version=self.zarr_version)
 
-        row_names = source.get_rows()
-        col_names = source.get_columns()
+        row_names = [chr(ord('A') + index) for index
+                     in range(max([ord(row_name.upper()) - ord('A') for row_name in source.get_rows()]) + 1)]
+        col_names = [str(index) for index
+                     in range(1, max([int(col) for col in source.get_columns()]) + 1)]
         wells = kwargs.get('wells', source.get_wells())
         well_paths = ['/'.join(split_well_name(well)) for well in wells]
         fields = list(map(str, source.get_fields()))
