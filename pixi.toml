@@ -15,3 +15,4 @@ jupyterlab = ">=4.4.6,<5"
 ome-zarr = ">=0.12.2, <0.13"
 tifffile = { version = ">=2025.9.30, <2026", extras = ["all"] }
 ome-types = ">=0.6.1, <0.7"
+chardet = ">=5.2.0, <6"

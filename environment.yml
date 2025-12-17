@@ -16,3 +16,4 @@ dependencies:
    - pyisyntax
    - openslide-python
    - openslide-bin
+   - chardet

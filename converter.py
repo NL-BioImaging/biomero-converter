@@ -73,7 +73,7 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
         if 'plate_id' not in kwargs or kwargs['plate_id'] is None:
             plate_list = '", "'.join(available_plates)
             logging.info(f'Processing {len(available_plates)} '
-                         f'plate(s): {plate_list}')
+                         f'plate(s): "{plate_list}"')
             results = []
             for plate_id in available_plates:
                 logging.info(f'Processing plate {plate_id}')
