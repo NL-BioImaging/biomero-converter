@@ -139,12 +139,13 @@ def create_binaryonly_metadata(metadata_filename, companion_uuid):
 
 def get_row_col_len_type(labels):
     max_index = max(get_row_col_index(label) for label in labels)
+    nlen = max_index + 1
     is_digits = [label.isdigit() for label in labels]
     if np.all(is_digits):
         naming_convention = NamingConvention.NUMBER
     else:
         naming_convention = NamingConvention.LETTER
-    return max_index, naming_convention
+    return nlen, naming_convention
 
 
 def get_row_col_index(label):
