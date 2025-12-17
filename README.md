@@ -13,6 +13,7 @@ This tool can be used as biomero plugin, Docker container or stand-alone
   - CellReporterXpress experiment
   - image db files
   - isyntax files
+  - Incucyte archives (.icharch)
 - Export to Ome formats
   - Ome-tiff
   - Ome-zarr
