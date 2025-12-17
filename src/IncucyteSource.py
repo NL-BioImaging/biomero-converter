@@ -192,13 +192,13 @@ class IncucyteSource(ImageSource):
         self.wells = list(self.metadata.get("wells", {}).keys())
         self.rows = self.metadata.get("well_info", {}).get("rows", [])
         self.columns = self.metadata.get("well_info", {}).get("columns", [])
-        self.scales = [1]
 
         nt = len(self.metadata["time_points"])
         nc = self.metadata["num_channels"]
-        ny, nx = self.sample_image_info["height"], self.sample_image_info["width"]
         nz = 1  # Incucyte is typically 2D
-        self.shape = nt, nc, nz, ny, nx
+        self.shape = nt, nc, nz, self.height, self.width
+        self.shapes = [(nt, nc, nz, height, width) for height, width in zip(self.heights, self.widths)]
+        self.scales = [np.mean([width / self.width, height / self.height]) for width, height in zip(self.widths, self.heights)]
 
         return self.metadata
 
@@ -471,6 +471,12 @@ class IncucyteSource(ImageSource):
                         height = page.sizes["height"]
                         dtype = page.dtype
                         bits = dtype.itemsize * 8
+                        if tif.series:
+                            series_page = tif.series[0]
+                            if hasattr(series_page, 'levels'):
+                                level_pages = series_page.levels
+                                widths = [level_page.sizes["width"] for level_page in level_pages]
+                                heights = [level_page.sizes["height"] for level_page in level_pages]
 
                     # Use calibrated pixel size from Diag.log if available
                     if pixel_size_from_diag:
@@ -493,6 +499,10 @@ class IncucyteSource(ImageSource):
                         "pixel_x": pixel_x,
                         "pixel_y": pixel_y,
                     }
+                    self.width = width
+                    self.height = height
+                    self.widths = widths
+                    self.heights = heights
                     
                     # Add optional metadata if available
                     if magnification:

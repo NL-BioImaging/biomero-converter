@@ -123,23 +123,6 @@ class ISyntaxSource(ImageSource):
                     yield redimension_data(data, self.dim_order, dim_order)
         return data_generator
 
-    def get_image_window(self,window_scanner, well_id=None, field_id=None, data=None):
-        # For RGB(A) uint8 images don't change color value range
-        if not (self.is_rgb_channels and self.dtype == np.uint8):
-            if data is None:
-                level = None
-                dims = None
-                for level0, dims0 in enumerate(self.isyntax.level_dimensions):
-                    if np.prod(dims0) < 1e7:
-                        level = level0
-                        dims = dims0
-                        break
-                if level is not None:
-                    data = self.isyntax.read_region(0, 0, dims[0], dims[1], level=level)
-            if data is not None:
-                window_scanner.process(data, self.source_dim_order)
-        return window_scanner.get_window()
-
     def get_name(self):
         """
         Gets the file title.

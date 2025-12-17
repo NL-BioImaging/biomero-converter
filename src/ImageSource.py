@@ -1,4 +1,5 @@
 from abc import ABC
+import numpy as np
 
 
 class ImageSource(ABC):
@@ -43,6 +44,15 @@ class ImageSource(ABC):
             NotImplementedError: Must be implemented by subclasses.
         """
         raise NotImplementedError("The 'get_shape' method must be implemented by subclasses.")
+
+    def get_shapes(self):
+        """
+        Get a list of shapes corresponding to the image data levels.
+
+        Raises:
+            NotImplementedError: Must be implemented by subclasses.
+        """
+        raise NotImplementedError("The 'get_shapes' method must be implemented by subclasses.")
 
     def get_scales(self):
         """
@@ -99,6 +109,15 @@ class ImageSource(ABC):
             field_id (int, optional): Field identifier
             data (ndarray, optional): Image data to compute window from.
         """
+        # For RGB(A) uint8 images don't change color value range
+        if self.get_dtype() != np.uint8:
+            if data is None:
+                for level, shape in enumerate(self.get_shapes()):
+                    if np.prod(shape) * self.get_dtype().itemsize < 1e8:  # less than 100 MB
+                        data = self.get_data(self.get_dim_order(), well_id=well_id, field_id=field_id, level=level)
+                        break
+            if data is not None:
+                window_scanner.process(data, self.get_dim_order())
         return window_scanner.get_window()
 
     def get_name(self):

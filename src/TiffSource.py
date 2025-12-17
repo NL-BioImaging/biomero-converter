@@ -176,6 +176,9 @@ class TiffSource(ImageSource):
     def get_shape(self):
         return self.shape
 
+    def get_shapes(self):
+        return self.shapes
+
     def get_scales(self):
         return self.scales
 
@@ -195,36 +198,6 @@ class TiffSource(ImageSource):
         if data.chunksize == data.shape:
             data = data.rechunk(TILE_SIZE)
         return redimension_data(data, self.dim_order, dim_order)
-
-    def get_image_window(self, window_scanner, well_id=None, field_id=None, data=None):
-        """
-        Get image value range window (for a well & field or from provided data).
-
-        Args:
-            window_scanner (WindowScanner): WindowScanner object to compute window.
-            well_id (str, optional): Well identifier
-            field_id (int, optional): Field identifier
-            data (ndarray, optional): Image data to compute window from.
-        """
-        # For RGB(A) uint8 images don't change color value range
-        if not (self.is_photometric_rgb and self.dtype == np.uint8):
-            if data is None:
-                if self.tiff.series:
-                    page = self.tiff.series[0]
-                else:
-                    page = self.tiff.pages.first
-                if hasattr(page, 'levels'):
-                    small_page = None
-                    for level_page in page.levels:
-                        if level_page.nbytes < 1e8:  # less than 100 MB
-                            small_page = level_page
-                            break
-                    if small_page:
-                        data = small_page.asarray()
-            if data is not None:
-                window_scanner.process(data, self.source_dim_order)
-        return window_scanner.get_window()
-
 
     def get_name(self):
         """

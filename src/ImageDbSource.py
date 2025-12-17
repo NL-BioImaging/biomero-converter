@@ -252,12 +252,6 @@ class ImageDbSource(ImageSource):
             self.data_well_id = well_id
         return redimension_data(self._extract_site(field_id), self.dim_order, dim_order)
 
-    def get_image_window(self, window_scanner, well_id=None, field_id=None, data=None):
-        # For RGB(A) uint8 images don't change color value range
-        if not self.dtype == np.uint8:
-            window_scanner.process(data, self.dim_order)
-        return window_scanner.get_window()
-
     def get_name(self):
         name = self.metadata.get('Name')
         if not name:
