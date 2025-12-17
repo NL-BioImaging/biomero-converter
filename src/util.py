@@ -119,6 +119,21 @@ def strip_leading_zeros(well_name):
     return f'{row}{col}'
 
 
+def get_rows_cols_plate(nwells):
+    nrows_cols = {
+        6: (2, 3),
+        12: (3, 4),
+        24: (4, 6),
+        48: (6, 8),
+        96: (8, 12),
+        384: (16, 24)
+    }
+    nrows, ncols = nrows_cols[nwells]
+    rows = [chr(ord('A') + i) for i in range(nrows)]
+    cols = [str(i + 1) for i in range(ncols)]
+    return rows, cols
+
+
 def convert_dotnet_ticks_to_datetime(net_ticks):
     return datetime(1, 1, 1) + timedelta(microseconds=net_ticks // 10)
 

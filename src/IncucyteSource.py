@@ -1,4 +1,5 @@
 import chardet
+from collections import Counter
 from datetime import datetime
 import numpy as np
 from pathlib import Path
@@ -9,7 +10,7 @@ import zipfile
 from src.color_conversion import hexrgb_to_rgba
 from src.ImageSource import ImageSource
 from src.TiffSource import TiffSource
-from src.util import strip_leading_zeros, redimension_data
+from src.util import strip_leading_zeros, redimension_data, split_well_name, get_rows_cols_plate
 
 
 class IncucyteSource(ImageSource):
@@ -42,16 +43,14 @@ class IncucyteSource(ImageSource):
                                      if only one exists.
         """
         super().__init__(uri, metadata)
+        self.plate_id = plate_id
         self.base_path = Path(self.uri)
         self.scan_data_path = self.base_path / "EssenFiles" / "ScanData"
         self._file_cache = {}
         self._file_caching = False
-        self._diag_metadata_cache = None  # Cache for Diag.log parsing
-        self._sample_image_info_cache = None  # Cache for sample image info
         # Default to True for filling missing images
         self.fill_missing_images = True
-        self.plate_id = plate_id
-    
+
     @staticmethod
     def get_available_plates(uri):
         """
@@ -97,6 +96,23 @@ class IncucyteSource(ImageSource):
         self._file_caching = file_caching
         if not file_caching:
             self._file_cache.clear()
+
+    def _find_and_parse_diag_log(self):
+        """
+        Find the first Diag.zip in the scan data and parse it.
+
+        Returns:
+            dict: Parsed diag metadata or None if not found
+        """
+        # Look for first Diag.zip in the scan data
+        diag_zip_files = list(self.scan_data_path.rglob(self.DIAG_ZIP_FILENAME))
+
+        if diag_zip_files:
+            results = self._parse_diag_log(diag_zip_files[0])
+        else:
+            results = None
+
+        return results
 
     def _parse_diag_log(self, diag_zip_path):
         """
@@ -144,40 +160,24 @@ class IncucyteSource(ImageSource):
                         'pixel_size_um': pixel_sizes.get(mag)
                     }
 
-                return {
-                    'pixel_sizes': pixel_sizes,
-                    'experiments': experiments
+                results = {
+                    'experiments': experiments,
                 }
+
+                nwell_raw = re.findall(r'(\d+)-well', content)
+                if nwell_raw:
+                    results['nwell_plate'] = int(Counter(nwell_raw).most_common(1)[0][0])
+
+                return results
         except Exception as e:
             print(f"Warning: Could not parse {self.DIAG_LOG_FILENAME} from {diag_zip_path}: {e}")
             return None
-
-    def _find_and_parse_diag_log(self):
-        """
-        Find the first Diag.zip in the scan data and parse it.
-        Caches the result to avoid repeated parsing.
-        
-        Returns:
-            dict: Parsed diag metadata or None if not found
-        """
-        # Return cached result if available
-        if self._diag_metadata_cache is not None:
-            return self._diag_metadata_cache
-        
-        # Look for first Diag.zip in the scan data
-        diag_zip_files = list(self.scan_data_path.rglob(self.DIAG_ZIP_FILENAME))
-        
-        if diag_zip_files:
-            self._diag_metadata_cache = self._parse_diag_log(diag_zip_files[0])
-        else:
-            self._diag_metadata_cache = {}  # Cache empty dict to avoid re-search
-        
-        return self._diag_metadata_cache if self._diag_metadata_cache else None
 
     def init_metadata(self):
         """Initialize all metadata from Incucyte structure"""
         self._scan_timepoints()  # Must be first to set plate_id
         self._get_experiment_metadata()  # Uses plate_id in name
+        self._get_sample_image_info()
         self._get_well_info()
         self._get_channel_info()
         self._get_image_info()
@@ -196,8 +196,7 @@ class IncucyteSource(ImageSource):
 
         nt = len(self.metadata["time_points"])
         nc = self.metadata["num_channels"]
-        sample_info = self._get_sample_image_info()
-        ny, nx = sample_info["height"], sample_info["width"]
+        ny, nx = self.sample_image_info["height"], self.sample_image_info["width"]
         nz = 1  # Incucyte is typically 2D
         self.shape = nt, nc, nz, ny, nx
 
@@ -390,29 +389,32 @@ class IncucyteSource(ImageSource):
         cols = set()
         wells_dict = {}
 
-        for well_name in wells_raw:
-            row_letter = well_name[0]
-            col_number = int(well_name[1:])
+        for well_index, well_name in enumerate(wells_raw):
+            row, col = split_well_name(well_name, col_as_int=True)
 
-            rows.add(row_letter)
-            cols.add(col_number)
+            rows.add(row)
+            cols.add(col)
 
             wells_dict[well_name] = {
                 "Name": well_name,
-                "row": ord(row_letter) - ord("A"),
-                "column": col_number - 1,
-                "ZoneIndex": len(wells_dict),
+                "row": ord(row) - ord("A"),
+                "column": col - 1,
+                "ZoneIndex": well_index,
             }
 
-        rows = sorted(rows)
-        cols = sorted(cols)
+        nwell_plate = self.sample_image_info.get("nwell_plate")
+        if nwell_plate:
+            rows, cols = get_rows_cols_plate(nwell_plate)
+        else:
+            rows = sorted(rows)
+            cols = [str(col) for col in sorted(cols)]
 
         # Get image dimensions from first available image
-        sample_image_info = self._get_sample_image_info()
+        sample_image_info = self.sample_image_info
 
         well_info = {
             "rows": rows,
-            "columns": [str(c) for c in cols],
+            "columns": cols,
             "SensorSizeXPixels": sample_image_info["width"],
             "SensorSizeYPixels": sample_image_info["height"],
             "SitesX": 1,
@@ -435,20 +437,15 @@ class IncucyteSource(ImageSource):
 
     def _get_sample_image_info(self):
         """Get image dimensions and bit depth from first available TIFF.
-        Attempts to get accurate pixel size from Diag.log if available.
-        Caches the result to avoid repeated parsing."""
-        
-        # Return cached result if available
-        if self._sample_image_info_cache is not None:
-            return self._sample_image_info_cache
-        
-        # Try to get calibrated pixel size from Diag.log
-        diag_metadata = None
+        Attempts to get accurate pixel size from Diag.log if available."""
+
         pixel_size_from_diag = None
         magnification = None
         exposure_time = None
+        nwell_plate = None
         
         if self.plate_id:
+            # Try to get calibrated pixel size from Diag.log
             diag_metadata = self._find_and_parse_diag_log()
             if diag_metadata and 'experiments' in diag_metadata:
                 exp_info = diag_metadata['experiments'].get(self.plate_id)
@@ -462,6 +459,7 @@ class IncucyteSource(ImageSource):
                         print(f"Found calibrated pixel size from {self.DIAG_LOG_FILENAME}: "
                               f"{pixel_size_from_diag} µm/pixel "
                               f"(Magnification: {magnification})")
+                nwell_plate = diag_metadata.get('nwell_plate')
         
         for timepoint in self.metadata["timepoints"]:
             for tiff_file in timepoint["path"].glob("*.tif"):
@@ -487,7 +485,7 @@ class IncucyteSource(ImageSource):
                         pixel_x = pixel_size.get("x")
                         pixel_y = pixel_size.get("y")
 
-                    result = {
+                    self.sample_image_info = {
                         "width": width,
                         "height": height,
                         "bits": bits,
@@ -498,14 +496,14 @@ class IncucyteSource(ImageSource):
                     
                     # Add optional metadata if available
                     if magnification:
-                        result["magnification"] = magnification
+                        self.sample_image_info["magnification"] = magnification
                     if exposure_time:
-                        result["exposure_times_ms"] = exposure_time
-                    
-                    # Cache the result
-                    self._sample_image_info_cache = result
-                    return result
-                    
+                        self.sample_image_info["exposure_times_ms"] = exposure_time
+                    if nwell_plate:
+                        self.sample_image_info["nwell_plate"] = nwell_plate
+
+                    return
+
                 except Exception as e:
                     print(f"Could not read sample image {tiff_file}: {e}")
                     continue
@@ -548,8 +546,6 @@ class IncucyteSource(ImageSource):
 
     def _get_image_info(self):
         """Get image-related metadata"""
-        sample_info = self._get_sample_image_info()
-
         well_info = self.metadata["well_info"]
         max_data_size = (
             well_info["SensorSizeXPixels"]
@@ -558,13 +554,13 @@ class IncucyteSource(ImageSource):
             * well_info["num_sites"]
             * self.metadata["num_channels"]
             * len(self.metadata["time_points"])
-            * (sample_info["bits"] // 8)
+            * (self.sample_image_info["bits"] // 8)
         )
 
         self.metadata.update(
             {
-                "bits_per_pixel": sample_info["bits"],
-                "dtype": sample_info["dtype"],
+                "bits_per_pixel": self.sample_image_info["bits"],
+                "dtype": self.sample_image_info["dtype"],
                 "max_data_size": max_data_size,
             }
         )
@@ -617,8 +613,8 @@ class IncucyteSource(ImageSource):
 
         if data is None and self.fill_missing_images:
             # Create a black image with the same dimensions as other images
-            sample_info = self._get_sample_image_info()
-            data = np.zeros((sample_info["height"], sample_info["width"]), dtype=sample_info["dtype"])
+            data = np.zeros((self.sample_image_info["height"], self.sample_image_info["width"]),
+                            dtype=self.sample_image_info["dtype"])
             print(message)
 
         if self._file_caching:
@@ -647,23 +643,18 @@ class IncucyteSource(ImageSource):
         # Build 5D array: (t, c, z, y, x)
         nt = len(self.metadata["time_points"])
         nc = self.metadata["num_channels"]
-        sample_info = self._get_sample_image_info()
 
-        data = np.zeros(self.shape, dtype=sample_info["dtype"])
+        data = np.zeros(self.shape, dtype=self.sample_image_info["dtype"])
 
         for t in range(nt):
             for c in range(nc):
                 image_data = self._load_image_data(well_id, field_id, c, t, level=level)
                 # Handle different image shapes
-                if len(image_data.shape) == 2:
-                    data[t, c, 0, :, :] = image_data
-                elif len(image_data.shape) == 3 and image_data.shape[0] == 1:
-                    data[t, c, 0, :, :] = image_data[0]
+                if image_data.ndim > 2:
+                    # assume data [z, y, x] - TODO: for 3D support _load_image_data() needs to handle z properly
+                    data[t, c, :, :, :] = image_data
                 else:
-                    # Take first z-plane if 3D TODO handle 3D if needed, but unlikely for Incucyte
-                    data[t, c, 0, :, :] = (
-                        image_data[..., 0] if len(image_data.shape) > 2 else image_data
-                    )
+                    data[t, c, 0, :, :] = image_data
 
         return redimension_data(data, self.dim_order, dim_order)
 
