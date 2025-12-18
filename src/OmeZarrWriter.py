@@ -113,7 +113,7 @@ class OmeZarrWriter(OmeWriter):
                 image_group = well_group.require_group(field_id)
                 data = source.get_data(self.dim_order, well_id=well_id, field_id=field_id)
                 window_scanner = WindowScanner()
-                window = source.get_image_window(window_scanner, data=data)
+                window = source.get_image_window(window_scanner, well_id=well_id, field_id=field_id, data=data)
                 size = self._write_data(image_group, data, source, window, position=position)
                 total_size += size
 

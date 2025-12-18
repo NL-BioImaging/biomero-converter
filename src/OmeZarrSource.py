@@ -64,15 +64,18 @@ class OmeZarrSource(ImageSource):
             self.fields = list(range(self.plate.get('field_count', 0)))
             self.paths = {well_id: {field: f'{well_path}/{field}' for field in self.fields} for well_id, well_path in self.wells.items()}
             self.acquisitions = self.plate.get('acquisitions', [])
+            self.data = None    # data will be read per plate well
         else:
             self.name = self.metadata.get('name', '')
             self.data = image_node.data
-            self.heights = [data.shape[y_index] for data in self.data]
-            self.widths = [data.shape[x_index] for data in self.data]
         if not self.name:
             self.name = get_filetitle(self.uri)
         self.name = str(self.name).rstrip('.ome')
-        self.shape = image_node.data[0].shape
+
+        self.shapes = [data.shape for data in image_node.data]
+        self.shape = self.shapes[0]
+        self.heights = [shape[y_index] for shape in self.shapes]
+        self.widths = [shape[x_index] for shape in self.shapes]
         self.dtype = image_node.data[0].dtype
 
     def is_screen(self):
@@ -81,10 +84,13 @@ class OmeZarrSource(ImageSource):
     def get_shape(self):
         return self.shape
 
+    def get_shapes(self):
+        return self.shapes
+
     def get_scales(self):
         return self.scales
 
-    def get_data(self, well_id=None, field_id=None, level=0, **kwargs):
+    def get_data(self, level=0, well_id=None, field_id=None, **kwargs):
         if well_id is None and field_id is None:
             return self.data[level]
         else:

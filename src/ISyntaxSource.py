@@ -80,6 +80,9 @@ class ISyntaxSource(ImageSource):
     def get_shape(self):
         return self.shape
 
+    def get_shapes(self):
+        return self.shapes
+
     def get_scales(self):
         return self.scales
 

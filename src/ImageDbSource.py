@@ -19,6 +19,7 @@ class ImageDbSource(ImageSource):
         self.db = DbReader(self.uri)
         self.data = None
         self.data_well_id = None
+        self.data_level = None
         self.dim_order = 'tczyx'
 
     def init_metadata(self):
@@ -32,6 +33,9 @@ class ImageDbSource(ImageSource):
     def get_shape(self):
         return self.shape
 
+    def get_shapes(self):
+        return self.shapes
+
     def get_scales(self):
         return self.scales
 
@@ -40,14 +44,14 @@ class ImageDbSource(ImageSource):
         Loads time series and image file info into metadata.
         """
         time_series_ids = sorted(self.db.fetch_all('SELECT DISTINCT TimeSeriesElementId FROM SourceImageBase', return_dicts=False))
-        self.metadata['time_points'] = time_series_ids
+        self.time_points = time_series_ids
 
         level_ids = sorted(self.db.fetch_all('SELECT DISTINCT level FROM SourceImageBase', return_dicts=False))
-        self.metadata['levels'] = level_ids
+        self.levels = level_ids
 
         image_files = {time_series_id: os.path.join(os.path.dirname(self.uri), f'images-{time_series_id}.db')
                        for time_series_id in time_series_ids}
-        self.metadata['image_files'] = image_files
+        self.image_files = image_files
 
     def _get_experiment_metadata(self):
         """
@@ -61,7 +65,7 @@ class ImageDbSource(ImageSource):
         for acquisition in acquisitions:
             acquisition['DateCreated'] = convert_dotnet_ticks_to_datetime(acquisition['DateCreated'])
             acquisition['DateModified'] = convert_dotnet_ticks_to_datetime(acquisition['DateModified'])
-        self.metadata['acquisitions'] = acquisitions
+        self.acquisitions = acquisitions
 
     def _get_well_info(self):
         """
@@ -78,8 +82,8 @@ class ImageDbSource(ImageSource):
             FROM ImagechannelExp
             ORDER BY ChannelNumber
         ''')
-        self.metadata['channels'] = channel_infos
-        self.metadata['num_channels'] = len(channel_infos)
+        self.channels = channel_infos
+        self.nchannels = len(channel_infos)
 
         wells = self.db.fetch_all('SELECT DISTINCT Name FROM Well')
         zone_names = [well['Name'] for well in wells]
@@ -89,26 +93,18 @@ class ImageDbSource(ImageSource):
             row, col = split_well_name(zone_name)
             rows.add(row)
             cols.add(col)
-        well_info['rows'] = sorted(list(rows))
-        well_info['columns'] = sorted(list(cols), key=lambda x: int(x))
-        num_sites = well_info['SitesX'] * well_info['SitesY']
-        well_info['num_sites'] = num_sites
-        well_info['fields'] = list(range(num_sites))
+        self.rows = sorted(list(rows))
+        self.columns = sorted(list(cols), key=lambda x: int(x))
+        nfields = well_info['SitesX'] * well_info['SitesY'] * well_info.get('SitesZ', 1)
+        self.fields = list(range(nfields))
+        self.well_info = well_info
+        self.metadata['well_info'] = well_info
 
         image_wells = self.db.fetch_all('SELECT Name, ZoneIndex, CoordX, CoordY FROM Well WHERE HasImages = 1')
-        self.metadata['wells'] = dict(sorted({well['Name']: well for well in image_wells}.items(),
+        self.wells = dict(sorted({well['Name']: well for well in image_wells}.items(),
                                              key=lambda x: split_well_name(x[0], col_as_int=True)))
-
-        xmax, ymax = 0, 0
-        for well_id in self.metadata['wells']:
-            well_data = self._read_well_info(well_id)
-            xmax = max(xmax, np.max([info['CoordX'] + info['SizeX'] for info in well_data]))
-            ymax = max(ymax, np.max([info['CoordY'] + info['SizeY'] for info in well_data]))
-        pixel_size = well_info.get('PixelSizeUm', 1)
-        well_info['max_sizex_um'] = xmax * pixel_size
-        well_info['max_sizey_um'] = ymax * pixel_size
-
-        self.metadata['well_info'] = well_info
+        self.metadata['wells'] = self.wells
+        self.pixel_size = well_info.get('PixelSizeUm', 1)
 
     def _get_image_info(self):
         """
@@ -120,17 +116,32 @@ class ImageDbSource(ImageSource):
         if bits_per_pixel == 24:
             bits_per_pixel = 32
         self.dtype = np.dtype(f'uint{bits_per_pixel}')
-        self.scales = [1]
 
     def _get_sizes(self):
         """
         Calculates and stores image shape and estimated data size.
         """
-        well_info = self.metadata['well_info']
-        nbytes = self.dtype.itemsize
-        self.shape = len(self.metadata['time_points']), self.metadata['num_channels'], 1, well_info['SensorSizeYPixels'], well_info['SensorSizeXPixels']
-        max_data_size = np.prod(self.shape) * nbytes * len(self.metadata['wells']) * well_info['num_sites']
-        self.metadata['max_data_size'] = max_data_size
+        shapes = []
+        scales = []
+        widths = []
+        heights = []
+        for level in self.levels:
+            level_info = self.db.fetch_all(
+                'SELECT MAX(CoordX + SizeX) as width, MAX(CoordY + SizeY) as height FROM SourceImageBase WHERE level = ?',
+                [level])
+            width, height = level_info[0]['width'], level_info[0]['height']
+            widths.append(width)
+            heights.append(height)
+            shape = len(self.time_points), self.nchannels, 1, height, width
+            scale = np.mean([width / widths[0], height / heights[0]])
+            shapes.append(shape)
+            scales.append(scale)
+        self.widths = widths
+        self.heights = heights
+        self.shape = shapes[0]
+        self.shapes = shapes
+        self.scales = scales
+        self.max_data_size = np.prod(self.shape) * self.dtype.itemsize * len(self.wells) * len(self.fields)
 
     def _read_well_info(self, well_id, channel=None, time_point=None, level=0):
         """
@@ -146,7 +157,7 @@ class ImageDbSource(ImageSource):
             list: Well image info dictionaries.
         """
         well_id = strip_leading_zeros(well_id)
-        well_ids = self.metadata.get('wells', {})
+        well_ids = self.wells
 
         if well_id not in well_ids:
             raise ValueError(f'Invalid Well: {well_id}. Available values: {well_ids}')
@@ -157,7 +168,7 @@ class ImageDbSource(ImageSource):
             FROM SourceImageBase
             WHERE ZoneIndex = ? AND level = ?
             ORDER BY CoordX ASC, CoordY ASC
-        ''', (zone_index, level))
+        ''', [zone_index, level])
 
         if channel is not None:
              well_info = [info for info in well_info if info['ChannelId'] == channel]
@@ -179,11 +190,11 @@ class ImageDbSource(ImageSource):
         ymax = np.max([info['CoordY'] + info['SizeY'] for info in well_info])
         zmax = np.max([info.get('CoordZ', 0) + info.get('SizeZ', 1) for info in well_info])
         nc = len(set([info['ChannelId'] for info in well_info]))
-        nt = len(self.metadata['time_points'])
+        nt = len(set([info['TimeSeriesElementId'] for info in well_info]))
         data = np.zeros((nt, nc, zmax, ymax, xmax), dtype=self.dtype)
 
-        for timei, time_id in enumerate(self.metadata['time_points']):
-            image_file = self.metadata['image_files'][time_id]
+        for timei, time_id in enumerate(self.time_points):
+            image_file = self.image_files[time_id]
             with open(image_file, 'rb') as fid:
                 for info in well_info:
                     if info['TimeSeriesElementId'] == time_id:
@@ -206,11 +217,11 @@ class ImageDbSource(ImageSource):
         Returns:
             ndarray or list: Image data for the site(s).
         """
-        well_info = self.metadata['well_info']
+        well_info = self.well_info
         sitesx = well_info['SitesX']
         sitesy = well_info['SitesY']
         sitesz = well_info.get('SitesZ', 1)
-        num_sites = well_info['num_sites']
+        nfields = len(self.fields)
         sizex = well_info['SensorSizeXPixels']
         sizey = well_info['SensorSizeYPixels']
         sizez = well_info.get('SensorSizeZPixels', 1)
@@ -231,7 +242,7 @@ class ImageDbSource(ImageSource):
                         startz = zi * sizez
                         data.append(self.data[..., startz:startz + sizez, starty:starty + sizey, startx:startx + sizex])
             return data
-        elif 0 <= site_id < num_sites:
+        elif 0 <= site_id < nfields:
             # Return specific site
             xi = site_id % sitesx
             yi = (site_id // sitesx) % sitesy
@@ -244,12 +255,13 @@ class ImageDbSource(ImageSource):
             raise ValueError(f'Invalid site: {site_id}')
 
     def is_screen(self):
-        return len(self.metadata['wells']) > 0
+        return len(self.wells) > 0
 
-    def get_data(self, dim_order, well_id=None, field_id=None, **kwargs):
-        if well_id != self.data_well_id:
-            self._assemble_image_data(self._read_well_info(well_id))
+    def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
+        if well_id != self.data_well_id and level != self.data_level:
+            self._assemble_image_data(self._read_well_info(well_id, level=level))
             self.data_well_id = well_id
+            self.data_level = level
         return redimension_data(self._extract_site(field_id), self.dim_order, dim_order)
 
     def get_name(self):
@@ -259,19 +271,19 @@ class ImageDbSource(ImageSource):
         return name
 
     def get_rows(self):
-        return self.metadata['well_info']['rows']
+        return self.rows
 
     def get_columns(self):
-        return self.metadata['well_info']['columns']
+        return self.columns
 
     def get_wells(self):
-        return list(self.metadata['wells'])
+        return list(self.wells)
 
     def get_time_points(self):
-        return self.metadata['time_points']
+        return self.time_points
 
     def get_fields(self):
-        return self.metadata['well_info']['fields']
+        return self.fields
 
     def get_dim_order(self):
         return self.dim_order
@@ -280,19 +292,17 @@ class ImageDbSource(ImageSource):
         return self.dtype
 
     def get_pixel_size_um(self):
-        pixel_size = self.metadata['well_info'].get('PixelSizeUm', 1)
-        return {'x': pixel_size, 'y': pixel_size}
+        return {'x': self.pixel_size, 'y': self.pixel_size}
 
-    def get_position_um(self, well_id=None):
-        well = self.metadata['wells'][well_id]
-        well_info = self.metadata['well_info']
-        x = well.get('CoordX', 0) * well_info['max_sizex_um']
-        y = well.get('CoordY', 0) * well_info['max_sizey_um']
+    def get_position_um(self, well_id=None, level=0):
+        well = self.wells[well_id]
+        x = well.get('CoordX', 0) * self.widths[level] * self.pixel_size
+        y = well.get('CoordY', 0) * self.heights[level] * self.pixel_size
         return {'x': x, 'y': y}
 
     def get_channels(self):
         channels = []
-        for channel0 in self.metadata['channels']:
+        for channel0 in self.channels:
             channel = {}
             if 'Dye' in channel0 and channel0['Dye']:
                 channel['label'] = channel0['Dye']
@@ -302,14 +312,14 @@ class ImageDbSource(ImageSource):
         return channels
 
     def get_nchannels(self):
-        return max(self.metadata['num_channels'], 1)
+        return max(self.nchannels, 1)
 
     def is_rgb(self):
         return False
 
     def get_acquisitions(self):
         acquisitions = []
-        for index, acq in enumerate(self.metadata.get('acquisitions', [])):
+        for index, acq in enumerate(self.acquisitions):
             acquisitions.append({
                 'id': index,
                 'name': acq['Name'],
@@ -320,14 +330,14 @@ class ImageDbSource(ImageSource):
         return acquisitions
 
     def get_total_data_size(self):
-        return self.metadata['max_data_size']
+        return self.max_data_size
 
     def print_well_matrix(self):
         s = ''
 
-        well_info = self.metadata['well_info']
-        rows, cols = well_info['rows'], well_info['columns']
-        used_wells = [well for well in self.metadata['wells']]
+        well_info = self.well_info
+        rows, cols = self.rows, self.columns
+        used_wells = [well for well in self.wells]
 
         well_matrix = []
         for row_id in rows:
@@ -346,8 +356,8 @@ class ImageDbSource(ImageSource):
     def print_timepoint_well_matrix(self):
         s = ''
 
-        time_points = self.metadata['time_points']
-        wells = [well for well in self.metadata['wells']]
+        time_points = self.time_points
+        wells = [well for well in self.wells]
 
         well_matrix = []
         for timepoint in time_points:
@@ -355,7 +365,7 @@ class ImageDbSource(ImageSource):
                 SELECT DISTINCT Well.Name FROM SourceImageBase
                 JOIN Well ON SourceImageBase.ZoneIndex = Well.ZoneIndex
                 WHERE TimeSeriesElementId = ?
-            ''', (timepoint,), return_dicts=False)
+            ''', [timepoint], return_dicts=False)
 
             row = ['+' if well in wells_at_timepoint else ' ' for well in wells]
             well_matrix.append(row)

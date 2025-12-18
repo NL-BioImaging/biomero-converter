@@ -33,13 +33,13 @@ class DbReader:
             dct[column[0]] = row[index]
         return dct
 
-    def fetch_all(self, query, params=(), return_dicts=True):
+    def fetch_all(self, query, params=[], return_dicts=True):
         """
         Executes a query and fetches all results.
 
         Args:
             query (str): SQL query string.
-            params (tuple): Query parameters.
+            params (list): Query parameters.
             return_dicts (bool): If True, returns list of dicts; else, returns first column values.
 
         Returns:

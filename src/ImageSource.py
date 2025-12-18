@@ -63,12 +63,13 @@ class ImageSource(ABC):
         """
         raise NotImplementedError("The 'get_scales' method must be implemented by subclasses.")
 
-    def get_data(self, dim_order, well_id=None, field_id=None, **kwargs):
+    def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
         """
         Get image data for a well and field.
 
         Args:
             dim_order: Dimension order of data
+            level (int, optional): Image resolution level
             well_id (str, optional): Well identifier
             field_id (int, optional): Field identifier
             kwargs (optional): Format specific keyword arguments.
