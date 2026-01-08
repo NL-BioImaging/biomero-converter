@@ -335,7 +335,6 @@ class ImageDbSource(ImageSource):
     def print_well_matrix(self):
         s = ''
 
-        well_info = self.well_info
         rows, cols = self.rows, self.columns
         used_wells = [well for well in self.wells]
 
