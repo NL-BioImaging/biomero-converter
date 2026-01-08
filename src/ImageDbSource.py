@@ -125,11 +125,17 @@ class ImageDbSource(ImageSource):
         scales = []
         widths = []
         heights = []
+        width0, height0 = self.well_info['SensorSizeXPixels'], self.well_info['SensorSizeYPixels']
+        sizex0, sizey0 = None, None
+        # Iterate through levels to get level size factor (SourceImageBase contains field-composite images)
         for level in self.levels:
             level_info = self.db.fetch_all(
                 'SELECT MAX(CoordX + SizeX) as width, MAX(CoordY + SizeY) as height FROM SourceImageBase WHERE level = ?',
                 [level])
-            width, height = level_info[0]['width'], level_info[0]['height']
+            sizex, sizey = level_info[0]['width'], level_info[0]['height']
+            if level == 0:
+                sizex0, sizey0 = sizex, sizey
+            width, height = width0 * sizex // sizex0, height0 * sizey // sizey0
             widths.append(width)
             heights.append(height)
             shape = len(self.time_points), self.nchannels, 1, height, width
