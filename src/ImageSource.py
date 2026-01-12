@@ -1,6 +1,8 @@
 from abc import ABC
 import numpy as np
 
+from src.util import pad_leading_zero
+
 
 class ImageSource(ABC):
     """
@@ -259,3 +261,27 @@ class ImageSource(ABC):
         Close the image source.
         """
         pass
+
+
+    def print_well_matrix(self):
+        """
+        Print a matrix representation of the well plate.
+        """
+        s = ''
+
+        rows, cols = self.get_rows(), self.get_columns()
+        used_wells = [well for well in self.get_wells()]
+
+        well_matrix = []
+        for row_id in rows:
+            row = ''
+            for col_id in cols:
+                well_id = f'{row_id}{col_id}'
+                row += '+' if well_id in used_wells else ' '
+            well_matrix.append(row)
+
+        header = ' '.join([pad_leading_zero(col) for col in cols])
+        s += ' ' + header + '\n'
+        for idx, row in enumerate(well_matrix):
+            s += f'{rows[idx]} ' + '  '.join(row) + '\n'
+        return s

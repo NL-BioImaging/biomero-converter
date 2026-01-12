@@ -338,26 +338,6 @@ class ImageDbSource(ImageSource):
     def get_total_data_size(self):
         return self.max_data_size
 
-    def print_well_matrix(self):
-        s = ''
-
-        rows, cols = self.rows, self.columns
-        used_wells = [well for well in self.wells]
-
-        well_matrix = []
-        for row_id in rows:
-            row = ''
-            for col_id in cols:
-                well_id = f'{row_id}{col_id}'
-                row += '+' if well_id in used_wells else ' '
-            well_matrix.append(row)
-
-        header = ' '.join([pad_leading_zero(col) for col in cols])
-        s += ' ' + header + '\n'
-        for idx, row in enumerate(well_matrix):
-            s += f'{rows[idx]} ' + '  '.join(row) + '\n'
-        return s
-
     def print_timepoint_well_matrix(self):
         s = ''
 
