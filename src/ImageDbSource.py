@@ -264,7 +264,7 @@ class ImageDbSource(ImageSource):
         return len(self.wells) > 0
 
     def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
-        if well_id != self.data_well_id and level != self.data_level:
+        if not (well_id == self.data_well_id and level == self.data_level):
             self._assemble_image_data(self._read_well_info(well_id, level=level))
             self.data_well_id = well_id
             self.data_level = level
