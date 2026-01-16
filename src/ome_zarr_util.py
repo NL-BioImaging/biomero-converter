@@ -31,14 +31,14 @@ def create_axes_metadata(dimension_order):
     return axes
 
 
-def create_transformation_metadata(dimension_order, pixel_size_um, scale, translation_um=None):
+def create_transformation_metadata(dimension_order, pixel_size_um, factor, translation_um=None):
     """
     Create transformation metadata (scale and translation) for OME-Zarr.
 
     Args:
         dimension_order (str): String of dimension characters.
         pixel_size_um (dict): Pixel size in micrometers per dimension.
-        scale (float): Scaling factor.
+        factor (float): Scaling factor.
         translation_um (dict, optional): Translation in micrometers per dimension.
 
     Returns:
@@ -47,18 +47,19 @@ def create_transformation_metadata(dimension_order, pixel_size_um, scale, transl
     metadata = []
     pixel_size_scale = []
     translation_scale = []
-    for dimension in dimension_order:
-        pixel_size_scale1 = pixel_size_um.get(dimension, 1)
+    for dim in dimension_order:
+        pixel_size_scale1 = pixel_size_um.get(dim, 1)
+        if dim in 'xy':
+            pixel_size_scale1 *= factor
         if pixel_size_scale1 == 0:
             pixel_size_scale1 = 1
-        if dimension in ['x', 'y']:
-            pixel_size_scale1 /= scale
         pixel_size_scale.append(pixel_size_scale1)
 
         if translation_um is not None:
-            translation1 = translation_um.get(dimension, 0)
-            if dimension in ['x', 'y']:
-                translation1 *= scale
+            translation1 = translation_um.get(dim, 0)
+            # translation_pyramid = translation + (scale - 1) * pixel_size / 2
+            if dim in 'xy':
+                translation1 += (factor - 1) * pixel_size_um[dim] / 2
             translation_scale.append(translation1)
 
     metadata.append({'type': 'scale', 'scale': pixel_size_scale})

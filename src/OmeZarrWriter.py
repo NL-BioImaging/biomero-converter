@@ -232,11 +232,10 @@ class OmeZarrWriter(OmeWriter):
         if scaler is None:
             scaler = Scaler(downscale=PYRAMID_DOWNSCALE, max_layer=PYRAMID_LEVELS)
         pixel_size_scales = []
-        scale = 1
+        factor = 1
         for i in range(scaler.max_layer + 1):
             pixel_size_scales.append(
                 create_transformation_metadata(dim_order, source.get_pixel_size_um(),
-                                               scale, translation))
-            scale /= scaler.downscale
+                                               factor, translation))
+            factor *= scaler.downscale
         return pixel_size_scales, scaler
-
