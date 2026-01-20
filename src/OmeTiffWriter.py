@@ -59,7 +59,7 @@ class OmeTiffWriter(OmeWriter):
         if self.verbose:
             print(f'Total data written: {print_hbytes(total_size)}')
 
-        return {'output_path': filepath, 'total_size':total_size, 'window': window}
+        return {'output_path': filepath, 'window': window}
 
     def _write_screen(self, filename, source, **kwargs):
         """

@@ -71,7 +71,7 @@ class OmeZarrWriter(OmeWriter):
         if self.verbose:
             print(f'Total data written: {print_hbytes(total_size)}')
 
-        return {'output_path': filepath, 'total_size':total_size}
+        return {'output_path': filepath}
 
     def _write_screen(self, filepath, source, **kwargs):
         """
