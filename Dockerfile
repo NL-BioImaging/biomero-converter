@@ -13,7 +13,7 @@ COPY *.py .
 RUN pip install -r requirements.txt
 
 # Expose as a CLI
-ENTRYPOINT ["python", "main.py"]
+ENTRYPOINT ["python", "/app/main.py"]
 
 # docker build -t biomero-converter .
 # docker build -t cellularimagingcf/biomero-converter:latest .
@@ -23,4 +23,4 @@ ENTRYPOINT ["python", "main.py"]
 # sudo mkdir -p /mnt/data
 # sudo mount -t drvfs L:/Archief/active/cellular_imaging/OMERO_test/ValidateDocker /mnt/data
 
-# docker run --rm -v "D:\slides\DB:/data" biomero-converter --inputfile /data/TestData1/experiment.db --output_folder "/data" --show_progress
+# docker run --rm -v "D:\slides\DB:/data" biomero-converter --inputfile /data/TestData1/experiment.db --outputfolder "/data" --show_progress

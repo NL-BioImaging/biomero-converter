@@ -177,8 +177,6 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
         result['alt_path'] = alt_output_path
         message += f' and {alt_output_path}'
 
-    output['imported_from'] = input_filename
-
     if 'window' in output:
         window = np.array(output.pop('window')).tolist()
         output['channel_mins'] = window[0]
