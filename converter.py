@@ -31,7 +31,7 @@ def init_logging(log_filename, verbose=False):
 
 
 def convert(input_filename, output_folder, alt_output_folder=None,
-            output_format='omezarr2', show_progress=False, verbose=False, max_attempts=RETRY_ATTEMPTS, **kwargs):
+            output_format=None, show_progress=False, verbose=False, max_attempts=RETRY_ATTEMPTS, **kwargs):
     attempts = 0
     while True:
         try:
@@ -46,7 +46,7 @@ def convert(input_filename, output_folder, alt_output_folder=None,
 
 
 def _convert(input_filename, output_folder, alt_output_folder=None,
-             output_format='omezarr2', show_progress=False, verbose=False, **kwargs):
+             output_format=None, show_progress=False, verbose=False, **kwargs):
     """
     Convert an input file to OME format and write to output folder(s).
 
@@ -54,7 +54,7 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
         input_filename (str): Path to the input file.
         output_folder (str): Output folder path.
         alt_output_folder (str, optional): Alternative output folder path.
-        output_format (str): Output format string.
+        output_format (str, optional): Output format string.
         show_progress (bool): If True, print progress.
         verbose (bool): If True, enable verbose logging.
 
@@ -100,7 +100,7 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
 
 
 def _convert_single(input_filename, output_folder, alt_output_folder=None,
-                    output_format='omezarr2', show_progress=False,
+                    output_format=None, show_progress=False,
                     verbose=False, **kwargs):
     """
     Convert a single source to OME format.
@@ -109,7 +109,7 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
         input_filename (str): Path to the input file.
         output_folder (str): Output folder path.
         alt_output_folder (str, optional): Alternative output folder path.
-        output_format (str): Output format string.
+        output_format (str, optional): Output format string (default: omezarr2).
         show_progress (bool): If True, print progress.
         verbose (bool): If True, enable verbose logging.
         **kwargs: Source-specific parameters (e.g., plate_id for Incucyte).
@@ -117,6 +117,14 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
     Returns:
         str: JSON string with conversion result info array.
     """
+
+    if output_format is None:
+        # output format zarr default, unless input is zarr
+        input_ext = os.path.splitext(input_filename)[1].lower()
+        if 'zar' in input_ext:
+            output_format = 'ometiff'
+        else:
+            output_format = 'omezarr2'
 
     logging.info(f'Importing {input_filename}')
     source = create_source(input_filename, **kwargs)
