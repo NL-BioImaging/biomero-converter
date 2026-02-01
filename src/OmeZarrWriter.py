@@ -139,10 +139,12 @@ class OmeZarrWriter(OmeWriter):
 
         pyramid_data = []
         scale = 1
+        last_level = None
         for index in range(PYRAMID_LEVELS + 1):
             level, rescale = get_level_from_scale(source.get_scales(), scale)
-            if index == 0 or level > 0:
+            if level != last_level:
                 data = source.get_data_as_dask(self.dim_order, level=level)
+                last_level = level
             if index == 0:
                 shape0 = data.shape
             if rescale != 1:

@@ -20,7 +20,6 @@ class DicomSource(ImageSource):
         io_mode = 'rv' if os.path.isdir(uri) else 'r'
         self.im = iio.imopen(uri, plugin='DICOM', io_mode=io_mode)
         self.metadata = self.im.metadata()
-        self.data = None
 
     def init_metadata(self):
         self.shape = self.metadata.get('shape')
@@ -64,7 +63,7 @@ class DicomSource(ImageSource):
         return self.dim_order
 
     def get_channels(self):
-        return [{'label': f'Channel {index}'} for index in range(self.nchannels)]
+        return [{'label': f'Channel {index}', 'color': [1, 1, 1, 1]} for index in range(self.nchannels)]
 
     def get_nchannels(self):
         return self.nchannels
@@ -80,6 +79,5 @@ class DicomSource(ImageSource):
         return []
 
     def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
-        if self.data is None:
-            self.data = self.im.read()
-        return redimension_data(self.data, self.dim_order, dim_order)
+        data = self.im.read()
+        return redimension_data(data, self.dim_order, dim_order)
