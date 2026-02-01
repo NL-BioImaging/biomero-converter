@@ -1,5 +1,7 @@
 import numpy as np
 
+from src.util import ensure_list
+
 
 class WindowScanner:
     """
@@ -45,4 +47,4 @@ class WindowScanner:
         Returns:
             tuple: (min dict, max dict)
         """
-        return np.array(self.mins).tolist(), np.array(self.maxs).tolist()
+        return ensure_list(np.array(self.mins).tolist()), ensure_list(np.array(self.maxs).tolist())

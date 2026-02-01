@@ -43,6 +43,9 @@ def create_source(filename, **kwargs):
     elif input_ext == '.mrxs':
         from src.MiraxSource import MiraxSource
         source = MiraxSource(filename)
+    elif input_ext in ['.dcm', '.dicom'] or filename.lower().endswith('dicomdir'):
+        from src.DicomSource import DicomSource
+        source = DicomSource(filename)
     elif '.zar' in input_ext:
         from src.OmeZarrSource import OmeZarrSource
         source = OmeZarrSource(filename)

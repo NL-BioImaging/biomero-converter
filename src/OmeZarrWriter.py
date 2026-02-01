@@ -7,10 +7,12 @@
 #from ome_zarr_models.v05 import Image
 #from ome_zarr_models.v05.multiscales import Dataset
 
+import dask.array as da
 from ome_zarr import dask_utils
 #from ome_zarr.io import parse_url
 from ome_zarr.scale import Scaler
 from ome_zarr.writer import write_image, write_plate_metadata, write_well_metadata, write_multiscale
+from skimage.transform import resize
 import zarr
 
 from src.OmeWriter import OmeWriter
@@ -137,13 +139,19 @@ class OmeZarrWriter(OmeWriter):
 
         pyramid_data = []
         scale = 1
-        for _ in range(PYRAMID_LEVELS + 1):
+        for index in range(PYRAMID_LEVELS + 1):
             level, rescale = get_level_from_scale(source.get_scales(), scale)
-            data = source.get_data_as_dask(self.dim_order, level=level)
+            if index == 0 or level > 0:
+                data = source.get_data_as_dask(self.dim_order, level=level)
+            if index == 0:
+                shape0 = data.shape
             if rescale != 1:
-                shape = list(data.shape)
-                shape[-2:] = np.multiply(shape[-2:], rescale).astype(int)
-                data = dask_utils.resize(data, shape)
+                shape = list(shape0)
+                shape[-2:] = np.multiply(shape0[-2:], scale).astype(int)
+                if isinstance(data, da.Array):
+                    data = dask_utils.resize(data, shape)
+                else:
+                    data = resize(data, shape, preserve_range=True).astype(data.dtype)
             pyramid_data.append(data)
             scale /= PYRAMID_DOWNSCALE
 
