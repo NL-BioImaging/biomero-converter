@@ -112,10 +112,7 @@ class ImageDbSource(ImageSource):
         """
         bits_per_pixel = self.db.fetch_all('SELECT DISTINCT BitsPerPixel FROM SourceImageBase', return_dicts=False)[0]
         self.bits_per_pixel = bits_per_pixel
-        bits_per_pixel = int(np.ceil(bits_per_pixel / 8)) * 8
-        if bits_per_pixel == 24:
-            bits_per_pixel = 32
-        self.dtype = np.dtype(f'uint{bits_per_pixel}')
+        self.dtype = get_bits_type(bits_per_pixel)
 
     def _get_sizes(self):
         """
@@ -147,7 +144,6 @@ class ImageDbSource(ImageSource):
         self.shape = shapes[0]
         self.shapes = shapes
         self.scales = scales
-        self.max_data_size = np.prod(self.shape) * self.dtype.itemsize * len(self.wells) * len(self.fields)
 
     def _read_well_info(self, well_id, channel=None, time_point=None, level=0):
         """
@@ -335,8 +331,11 @@ class ImageDbSource(ImageSource):
             })
         return acquisitions
 
-    def get_total_data_size(self):
-        return self.max_data_size
+    def get_acquisition_datetime(self):
+        return self.metadata.get('DateCreated')
+
+    def get_significant_bits(self):
+        return self.bits_per_pixel
 
     def print_timepoint_well_matrix(self):
         s = ''

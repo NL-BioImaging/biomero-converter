@@ -136,9 +136,9 @@ class OmeTiffWriter(OmeWriter):
         """
         xml_metadata = create_metadata(source, image_filenames=[filename])
         resolution, resolution_unit = create_resolution_metadata(source)
-        data_generator = source.get_data_as_generator(self.dim_order)
+        data = source.get_data_as_generator(self.dim_order)
 
-        size, window = self._write_tiff(filename, source, data_generator,
+        size, window = self._write_tiff(filename, source, data,
                                         resolution=resolution, resolution_unit=resolution_unit,
                                         tile_size=TILE_SIZE, compression=TIFF_COMPRESSION,
                                         xml_metadata=xml_metadata,
@@ -177,9 +177,8 @@ class OmeTiffWriter(OmeWriter):
             shape = list(data.shape)
             dtype = data.dtype
 
-        source_dim_order = source.get_dim_order()
-        x_index = source_dim_order.index('x')
-        y_index = source_dim_order.index('y')
+        x_index = self.dim_order.index('x')
+        y_index = self.dim_order.index('y')
         if tile_size is not None:
             if isinstance(tile_size, int):
                 tile_size = [tile_size] * 2

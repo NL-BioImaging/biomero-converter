@@ -121,8 +121,14 @@ def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None
     if 'z' in pixel_size:
         pixels.physical_size_z = pixel_size['z']
         pixels.physical_size_z_unit = UnitsLength.MICROMETER
+    significant_bits = source.get_significant_bits()
+    if significant_bits:
+        pixels.significant_bits = significant_bits
 
     image = Image(name=image_name, pixels=pixels)
+    acquisition_datetime = source.get_acquisition_datetime()
+    if acquisition_datetime:
+        image.acquisition_date = acquisition_datetime
     index = pixels.id.split(':')[1]
     for channeli, channel in enumerate(pixels.channels):
         channel.id = f'Channel:{index}:{channeli}'

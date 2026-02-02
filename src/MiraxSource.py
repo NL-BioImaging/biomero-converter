@@ -2,6 +2,7 @@
 
 import dask
 import dask.array as da
+from datetime import datetime
 import numpy as np
 import openslide
 import skimage.transform as sk_transform
@@ -9,7 +10,7 @@ import skimage.transform as sk_transform
 from src.ImageSource import ImageSource
 from src.color_conversion import hexrgb_to_rgba
 from src.parameters import *
-from src.util import redimension_data, get_level_from_scale, get_filetitle
+from src.util import redimension_data, get_level_from_scale, get_filetitle, validate_filename, get_bits_type
 
 
 class MiraxSource(ImageSource):
@@ -34,13 +35,18 @@ class MiraxSource(ImageSource):
         self.shape = self.shapes[0]
         self.dim_order = 'yxc'
         self.is_rgb_channels = True
+
+        name = None
         nbits = 8
+        acquisition_datetime = None
         for key, value in self.metadata.items():
             if 'slide_name' in key:
-                self.name = value
+                name = validate_filename(value)
             if 'slide_bitdepth' in key:
                 nbits = int(value)
-        self.dtype = np.dtype(f'uint{nbits}')
+            if 'slide_creationdatetime' in key:
+                acquisition_datetime = datetime.strptime(value,'%d/%m/%Y %H:%M:%S')
+        self.dtype = get_bits_type(nbits)
 
         # OpenSlide stores microns per pixel in properties
         mpp_x = float(self.metadata.get(openslide.PROPERTY_NAME_MPP_X, 1))
@@ -49,7 +55,11 @@ class MiraxSource(ImageSource):
         background_float = hexrgb_to_rgba(self.metadata.get(openslide.PROPERTY_NAME_BACKGROUND_COLOR, '000000'))[:3]
         self.background = [np.uint8(value * 255) for value in background_float]
 
-        self.name = get_filetitle(self.uri)
+        if not name:
+            name = get_filetitle(self.uri)
+        self.name = name
+        self.acquisition_datetime = acquisition_datetime
+        self.bits_per_pixel = nbits
         return self.metadata
 
     def is_screen(self):
@@ -161,8 +171,11 @@ class MiraxSource(ImageSource):
     def get_acquisitions(self):
         return []
 
-    def get_total_data_size(self):
-        return np.prod(self.shape) * np.dtype(self.get_dtype()).itemsize
+    def get_acquisition_datetime(self):
+        return self.acquisition_datetime
+
+    def get_significant_bits(self):
+        return self.bits_per_pixel
 
     def close(self):
         self.slide.close()

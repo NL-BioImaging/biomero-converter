@@ -1,3 +1,4 @@
+from datetime import datetime
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
 import os.path
@@ -64,9 +65,11 @@ class OmeZarrSource(ImageSource):
             self.fields = list(range(self.plate.get('field_count', 0)))
             self.paths = {well_id: {field: f'{well_path}/{field}' for field in self.fields} for well_id, well_path in self.wells.items()}
             self.acquisitions = self.plate.get('acquisitions', [])
+            self.acquisition_datetime = datetime.fromisoformat(self.acquisitions[0]['date_created'])
             self.data = None    # data will be read per plate well
         else:
             self.name = self.metadata.get('name', '')
+            self.acquisition_datetime = datetime.fromtimestamp(os.path.getctime(self.uri))
             self.data = image_node.data
         if not self.name:
             self.name = get_filetitle(self.uri)
@@ -77,6 +80,8 @@ class OmeZarrSource(ImageSource):
         self.heights = [shape[y_index] for shape in self.shapes]
         self.widths = [shape[x_index] for shape in self.shapes]
         self.dtype = image_node.data[0].dtype
+        self.bits_per_pixel = self.dtype.itemsize * 8
+        return self.metadata
 
     def is_screen(self):
         return self.is_plate
@@ -178,8 +183,8 @@ class OmeZarrSource(ImageSource):
     def get_acquisitions(self):
         return self.acquisitions
 
-    def get_total_data_size(self):
-        total_size = np.prod(self.shape)
-        if self.is_plate:
-            total_size *= len(self.get_wells()) * len(self.get_fields())
-        return total_size
+    def get_acquisition_datetime(self):
+        return self.acquisition_datetime
+
+    def get_significant_bits(self):
+        return self.bits_per_pixel

@@ -100,7 +100,7 @@ def create_channel_metadata(dtype, channels, nchannels, is_rgb, window, ome_vers
         color = channel.get('color', channel.get('Color'))
         if color is not None:
             omezarr_channel['color'] = rgba_to_hexrgb(color)
-        if dtype.kind == 'f':
+        if np.dtype(dtype).kind == 'f':
             min, max = 0, 1
         else:
             info = np.iinfo(dtype)

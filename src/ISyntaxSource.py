@@ -1,9 +1,9 @@
 # Uses https://github.com/anibali/pyisyntax
 # which is based on https://github.com/amspath/libisyntax
 
-
 import dask
 import dask.array as da
+from datetime import datetime
 from isyntax import ISyntax
 import numpy as np
 import skimage.transform as sk_transform
@@ -11,7 +11,7 @@ from xml.etree import ElementTree
 
 from src.ImageSource import ImageSource
 from src.parameters import *
-from src.util import get_filetitle, xml_content_to_dict, redimension_data, get_level_from_scale
+from src.util import get_filetitle, xml_content_to_dict, redimension_data, get_level_from_scale, get_bits_type
 
 
 class ISyntaxSource(ImageSource):
@@ -48,7 +48,6 @@ class ISyntaxSource(ImageSource):
         if image is not None:
             self.image_type = image_type
             nbits = image.get('UFS_IMAGE_BLOCK_HEADER_TEMPLATES', [{}])[0].get('UFSImageBlockHeaderTemplate', {}).get('DICOM_BITS_STORED', 16)
-            nbits = int(np.ceil(nbits / 8)) * 8
         else:
             self.image_type = ''
             nbits = 16
@@ -68,10 +67,12 @@ class ISyntaxSource(ImageSource):
         self.shape = self.shapes[0]
         self.dim_order = 'yxc'
         self.is_rgb_channels = True
-        self.dtype = np.dtype(f'uint{nbits}')
+        self.dtype = get_bits_type(nbits)
         self.pixel_size = {'x': self.isyntax.mpp_x, 'y': self.isyntax.mpp_y}
+        self.bits_per_pixel = nbits
 
         self.name = get_filetitle(self.uri)
+        self.acquisition_datetime = datetime.strptime(str(self.metadata.get('DICOM_ACQUISITION_DATETIME')),'%Y%m%d%H%M%S.%f')
         return self.metadata
 
     def is_screen(self):
@@ -127,48 +128,18 @@ class ISyntaxSource(ImageSource):
         return data_generator
 
     def get_name(self):
-        """
-        Gets the file title.
-
-        Returns:
-            str: Name.
-        """
         return self.name
 
     def get_dim_order(self):
-        """
-        Returns the dimension order string.
-
-        Returns:
-            str: Dimension order.
-        """
         return self.dim_order
 
     def get_pixel_size_um(self):
-        """
-        Returns the pixel size in micrometers.
-
-        Returns:
-            dict: Pixel size dict for x and y.
-        """
         return self.pixel_size
 
     def get_dtype(self):
-        """
-        Returns the numpy dtype of the image data.
-
-        Returns:
-            dtype: Numpy dtype.
-        """
         return self.dtype
 
     def get_position_um(self, well_id=None):
-        """
-        Returns the position in micrometers (empty for ISyntax).
-
-        Returns:
-            dict: Position dict for x and y.
-        """
         return {'x': self.isyntax.offset_x, 'y': self.isyntax.offset_y}
 
     def get_channels(self):
@@ -204,11 +175,11 @@ class ISyntaxSource(ImageSource):
     def get_acquisitions(self):
         return []
 
-    def get_total_data_size(self):
-        total_size = np.prod(self.shape)
-        if self.is_plate:
-            total_size *= len(self.get_wells()) * len(self.get_fields())
-        return total_size
+    def get_acquisition_datetime(self):
+        return self.acquisition_datetime
+
+    def get_significant_bits(self):
+        return self.bits_per_pixel
 
     def close(self):
         self.isyntax.close()

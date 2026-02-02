@@ -1,6 +1,6 @@
-import os.path
-
+from datetime import datetime
 import imageio.v3 as iio
+import os.path
 
 from src.ImageSource import ImageSource
 from src.util import get_filetitle, redimension_data
@@ -17,18 +17,24 @@ class DicomSource(ImageSource):
         if not os.path.exists(uri) and os.path.exists(uri2):
             uri = uri2
             self.uri = uri
-        io_mode = 'rv' if os.path.isdir(uri) else 'r'
-        self.im = iio.imopen(uri, plugin='DICOM', io_mode=io_mode)
+        self.im = iio.imopen(uri, plugin='DICOM', io_mode='rv')
         self.metadata = self.im.metadata()
 
     def init_metadata(self):
+        # default DICOM units are mm
         self.shape = self.metadata.get('shape')
         self.dim_order = 'zyx' if len(self.shape) == 3 else 'yx'
         self.pixel_size = {dim: size for dim, size in zip(self.dim_order, self.metadata.get('sampling'))}
         self.shapes = [self.shape]
         self.scales = [1]
         self.nchannels = 1
-        self.dtype = iio.imopen(self.uri, plugin='DICOM', io_mode='r').read().dtype
+        self.position = self.metadata.get('ImagePositionPatient')
+        date_time = self.metadata.get('AcquisitionDate') + self.metadata.get('AcquisitionTime')
+        self.acquisition_datetime = datetime.strptime(date_time, '%Y%m%d%H%M%S')
+
+        self.data = self.im.read()
+        self.dtype = self.data.dtype
+        self.bits_per_pixel = self.dtype.itemsize * 8
 
         name = self.metadata.get('SeriesInstanceUID').split('.')[-1]
         if not name:
@@ -69,15 +75,26 @@ class DicomSource(ImageSource):
         return self.nchannels
 
     def get_pixel_size_um(self):
-        return self.pixel_size
+        return {dim: size * 1e3 for dim, size in self.pixel_size.items()}
 
     def get_position_um(self, well_id=None):
         # Not applicable for DICOM
-        return {'x': 0, 'y': 0}
+        return {dim: size * 1e3 for dim, size in self.position.items()}
 
     def get_time_points(self):
         return []
 
+    def get_fields(self):
+        return []
+
+    def get_acquisitions(self):
+        return []
+
+    def get_acquisition_datetime(self):
+        return self.acquisition_datetime
+
+    def get_significant_bits(self):
+        return self.bits_per_pixel
+
     def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
-        data = self.im.read()
-        return redimension_data(data, self.dim_order, dim_order)
+        return redimension_data(self.data, self.dim_order, dim_order)

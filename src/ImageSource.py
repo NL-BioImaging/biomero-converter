@@ -247,14 +247,39 @@ class ImageSource(ABC):
         """
         raise NotImplementedError("The 'get_acquisitions' method must be implemented by subclasses.")
 
-    def get_total_data_size(self):
+    def get_acquisition_datetime(self):
         """
-        Get the estimated total data size.
+        Get the acquisition datetime.
 
         Raises:
             NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_total_data_size' method must be implemented by subclasses.")
+        raise NotImplementedError("The 'get_acquisition_datetime' method must be implemented by subclasses.")
+
+    def get_significant_bits(self):
+        """
+        Get the number of significant bits in the image data.
+
+        Raises:
+            NotImplementedError: Must be implemented by subclasses.
+        """
+        raise NotImplementedError("The 'get_significant_bits' method must be implemented by subclasses.")
+
+    def get_total_data_size(self):
+        """
+        Get the estimated total data size.
+
+        Returns:
+            int: Total data size in bytes.
+        """
+        image_size = np.prod(self.get_shape()) * np.dtype(self.get_dtype()).itemsize
+        if self.is_screen():
+            nwells = len(self.get_wells())
+            nfields = len(self.get_fields())
+            total_size = image_size * nwells * nfields
+        else:
+            total_size = image_size
+        return total_size
 
     def close(self):
         """

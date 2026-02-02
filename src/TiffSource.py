@@ -1,4 +1,5 @@
 import dask.array as da
+from datetime import datetime
 from enum import Enum
 import numpy as np
 import os.path
@@ -47,12 +48,6 @@ class TiffSource(ImageSource):
         self.tiff = TiffFile(image_filename)
 
     def init_metadata(self):
-        """
-        Initializes and loads metadata from the (OME) TIFF file.
-
-        Returns:
-            dict: Metadata dictionary.
-        """
         self.is_ome = self.tiff.is_ome
         self.is_imagej = self.tiff.is_imagej
         pixel_size = {}
@@ -84,7 +79,7 @@ class TiffSource(ImageSource):
             self.is_plate = 'Plate' in self.metadata
             if self.is_plate:
                 plate = self.metadata['Plate']
-                self.name = plate.get('Name')
+                name = plate.get('Name')
                 rows = set()
                 columns = set()
                 wells = {}
@@ -109,10 +104,10 @@ class TiffSource(ImageSource):
                 self.fields = fields
                 self.image_refs = image_refs
             else:
-                self.name = image0.get('Name')
-            if not self.name:
-                self.name = get_filetitle(self.uri)
-            self.name = str(self.name).rstrip('.tiff').rstrip('.tif').rstrip('.ome')
+                name = image0.get('Name')
+            if not name:
+                name = get_filetitle(self.uri)
+            self.acquisition_datetime = image0.get('AcquisitionDate')
             pixels = image0.get('Pixels', {})
             self.dtype = np.dtype(pixels['Type'])
             if 'PhysicalSizeX' in pixels:
@@ -136,6 +131,10 @@ class TiffSource(ImageSource):
                 if 'Color' in channel0:
                     channel['color'] = int_to_rgba(channel0['Color'])
                 channels.append(channel)
+            if 'SignificantBits' in pixels:
+                self.bits_per_pixel = int(pixels['SignificantBits'])
+            else:
+                self.bits_per_pixel = self.dtype.itemsize * 8
         else:
             self.is_plate = False
             if self.is_imagej:
@@ -149,8 +148,13 @@ class TiffSource(ImageSource):
                 if 'spacing' in self.imagej_metadata:
                     pixel_size['z'] = convert_to_um(self.imagej_metadata['spacing'], pixel_size_unit)
             self.metadata = tags_to_dict(self.tiff.pages.first.tags)
-            self.name = os.path.splitext(self.tiff.filename)[0]
+            name = os.path.splitext(self.tiff.filename)[0]
+            if 'DateTime' in self.metadata:
+                self.acquisition_datetime = datetime.strptime(self.metadata['DateTime'],'%Y:%m:%d %H:%M:%S')
+            else:
+                self.acquisition_datetime = datetime.fromtimestamp(self.tiff.fstat.st_ctime)
             self.dtype = page.dtype
+            self.bits_per_pixel = self.dtype.itemsize * 8
             res_unit = self.metadata.get('ResolutionUnit', '')
             if isinstance(res_unit, Enum):
                 res_unit = res_unit.name
@@ -165,6 +169,7 @@ class TiffSource(ImageSource):
                 res0 = convert_rational_value(self.metadata.get('YResolution'))
                 if res0 is not None and res0 != 0:
                     pixel_size['y'] = convert_to_um(1 / res0, res_unit)
+        self.name = str(name).rstrip('.tiff').rstrip('.tif').rstrip('.ome')
         self.pixel_size = pixel_size
         self.position = position
         self.channels = channels
@@ -200,111 +205,42 @@ class TiffSource(ImageSource):
         return redimension_data(data, self.dim_order, dim_order)
 
     def get_name(self):
-        """
-        Gets the image or plate name.
-
-        Returns:
-            str: Name.
-        """
         return self.name
 
     def get_dim_order(self):
-        """
-        Returns the dimension order string.
-
-        Returns:
-            str: Dimension order.
-        """
         return self.dim_order
 
     def get_dtype(self):
-        """
-        Returns the numpy dtype of the image data.
-
-        Returns:
-            dtype: Numpy dtype.
-        """
         return self.dtype
 
     def get_pixel_size_um(self):
-        """
-        Returns the pixel size in micrometers.
-
-        Returns:
-            dict: Pixel size for x, y, (and z).
-        """
         if self.pixel_size:
             return self.pixel_size
         else:
             return {'x': 1, 'y': 1}
 
     def get_position_um(self, well_id=None):
-        """
-        Returns the position in micrometers.
-
-        Returns:
-            dict: Position in micrometers.
-        """
         return self.position
 
     def get_channels(self):
-        """
-        Returns channel metadata.
-
-        Returns:
-            list: List of channel dicts.
-        """
         return self.channels
 
     def get_nchannels(self):
-        """
-        Returns the number of channels.
-
-        Returns:
-            int: Number of channels.
-        """
         return self.nchannels
 
     def is_rgb(self):
-        """
-        Check if the source is a RGB(A) image.
-        """
         return self.is_photometric_rgb
 
     def get_rows(self):
-        """
-        Returns the list of row identifiers.
-
-        Returns:
-            list: Row identifiers.
-        """
         return self.rows
 
     def get_columns(self):
-        """
-        Returns the list of column identifiers.
-
-        Returns:
-            list: Column identifiers.
-        """
         return self.columns
 
     def get_wells(self):
-        """
-        Returns the list of well identifiers.
-
-        Returns:
-            list: Well identifiers.
-        """
         return self.wells
 
     def get_time_points(self):
-        """
-        Returns the list of time points.
-
-        Returns:
-            list: Time point IDs.
-        """
         nt = 1
         if 't' in self.dim_order:
             t_index = self.dim_order.index('t')
@@ -312,39 +248,18 @@ class TiffSource(ImageSource):
         return list(range(nt))
 
     def get_fields(self):
-        """
-        Returns the list of field indices.
-
-        Returns:
-            list: Field indices.
-        """
         return self.fields
 
     def get_acquisitions(self):
-        """
-        Returns acquisition metadata (empty for TIFF).
-
-        Returns:
-            list: Empty list.
-        """
         return []
 
-    def get_total_data_size(self):
-        """
-        Returns the estimated total data size.
+    def get_acquisition_datetime(self):
+        return self.acquisition_datetime
 
-        Returns:
-            int: Total data size in bytes.
-        """
-        total_size = np.prod(self.shape)
-        if self.is_plate:
-            total_size *= len(self.get_wells()) * len(self.get_fields())
-        return total_size
+    def get_significant_bits(self):
+        return self.bits_per_pixel
 
     def close(self):
-        """
-        Closes the TIFF file.
-        """
         self.tiff.close()
 
 

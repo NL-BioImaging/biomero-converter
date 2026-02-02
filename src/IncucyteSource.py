@@ -736,6 +736,15 @@ class IncucyteSource(ImageSource):
             acquisitions.append(acq)
         return acquisitions
 
+    def get_acquisition_datetime(self):
+        timepoints = self.metadata.get("timepoints", [])
+        if timepoints and timepoints[0]["datetime"]:
+            return timepoints[0]["datetime"]
+        return None
+
+    def get_significant_bits(self):
+        return self.metadata.get("bits_per_pixel")
+
     def get_total_data_size(self):
         return self.metadata.get("max_data_size", 0)
 

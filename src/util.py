@@ -61,6 +61,18 @@ def get_level_from_scale(source_scales, target_scale=1):
     return best_level_scale
 
 
+def get_bits_type(nbits):
+    if nbits <= 8:
+        dtype = np.uint8
+    elif nbits <= 16:
+        dtype = np.uint16
+    elif nbits <= 32:
+        dtype = np.uint32
+    else:
+        dtype = np.uint64
+    return np.dtype(dtype)
+
+
 def validate_filename(filename):
     return re.sub(r'[^\w_.)(-]', '_', filename)
 

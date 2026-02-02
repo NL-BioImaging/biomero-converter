@@ -185,7 +185,7 @@ class OmeZarrWriter(OmeWriter):
         axes = create_axes_metadata(dim_order)
         pixel_size_scales, scaler = self._create_scale_metadata(source, dim_order, position)
         metadata = {'omero': create_channel_metadata(dtype, channels, nchannels, is_rgb, window, self.ome_version),
-                    'metadata': {'method': scaler.method}}
+                    'method': scaler.method}
 
         is_pyramid = isinstance(data, list)
         if is_pyramid:
