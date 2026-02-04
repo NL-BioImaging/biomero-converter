@@ -13,10 +13,6 @@ class DicomSource(ImageSource):
 
     def __init__(self, uri, metadata={}):
         super().__init__(uri, metadata)
-        uri2 = os.path.splitext(uri)[0]
-        if not os.path.exists(uri) and os.path.exists(uri2):
-            uri = uri2
-            self.uri = uri
         self.im = iio.imopen(uri, plugin='DICOM', io_mode='rv')
         self.metadata = self.im.metadata()
 
@@ -36,7 +32,9 @@ class DicomSource(ImageSource):
         self.dtype = self.data.dtype
         self.bits_per_pixel = self.metadata.get('BitsStored', self.dtype.itemsize * 8)
 
-        name = self.metadata.get('SeriesInstanceUID').split('.')[-1]
+        name = self.metadata.get('SeriesDescription')
+        if not name:
+            name = self.metadata.get('StudyDescription')
         if not name:
             name = get_filetitle(self.uri)
         self.name = name

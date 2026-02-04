@@ -53,7 +53,14 @@ def create_source(filename, **kwargs):
         from src.TiffSource import TiffSource
         source = TiffSource(filename)
     else:
-        raise ValueError(f'Unsupported input file format: {input_ext}')
+        from src.GenericSource import GenericSource
+        error = ''
+        source = GenericSource(filename)
+        if source.format == 'dicom':
+            from src.DicomSource import DicomSource
+            source = DicomSource(filename)
+        if error:
+            raise ValueError(f'Unsupported input file format: {input_ext}\n{error}')
     return source
 
 

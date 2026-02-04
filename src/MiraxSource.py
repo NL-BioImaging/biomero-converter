@@ -10,7 +10,7 @@ import skimage.transform as sk_transform
 from src.ImageSource import ImageSource
 from src.color_conversion import hexrgb_to_rgba
 from src.parameters import *
-from src.util import redimension_data, get_level_from_scale, get_filetitle, validate_filename, get_bits_type
+from src.util import redimension_data, get_level_from_scale, get_filetitle, get_bits_type
 
 
 class MiraxSource(ImageSource):
@@ -41,7 +41,7 @@ class MiraxSource(ImageSource):
         acquisition_datetime = None
         for key, value in self.metadata.items():
             if 'slide_name' in key:
-                name = validate_filename(value)
+                name = value
             if 'slide_bitdepth' in key:
                 nbits = int(value)
             if 'slide_creationdatetime' in key:
