@@ -28,13 +28,13 @@ class DicomSource(ImageSource):
         self.shapes = [self.shape]
         self.scales = [1]
         self.nchannels = 1
-        self.position = self.metadata.get('ImagePositionPatient')
+        self.position = {dim: size for dim, size in zip(self.dim_order, self.metadata.get('ImagePositionPatient'))}
         date_time = self.metadata.get('AcquisitionDate') + self.metadata.get('AcquisitionTime')
         self.acquisition_datetime = datetime.strptime(date_time, '%Y%m%d%H%M%S')
 
         self.data = self.im.read()
         self.dtype = self.data.dtype
-        self.bits_per_pixel = self.dtype.itemsize * 8
+        self.bits_per_pixel = self.metadata.get('BitsStored', self.dtype.itemsize * 8)
 
         name = self.metadata.get('SeriesInstanceUID').split('.')[-1]
         if not name:
