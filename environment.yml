@@ -10,6 +10,8 @@ dependencies:
  - tifffile
  - imagecodecs
  - dask[array]
+ - imageio
+ - psutil
  - pip
  - pip:
    - ome-types==0.6.2

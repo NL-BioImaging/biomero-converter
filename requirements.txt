@@ -1,8 +1,10 @@
 ome-zarr
 tifffile
 imagecodecs
+imageio
 ome-types==0.6.2
 dask[array]
+psutil
 pyisyntax
 openslide-python
 openslide-bin
