@@ -4,7 +4,6 @@ import os.path
 import pydicom.config
 pydicom.config.convert_wrong_length_to_UN = True
 from pydicom import dcmread
-from pydicom.pixels import pixel_array
 
 from src.ImageSource import ImageSource
 from src.util import get_filetitle, redimension_data
@@ -23,25 +22,6 @@ class DicomSource(ImageSource):
             self.filenames = [os.path.join(uri, filename) for filename in sorted(os.listdir(uri))]
             uri = self.filenames[0]
         self.dicom = dcmread(uri)
-
-    def walk_dicom(self):
-        def callback(dataset, data_element):
-            print(f'{data_element.name}: {data_element.value}')
-
-        self.dicom.walk(callback)
-
-    def walk_fileset(self):
-        fileset = FileSet(self.dicom)
-        for fileinstance in fileset:
-            ds = fileinstance.load()
-            print(ds.get('filename'), ds.get('StudyDescription'), ds.get('PixelSpacing'))
-
-    def walk_series(self):
-        series = self.fileset.find_values("SeriesInstanceUID")
-        for serie_id in series:
-            fileinstances = self.fileset.find(SeriesInstanceUID=serie_id)
-            path = os.path.dirname(fileinstances[0].path)
-            data = pixel_array(path)
 
     def init_metadata(self):
         metadata = {elem.keyword: elem.value for elem in self.dicom.iterall() if elem.keyword}
@@ -136,6 +116,30 @@ class DicomSource(ImageSource):
             return {dim: size * 1e3 for dim, size in self.position.items()}
         else:
             return None
+
+    def get_acquisition_datetime(self):
+        return self.acquisition_datetime
+
+    def get_significant_bits(self):
+        return self.bits_per_pixel
+
+    def get_time_points(self):
+        return []
+
+    def get_rows(self):
+        return []
+
+    def get_columns(self):
+        return []
+
+    def get_wells(self):
+        return []
+
+    def get_fields(self):
+        return []
+
+    def get_acquisitions(self):
+        return []
 
     def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
         # https://pydicom.github.io/pydicom/stable/auto_examples/image_processing/reslice.html#sphx-glr-auto-examples-image-processing-reslice-py

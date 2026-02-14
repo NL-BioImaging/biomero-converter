@@ -1,3 +1,4 @@
+import glob
 import json
 import os
 import pytest
@@ -17,6 +18,23 @@ class TestConvert:
     input_filenames = ['C:/Project/slides/' + filename for filename in filenames]
 
     output_formats = ['omezarr3', 'omezarr2', 'ometiff']
+
+    @pytest.mark.parametrize(
+        "input_filename", input_filenames
+    )
+    def test_source(self, input_filename, verbose=False, **kwargs):
+        init_logging('log/biomero_converter.log', verbose=True)
+        source = create_source(input_filename)
+        metadata = source.init_metadata()
+        if verbose:
+            print('SOURCE METADATA')
+            print(print_dict(metadata))
+            print()
+            if source.is_screen():
+                print(source.print_well_matrix())
+                print(source.print_timepoint_well_matrix())
+            print(f'Total data size:    {print_hbytes(source.get_total_data_size())}')
+        print(input_filename, 'ok')
 
     @pytest.mark.parametrize(
         "input_filename", input_filenames,
@@ -69,4 +87,8 @@ if __name__ == '__main__':
     test = TestConvert()
     for filename in test.input_filenames:
         for output_format in test.output_formats:
-            test.test_convert(Path(tempfile.TemporaryDirectory().name), filename, output_format, show_progess=True)
+            try:
+                #test.test_source(filename)
+                test.test_convert(Path(tempfile.TemporaryDirectory().name), filename, output_format, show_progess=True)
+            except Exception as e:
+                print(f'Error converting {filename} to {output_format}: {e}')
