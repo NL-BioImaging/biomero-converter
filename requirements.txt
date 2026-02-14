@@ -8,4 +8,5 @@ psutil
 pyisyntax
 openslide-python
 openslide-bin
+pydicom
 chardet

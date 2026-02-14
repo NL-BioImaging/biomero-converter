@@ -1,6 +1,10 @@
 from datetime import datetime
-import imageio.v3 as iio
+import numpy as np
 import os.path
+import pydicom.config
+pydicom.config.convert_wrong_length_to_UN = True
+from pydicom import dcmread
+from pydicom.pixels import pixel_array
 
 from src.ImageSource import ImageSource
 from src.util import get_filetitle, redimension_data
@@ -13,23 +17,70 @@ class DicomSource(ImageSource):
 
     def __init__(self, uri, metadata={}):
         super().__init__(uri, metadata)
-        self.im = iio.imopen(uri, plugin='DICOM', io_mode='rv')
-        self.metadata = self.im.metadata()
+        if os.path.isfile(uri):
+            self.filenames = [uri]
+        else:
+            self.filenames = [os.path.join(uri, filename) for filename in sorted(os.listdir(uri))]
+            uri = self.filenames[0]
+        self.dicom = dcmread(uri)
+
+    def walk_dicom(self):
+        def callback(dataset, data_element):
+            print(f'{data_element.name}: {data_element.value}')
+
+        self.dicom.walk(callback)
+
+    def walk_fileset(self):
+        fileset = FileSet(self.dicom)
+        for fileinstance in fileset:
+            ds = fileinstance.load()
+            print(ds.get('filename'), ds.get('StudyDescription'), ds.get('PixelSpacing'))
+
+    def walk_series(self):
+        series = self.fileset.find_values("SeriesInstanceUID")
+        for serie_id in series:
+            fileinstances = self.fileset.find(SeriesInstanceUID=serie_id)
+            path = os.path.dirname(fileinstances[0].path)
+            data = pixel_array(path)
 
     def init_metadata(self):
-        # default DICOM units are mm
-        self.shape = self.metadata.get('shape')
-        self.dim_order = 'zyx' if len(self.shape) == 3 else 'yx'
-        self.pixel_size = {dim: size for dim, size in zip(self.dim_order, self.metadata.get('sampling'))}
+        metadata = {elem.keyword: elem.value for elem in self.dicom.iterall() if elem.keyword}
+
+        self.metadata = metadata
+        pixel_array = self.dicom.pixel_array
+        shape = list(pixel_array.shape)
+        self.is_rgb_type = (metadata.get('PhotometricInterpretation').lower() == 'rgb')
+        dim_order = 'yx'
+        nchannels = 1
+        if self.is_rgb_type:
+            if shape[-1] < shape[0]:
+                nchannels = shape[-1]
+                dim_order = dim_order + 'c'
+            else:
+                nchannels = shape[0]
+                dim_order = 'c' + dim_order
+        self.dtype = pixel_array.dtype
+        self.pixel_size = {dim:value for dim, value in zip('xy', metadata.get('PixelSpacing', (1, 1)))}
+        nz = len(self.filenames)
+        if nz > 1:
+            dim_order = 'z' + dim_order
+            shape = [nz] + shape
+            self.pixel_size['z'] = metadata.get('SliceThickness', 1)
+        self.shape = shape
+        self.nchannels = nchannels
+        self.dim_order = dim_order
         self.shapes = [self.shape]
         self.scales = [1]
-        self.nchannels = 1
-        self.position = {dim: size for dim, size in zip(self.dim_order, self.metadata.get('ImagePositionPatient'))}
-        date_time = self.metadata.get('AcquisitionDate') + self.metadata.get('AcquisitionTime')
+        if 'ImagePositionPatient' in metadata:
+            self.position = {dim: size for dim, size in zip(self.dim_order, metadata['ImagePositionPatient'])}
+        else:
+            self.position = None
+        date_time = metadata.get('AcquisitionDate', '') + metadata.get('AcquisitionTime', '')
+        if not date_time:
+            date_time = metadata.get('SeriesDate', '') + metadata.get('SeriesTime', '')
+        if not date_time:
+            date_time = metadata.get('StudyDate', '') + metadata.get('StudyTime', '')
         self.acquisition_datetime = datetime.strptime(date_time, '%Y%m%d%H%M%S')
-
-        self.data = self.im.read()
-        self.dtype = self.data.dtype
         self.bits_per_pixel = self.metadata.get('BitsStored', self.dtype.itemsize * 8)
 
         name = self.metadata.get('SeriesDescription')
@@ -46,7 +97,7 @@ class DicomSource(ImageSource):
         return False
 
     def is_rgb(self):
-        return self.get_nchannels() in (3, 4)
+        return self.is_rgb_type
 
     def get_name(self):
         return self.name
@@ -67,7 +118,12 @@ class DicomSource(ImageSource):
         return self.dim_order
 
     def get_channels(self):
-        return [{'label': f'Channel {index}', 'color': [1, 1, 1, 1]} for index in range(self.nchannels)]
+        if self.is_rgb():
+            labels = ['Red', 'Green', 'Blue']
+            colors = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+            return [{'label': label, 'color': color} for label, color in zip(labels, colors)]
+        else:
+            return [{'label': f'Channel {index}', 'color': [1, 1, 1, 1]} for index in range(self.nchannels)]
 
     def get_nchannels(self):
         return self.nchannels
@@ -76,23 +132,17 @@ class DicomSource(ImageSource):
         return {dim: size * 1e3 for dim, size in self.pixel_size.items()}
 
     def get_position_um(self, well_id=None):
-        # Not applicable for DICOM
-        return {dim: size * 1e3 for dim, size in self.position.items()}
-
-    def get_time_points(self):
-        return []
-
-    def get_fields(self):
-        return []
-
-    def get_acquisitions(self):
-        return []
-
-    def get_acquisition_datetime(self):
-        return self.acquisition_datetime
-
-    def get_significant_bits(self):
-        return self.bits_per_pixel
+        if self.position:
+            return {dim: size * 1e3 for dim, size in self.position.items()}
+        else:
+            return None
 
     def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
-        return redimension_data(self.data, self.dim_order, dim_order)
+        # https://pydicom.github.io/pydicom/stable/auto_examples/image_processing/reslice.html#sphx-glr-auto-examples-image-processing-reslice-py
+        if 'z' in self.dim_order:
+            data = np.zeros(self.shape)
+            for index, filename in enumerate(self.filenames):
+                data[index] = dcmread(filename).pixel_array
+        else:
+            data = self.dicom.pixel_array
+        return redimension_data(data, self.dim_order, dim_order)

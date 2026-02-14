@@ -242,7 +242,7 @@ class OmeZarrWriter(OmeWriter):
                         name=source.get_name(), metadata=metadata)
         return size
 
-    def _create_scale_metadata(self, source, dim_order, translation, scaler=None):
+    def _create_scale_metadata(self, source, dim_order, translation=None, scaler=None):
         """
         Create coordinate transformation metadata for multiscale images.
 
