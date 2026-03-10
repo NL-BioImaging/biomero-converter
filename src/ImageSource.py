@@ -102,7 +102,7 @@ class ImageSource(ABC):
         """
         return self.get_data(dim_order, **kwargs)
 
-    def get_image_window(self, window_scanner, well_id=None, field_id=None, data=None):
+    def get_image_window(self, window_scanner, well_id=None, field_id=None, data=None, dim_order=None):
         """
         Get image value range window (for a well & field or from provided data).
 
@@ -111,16 +111,20 @@ class ImageSource(ABC):
             well_id (str, optional): Well identifier
             field_id (int, optional): Field identifier
             data (ndarray, optional): Image data to compute window from.
+            dim_order (str, optional): Dimension order of data. Defaults to source dim_order.
         """
         # For RGB(A) uint8 images don't change color value range
         if self.get_dtype() != np.uint8:
             if data is None:
+                dim_order = self.get_dim_order()
                 for level, shape in enumerate(self.get_shapes()):
                     if np.prod(shape) * self.get_dtype().itemsize < 1e8:  # less than 100 MB
                         data = self.get_data(self.get_dim_order(), well_id=well_id, field_id=field_id, level=level)
                         break
             if data is not None:
-                window_scanner.process(data, self.get_dim_order())
+                if dim_order is None:
+                    dim_order = self.get_dim_order()
+                window_scanner.process(data, dim_order)
         return window_scanner.get_window()
 
     def get_name(self):

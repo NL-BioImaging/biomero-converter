@@ -1,6 +1,8 @@
 import inspect
+import math
 import numpy as np
 import os.path
+from concurrent.futures import ThreadPoolExecutor
 from skimage.transform import resize
 from tifffile import TiffWriter
 
@@ -61,6 +63,33 @@ class OmeTiffWriter(OmeWriter):
 
         return {'output_path': filepath, 'window': window}
 
+    def _write_well_field(self, filepath, filetitle, companion_filename, companion_uuid,
+                          source, well_id, field_id, **kwargs):
+        """
+        Writes a single well/field to a TIFF file.
+
+        Returns:
+            tuple: (image_uuid, image_filename, output_path, size, window)
+        """
+        resolution, resolution_unit = create_resolution_metadata(source)
+        data = source.get_data(self.dim_order, well_id=well_id, field_id=field_id)
+
+        filename = f'{filetitle}'
+        filename += f'_{pad_leading_zero(well_id)}'
+        if field_id is not None:
+            filename += f'_{pad_leading_zero(field_id)}'
+        filename = os.path.join(filepath, filename + '.ome.tiff')
+        xml_metadata, image_uuid = create_binaryonly_metadata(os.path.basename(companion_filename), companion_uuid)
+
+        size, window = self._write_tiff(filename, source, data,
+                                        resolution=resolution, resolution_unit=resolution_unit,
+                                        tile_size=TILE_SIZE, compression=TIFF_COMPRESSION,
+                                        xml_metadata=xml_metadata,
+                                        pyramid_levels=PYRAMID_LEVELS, pyramid_downscale=PYRAMID_DOWNSCALE,
+                                        well_id=well_id, field_id=field_id, **kwargs)
+
+        return image_uuid, os.path.basename(filename), filename, size, window
+
     def _write_screen(self, filename, source, **kwargs):
         """
         Writes multi-well screen data to separate TIFF files and companion metadata.
@@ -73,9 +102,6 @@ class OmeTiffWriter(OmeWriter):
         Returns:
             tuple: (List of output paths, total data size, image window)
         """
-        # writes separate tiff files for each field, and separate metadata companion file
-        window = []
-        output_paths = []
         filepath, filename = os.path.split(filename)
         filetitle = os.path.splitext(filename)[0].rstrip('.ome')
 
@@ -85,32 +111,41 @@ class OmeTiffWriter(OmeWriter):
         wells = kwargs.get('wells', source.get_wells())
         fields = list(map(str, source.get_fields()))
 
+        max_workers = kwargs.pop('max_workers', MAX_WORKERS)
+
+        # Submit all well/field tasks in order
+        futures = []
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            for well_id in wells:
+                for field_id in fields:
+                    future = executor.submit(
+                        self._write_well_field, filepath, filetitle,
+                        companion_filename, companion_uuid,
+                        source, well_id, field_id, **kwargs)
+                    futures.append(future)
+
+        # Collect results in submission order
         total_size = 0
         image_uuids = []
         image_filenames = []
-        for well_id in wells:
-            for field_id in fields:
-                resolution, resolution_unit = create_resolution_metadata(source)
-                data = source.get_data(self.dim_order, well_id=well_id, field_id=field_id)
+        output_paths = []
+        all_windows = []
+        for future in futures:
+            image_uuid, image_filename, output_path, size, window = future.result()
+            image_uuids.append(image_uuid)
+            image_filenames.append(image_filename)
+            output_paths.append(output_path)
+            total_size += size
+            if window is not None:
+                all_windows.append(window)
 
-                filename = f'{filetitle}'
-                filename += f'_{pad_leading_zero(well_id)}'
-                if field_id is not None:
-                    filename += f'_{pad_leading_zero(field_id)}'
-                filename = os.path.join(filepath, filename + '.ome.tiff')
-                xml_metadata, image_uuid = create_binaryonly_metadata(os.path.basename(companion_filename), companion_uuid)
-
-                size, window = self._write_tiff(filename, source, data,
-                                                resolution=resolution, resolution_unit=resolution_unit,
-                                                tile_size=TILE_SIZE, compression=TIFF_COMPRESSION,
-                                                xml_metadata=xml_metadata,
-                                                pyramid_levels=PYRAMID_LEVELS, pyramid_downscale=PYRAMID_DOWNSCALE,
-                                                well_id=well_id, field_id=field_id, **kwargs)
-
-                image_uuids.append(image_uuid)
-                image_filenames.append(os.path.basename(filename))
-                output_paths.append(filename)
-                total_size += size
+        # Merge windows across all wells: each window is (mins_list, maxs_list)
+        if all_windows:
+            all_mins = np.array([w[0] for w in all_windows])
+            all_maxs = np.array([w[1] for w in all_windows])
+            window = (np.min(all_mins, axis=0).tolist(), np.max(all_maxs, axis=0).tolist())
+        else:
+            window = ([], [])
 
         xml_metadata = create_metadata(source,
                                        uuid=companion_uuid, image_uuids=image_uuids, image_filenames=image_filenames,
@@ -185,6 +220,14 @@ class OmeTiffWriter(OmeWriter):
             if tile_size[0] > shape[y_index] or tile_size[1] > shape[x_index]:
                 tile_size = None
 
+        # Auto-calculate pyramid levels if set to 0
+        if pyramid_levels == 0:
+            min_dim = min(shape[y_index], shape[x_index])
+            if min_dim > PYRAMID_MIN_SIZE:
+                pyramid_levels = int(math.floor(math.log2(min_dim / PYRAMID_MIN_SIZE)))
+            else:
+                pyramid_levels = 0
+
         if xml_metadata is not None:
             # set ome=False to provide custom OME xml in description
             xml_metadata_bytes = xml_metadata.encode()
@@ -206,6 +249,7 @@ class OmeTiffWriter(OmeWriter):
         is_bigtiff = (max_size > 2 ** 32)
 
         window_scanner = WindowScanner()
+        original_data = data if not is_generator else None
         with TiffWriter(filename, bigtiff=is_bigtiff, ome=is_ome) as writer:
             for level in range(pyramid_levels + 1):
                 if level == 0:
@@ -219,7 +263,16 @@ class OmeTiffWriter(OmeWriter):
                     new_shape[x_index] = int(shape[x_index] * scale)
                     new_shape[y_index] = int(shape[y_index] * scale)
                     if not is_generator:
-                        data = resize(data, new_shape, preserve_range=True).astype(dtype)
+                        # Use fast array slicing for exact 2x downscale
+                        if (pyramid_downscale == 2
+                                and data.shape[y_index] % 2 == 0
+                                and data.shape[x_index] % 2 == 0):
+                            slices = [slice(None)] * data.ndim
+                            slices[y_index] = slice(None, None, 2)
+                            slices[x_index] = slice(None, None, 2)
+                            data = data[tuple(slices)]
+                        else:
+                            data = resize(data, new_shape, order=1, preserve_range=True).astype(dtype)
                     subifds = None
                     subfiletype = 1
                     xml_metadata_bytes = None
@@ -230,6 +283,7 @@ class OmeTiffWriter(OmeWriter):
                              resolution=resolution, resolutionunit=resolution_unit, tile=tile_size,
                              compression=compression, compressionargs=compressionargs,
                              description=xml_metadata_bytes)
-                if level == pyramid_levels:
-                    window = source.get_image_window(window_scanner, well_id=well_id, field_id=field_id, data=data)
+        # Compute window on original full-resolution data for accurate quantile estimates
+        window = source.get_image_window(window_scanner, well_id=well_id, field_id=field_id,
+                                         data=original_data, dim_order=self.dim_order)
         return data_size, window
