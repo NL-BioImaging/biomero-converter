@@ -155,10 +155,7 @@ class TiffSource(ImageSource):
                 self.acquisition_datetime = datetime.fromtimestamp(self.tiff.fstat.st_ctime)
             self.dtype = page.dtype
             self.bits_per_pixel = self.dtype.itemsize * 8
-            res_unit = self.metadata.get('ResolutionUnit', '')
-            if isinstance(res_unit, Enum):
-                res_unit = res_unit.name
-            res_unit = res_unit.lower()
+            res_unit = self.metadata.get('ResolutionUnit', '').lower()
             if res_unit == 'none':
                 res_unit = ''
             if 'x' not in pixel_size:
@@ -275,7 +272,10 @@ def tags_to_dict(tags):
     """
     tag_dict = {}
     for tag in tags.values():
-        tag_dict[tag.name] = tag.value
+        value = tag.value
+        if isinstance(value, Enum):
+            value = value.name
+        tag_dict[tag.name] = value
     return tag_dict
 
 
