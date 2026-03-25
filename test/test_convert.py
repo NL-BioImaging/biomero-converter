@@ -1,5 +1,6 @@
 import glob
 import json
+import logging
 import os
 import pytest
 import sys
@@ -57,8 +58,6 @@ class TestConvert:
                 print(source.print_timepoint_well_matrix())
             print(f'Total data size:    {print_hbytes(source.get_total_data_size())}')
 
-        #print(print_dict(metadata))
-
         output_path = json.loads(output)[0]['full_path']
         target = create_source(output_path)
         metadata = target.init_metadata()
@@ -84,6 +83,10 @@ if __name__ == '__main__':
     # Emulate pytest / fixtures
     from pathlib import Path
 
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+    for module in ['ome_zarr', 'zarr', 'numcodecs']:
+        logging.getLogger(module).setLevel(logging.WARNING)
+
     test = TestConvert()
     for filename in test.input_filenames:
         for output_format in test.output_formats:
@@ -92,3 +95,4 @@ if __name__ == '__main__':
                 test.test_convert(Path(tempfile.TemporaryDirectory().name), filename, output_format, show_progess=True)
             except Exception as e:
                 print(f'Error converting {filename} to {output_format}: {e}')
+                logging.exception(e)

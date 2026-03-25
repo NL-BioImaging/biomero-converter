@@ -12,11 +12,13 @@ from ome_zarr import dask_utils
 #from ome_zarr.io import parse_url
 from ome_zarr.scale import Scaler
 from ome_zarr.writer import write_image, write_plate_metadata, write_well_metadata, write_multiscale
+import os.path
 import psutil
 from skimage.transform import resize
 import zarr
 
 from src.OmeWriter import OmeWriter
+from src.ome_tiff_util import create_metadata
 from src.ome_zarr_util import *
 from src.parameters import *
 from src.util import split_well_name, print_hbytes, get_level_from_scale
@@ -70,6 +72,8 @@ class OmeZarrWriter(OmeWriter):
             zarr_root, total_size = self._write_image(filepath, source, **kwargs)
 
         zarr_root.attrs['_creator'] = {'name': 'nl.biomero.OmeZarrWriter', 'version': VERSION}
+
+        self._write_ome_xml(filepath, source, **kwargs)
 
         if self.verbose:
             print(f'Total data written: {print_hbytes(total_size)}')
@@ -266,3 +270,12 @@ class OmeZarrWriter(OmeWriter):
                                                factor, translation))
             factor *= scaler.downscale
         return pixel_size_scales, scaler
+
+    def _write_ome_xml(self, filepath, source, wells=None):
+        path = os.path.join(filepath, 'OME')
+        if not os.path.exists(path):
+            os.makedirs(path)
+        ome_xml_filename = os.path.join(path, 'METADATA.ome.xml')
+        xml_metadata = create_metadata(source, wells=wells, metadata_only=True)
+        with open(ome_xml_filename, 'wb') as file:
+            file.write(xml_metadata.encode())

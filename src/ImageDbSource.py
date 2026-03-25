@@ -72,13 +72,13 @@ class ImageDbSource(ImageSource):
         Loads well and channel information into metadata.
         """
         well_info = self.db.fetch_all('''
-            SELECT SensorSizeYPixels, SensorSizeXPixels, Objective, PixelSizeUm, SensorBitness, SitesX, SitesY
+            SELECT *
             FROM AcquisitionExp, AutomaticZonesParametersExp
         ''')[0]
 
         # Filter multiple duplicate channel entries
         channel_infos = self.db.fetch_all('''
-            SELECT DISTINCT ChannelNumber, Emission, Excitation, Dye, Color
+            SELECT DISTINCT *
             FROM ImagechannelExp
             ORDER BY ChannelNumber
         ''')
@@ -310,6 +310,12 @@ class ImageDbSource(ImageSource):
                 channel['label'] = channel0['Dye']
             if 'Color' in channel0:
                 channel['color'] = hexrgb_to_rgba(channel0['Color'].lstrip('#'))
+            if 'Emission' in channel0:
+                channel['emission_wavelength'] = channel0['Emission']
+                channel['emission_wavelength_unit'] = 'nm'
+            if 'Excitation' in channel0:
+                channel['excitation_wavelength'] = channel0['Excitation']
+                channel['excitation_wavelength_unit'] = 'nm'
             channels.append(channel)
         return channels
 

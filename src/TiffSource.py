@@ -130,6 +130,10 @@ class TiffSource(ImageSource):
                     channel['label'] = channel0['Name']
                 if 'Color' in channel0:
                     channel['color'] = int_to_rgba(channel0['Color'])
+                if 'EmissionWavelength' in channel0:
+                    channel['emission_wavelength'] = float(channel0['EmissionWavelength'])
+                if 'ExcitationWavelength' in channel0:
+                    channel['excitation_wavelength'] = float(channel0['ExcitationWavelength'])
                 channels.append(channel)
             if 'SignificantBits' in pixels:
                 self.bits_per_pixel = int(pixels['SignificantBits'])

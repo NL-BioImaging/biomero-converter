@@ -20,7 +20,8 @@ def create_uuid():
     return f'urn:uuid:{uuid.uuid4()}'
 
 
-def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, image_filenames=None, wells=None):
+def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, image_filenames=None, wells=None,
+                    metadata_only=False):
     ome = OME()
     if uuid is None:
         uuid = create_uuid()
@@ -60,11 +61,14 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
                     sample.position_y_unit = UnitsLength.MICROMETER
 
                 image_name = f'Well {well_id}, Field #{int(field) + 1}'
+                image_uuid = image_uuids[image_index] if image_uuids is not None else None
+                image_filename = image_filenames[image_index] if image_filenames is not None else None
                 image = create_image_metadata(source,
                                               image_name,
                                               dim_order,
-                                              image_uuids[image_index],
-                                              image_filenames[image_index])
+                                              image_uuid,
+                                              image_filename,
+                                              metadata_only=metadata_only)
                 ome.images.append(image)
 
                 image_ref = ImageRef(id=image.id)   # assign id at instantiation to avoid auto sequence increment
@@ -77,12 +81,17 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
 
         ome.plates = [plate]
     else:
-        ome.images = [create_image_metadata(source, source.get_name(), dim_order, ome.uuid, image_filenames[0])]
+        image_filename0 = image_filenames[0] if image_filenames is not None else None
+        ome.images = [
+            create_image_metadata(source, source.get_name(), dim_order, ome.uuid, image_filename0,
+                                  metadata_only=metadata_only)
+        ]
 
     return to_xml(ome)
 
 
-def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None, image_filename=None):
+def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None, image_filename=None,
+                          metadata_only=False):
     t, c, z, y, x = [source.get_shape()[source.dim_order.index(dim)] if dim in source.get_dim_order() else 1
                      for dim in 'tczyx']
     pixel_size = source.get_pixel_size_um()
@@ -100,18 +109,29 @@ def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None
             color = channel.get('color', channel.get('Color'))
             if color is not None:
                 ome_channel.color = Color(rgba_to_int(color))
+            emission_wavelength = channel.get('emission_wavelength', channel.get('EmissionWavelength'))
+            if emission_wavelength:
+                ome_channel.emission_wavelength = emission_wavelength
+                ome_channel.emission_wavelength_unit = channel.get('emission_wavelength_unit', 'nm')
+            excitation_wavelength = channel.get('excitation_wavelength', channel.get('ExcitationWavelength'))
+            if excitation_wavelength:
+                ome_channel.excitation_wavelength = excitation_wavelength
+                ome_channel.excitation_wavelength_unit = channel.get('excitation_wavelength_unit', 'nm')
             ome_channels.append(ome_channel)
-
-    tiff_data = TiffData()
-    tiff_data.uuid = TiffData.UUID(value=image_uuid, file_name=image_filename)
 
     pixels = Pixels(
         dimension_order=Pixels_DimensionOrder(dim_order[::-1].upper()),
         type=PixelType(str(source.get_dtype())),
         channels=ome_channels,
         size_t=t, size_c=c, size_z=z, size_y=y, size_x=x,
-        tiff_data_blocks=[tiff_data]
     )
+    if metadata_only:
+        pixels.metadata_only = MetadataOnly()
+    elif image_uuid:
+        tiff_data = TiffData()
+        tiff_data.uuid = TiffData.UUID(value=image_uuid, file_name=image_filename)
+        pixels.tiff_data_blocks=[tiff_data]
+
     if 'x' in pixel_size:
         pixels.physical_size_x = pixel_size['x']
         pixels.physical_size_x_unit = UnitsLength.MICROMETER

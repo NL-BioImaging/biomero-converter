@@ -113,7 +113,9 @@ class OmeTiffWriter(OmeWriter):
                 total_size += size
 
         xml_metadata = create_metadata(source,
-                                       uuid=companion_uuid, image_uuids=image_uuids, image_filenames=image_filenames,
+                                       uuid=companion_uuid,
+                                       image_uuids=image_uuids,
+                                       image_filenames=image_filenames,
                                        wells=wells)
         with open(companion_filename, 'wb') as file:
             file.write(xml_metadata.encode())
