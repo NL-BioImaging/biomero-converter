@@ -265,6 +265,12 @@ class ImageSource(ABC):
         """
         raise NotImplementedError("The 'get_significant_bits' method must be implemented by subclasses.")
 
+    def get_microscope_info(self):
+        """
+        Get microscope information. This can include details such as the microscope model, objective lens, and other relevant information.
+        """
+        return {}
+
     def get_total_data_size(self):
         """
         Get the estimated total data size.
@@ -286,7 +292,6 @@ class ImageSource(ABC):
         Close the image source.
         """
         pass
-
 
     def print_well_matrix(self):
         """

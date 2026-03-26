@@ -193,6 +193,19 @@ def xml_content_to_dict(element):
     return {key: value}
 
 
+def camel_to_snake_keys_dict(dct):
+    if isinstance(dct, dict):
+        result = {camel_to_snake(key): camel_to_snake_keys_dict(value) for key, value in dct.items()}
+    else:
+        result = dct
+    return result
+
+
+def camel_to_snake(name):
+    name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+
+
 def convert_to_um(value, unit):
     conversions = {
         'nm': 1e-3,

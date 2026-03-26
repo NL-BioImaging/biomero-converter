@@ -11,9 +11,11 @@ This tool can be used as biomero plugin, Docker container or stand-alone
   - ImageXpress Pico
   - Molecular Devices
   - CellReporterXpress experiment
-  - image db files
-  - isyntax files
+  - image db files (.db)
+  - isyntax files (.isyntax)
   - Incucyte archives (.icharch)
+  - 3DHistech files (.mrxs)
+  - DICOM files
 - Export to Ome formats
   - Ome-tiff
   - Ome-zarr

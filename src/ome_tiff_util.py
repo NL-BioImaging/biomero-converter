@@ -1,4 +1,5 @@
 import numpy as np
+from ome_types._mixins._ids import ID_COUNTER
 from ome_types.model import *
 from ome_types import to_xml
 from tifffile import xml2dict
@@ -20,6 +21,10 @@ def create_uuid():
     return f'urn:uuid:{uuid.uuid4()}'
 
 
+def reset_ome_ids():
+    ID_COUNTER.clear()   # this will reset all reference/ids
+
+
 def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, image_filenames=None, wells=None,
                     metadata_only=False):
     ome = OME()
@@ -27,6 +32,45 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
         uuid = create_uuid()
     ome.uuid = uuid
     ome.creator = f'nl.biomero.OmeTiffWriter {VERSION}'
+
+    microscope_info = source.get_microscope_info()
+    instrument_id = None
+    objective_id = None
+    if microscope_info:
+        microscope = Microscope()
+        has_microscope = False
+        manufacturer = microscope_info.get('manufacturer')
+        if manufacturer is not None:
+            microscope.manufacturer = manufacturer
+            has_microscope = True
+        model = microscope_info.get('model')
+        if model is not None:
+            microscope.model = model
+            has_microscope = True
+        serial_number = microscope_info.get('serial_number')
+        if serial_number is not None:
+            microscope.serial_number = serial_number
+            has_microscope = True
+
+        objective = Objective()
+        has_objective = False
+        magnification = microscope_info.get('magnification')
+        if magnification is not None:
+            objective.nominal_magnification = magnification
+            has_objective = True
+        n_a = microscope_info.get('n_a')
+        if n_a is not None:
+            objective.lens_na = n_a
+            has_objective = True
+
+        if has_microscope or has_objective:
+            instrument = Instrument()
+            instrument_id = instrument.id
+            if has_microscope:
+                instrument.microscope = microscope
+            if has_objective:
+                instrument.objective = objective
+            ome.instruments = [instrument]
 
     if source.is_screen():
         if wells is None:
@@ -68,6 +112,8 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
                                               dim_order,
                                               image_uuid,
                                               image_filename,
+                                              instrument_id=instrument_id,
+                                              objective_id=objective_id,
                                               metadata_only=metadata_only)
                 ome.images.append(image)
 
@@ -84,6 +130,7 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
         image_filename0 = image_filenames[0] if image_filenames is not None else None
         ome.images = [
             create_image_metadata(source, source.get_name(), dim_order, ome.uuid, image_filename0,
+                                  instrument_id=instrument_id, objective_id=objective_id,
                                   metadata_only=metadata_only)
         ]
 
@@ -91,7 +138,7 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
 
 
 def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None, image_filename=None,
-                          metadata_only=False):
+                          instrument_id=None, objective_id=None, metadata_only=False):
     t, c, z, y, x = [source.get_shape()[source.dim_order.index(dim)] if dim in source.get_dim_order() else 1
                      for dim in 'tczyx']
     pixel_size = source.get_pixel_size_um()
@@ -106,17 +153,25 @@ def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None
             ome_channel = Channel()
             ome_channel.name = channel.get('label', channel.get('Name', f'{channeli}'))
             ome_channel.samples_per_pixel = 1
+
             color = channel.get('color', channel.get('Color'))
             if color is not None:
                 ome_channel.color = Color(rgba_to_int(color))
             emission_wavelength = channel.get('emission_wavelength', channel.get('EmissionWavelength'))
             if emission_wavelength:
                 ome_channel.emission_wavelength = emission_wavelength
-                ome_channel.emission_wavelength_unit = channel.get('emission_wavelength_unit', 'nm')
+                ome_channel.emission_wavelength_unit = channel.get('emission_wavelength_unit', UnitsLength.NANOMETER)
             excitation_wavelength = channel.get('excitation_wavelength', channel.get('ExcitationWavelength'))
             if excitation_wavelength:
                 ome_channel.excitation_wavelength = excitation_wavelength
-                ome_channel.excitation_wavelength_unit = channel.get('excitation_wavelength_unit', 'nm')
+                ome_channel.excitation_wavelength_unit = channel.get('excitation_wavelength_unit', UnitsLength.NANOMETER)
+            pinhole_size = channel.get('pinhole_size', channel.get('PinholeSize'))
+            if pinhole_size:
+                ome_channel.pinhole_size = pinhole_size
+                pinhole_size_unit = channel.get('pinhole_size_unit', channel.get('PinholeSizeUnit'))
+                if pinhole_size_unit:
+                    ome_channel.pinhole_size_unit = pinhole_size_unit
+
             ome_channels.append(ome_channel)
 
     pixels = Pixels(
@@ -152,6 +207,10 @@ def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None
     index = pixels.id.split(':')[1]
     for channeli, channel in enumerate(pixels.channels):
         channel.id = f'Channel:{index}:{channeli}'
+    if instrument_id is not None:
+        image.instrument_ref = InstrumentRef(id=instrument_id)
+    if objective_id is not None:
+        image.objective_settings = ObjectiveSettings(id=objective_id)
     return image
 
 

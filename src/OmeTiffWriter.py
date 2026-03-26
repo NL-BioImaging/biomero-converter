@@ -4,7 +4,8 @@ import os.path
 from skimage.transform import resize
 from tifffile import TiffWriter
 
-from src.ome_tiff_util import create_metadata, create_binaryonly_metadata, create_resolution_metadata, create_uuid
+from src.ome_tiff_util import create_metadata, create_binaryonly_metadata, create_resolution_metadata, create_uuid, \
+    reset_ome_ids
 from src.OmeWriter import OmeWriter
 from src.parameters import *
 from src.util import *
@@ -51,6 +52,7 @@ class OmeTiffWriter(OmeWriter):
             dim_order += 'c'
         self.dim_order = dim_order
 
+        reset_ome_ids()
         if source.is_screen():
             filepath, total_size, window = self._write_screen(filepath, source, **kwargs)
         else:

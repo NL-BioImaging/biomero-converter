@@ -57,7 +57,7 @@ class ImageDbSource(ImageSource):
         """
         Loads experiment metadata and acquisition info into metadata.
         """
-        creation_info = self.db.fetch_all('SELECT DateCreated, Creator, Name FROM ExperimentBase')[0]
+        creation_info = self.db.fetch_all('SELECT * FROM ExperimentBase')[0]
         creation_info['DateCreated'] = convert_dotnet_ticks_to_datetime(creation_info['DateCreated'])
         self.metadata.update(creation_info)
 
@@ -71,7 +71,7 @@ class ImageDbSource(ImageSource):
         """
         Loads well and channel information into metadata.
         """
-        well_info = self.db.fetch_all('''
+        info = self.db.fetch_all('''
             SELECT *
             FROM AcquisitionExp, AutomaticZonesParametersExp
         ''')[0]
@@ -95,16 +95,25 @@ class ImageDbSource(ImageSource):
             cols.add(col)
         self.rows = sorted(list(rows))
         self.columns = sorted(list(cols), key=lambda x: int(x))
-        nfields = well_info['SitesX'] * well_info['SitesY'] * well_info.get('SitesZ', 1)
+        nfields = info['SitesX'] * info['SitesY'] * info.get('SitesZ', 1)
         self.fields = list(range(nfields))
-        self.well_info = well_info
-        self.metadata['well_info'] = well_info
+        self.well_info = info
+        self.metadata['well_info'] = info
 
         image_wells = self.db.fetch_all('SELECT Name, ZoneIndex, CoordX, CoordY FROM Well WHERE HasImages = 1')
         self.wells = dict(sorted({well['Name']: well for well in image_wells}.items(),
                                              key=lambda x: split_well_name(x[0], col_as_int=True)))
         self.metadata['wells'] = self.wells
-        self.pixel_size = well_info.get('PixelSizeUm', 1)
+        self.pixel_size = info.get('PixelSizeUm', 1)
+
+        self.microscope_info = {
+            'manufacturer': info['DeviceManufacturer'],
+            'model': info['DeviceModel'],
+            'name': info['DeviceName'],
+            'serial_number': info['DeviceSerialNumber'],
+            'objective': info['Objective'],
+            'n_a': info['NumericalAperture']
+        }
 
     def _get_image_info(self):
         """
@@ -365,6 +374,9 @@ class ImageDbSource(ImageSource):
         for idx, row in enumerate(well_matrix):
             s += f'{time_points[idx]:9}  ' + '   '.join(row) + '\n'
         return s
+
+    def get_microscope_info(self):
+        return self.microscope_info
 
     def close(self):
         """

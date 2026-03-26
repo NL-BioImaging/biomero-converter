@@ -54,6 +54,9 @@ class DbReader:
             values = [list(row.values())[0] for row in dct]
         return values
 
+    def list_tables(self):
+        return self.fetch_all('''SELECT name FROM sqlite_master WHERE type="table"''')
+
     def close(self):
         """
         Closes the database connection.

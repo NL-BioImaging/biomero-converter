@@ -9,7 +9,8 @@ from src.ImageSource import ImageSource
 from src.color_conversion import int_to_rgba
 from src.ome_tiff_util import metadata_to_dict, create_row_col_label
 from src.parameters import TILE_SIZE
-from src.util import convert_to_um, ensure_list, redimension_data, get_filetitle
+from src.util import convert_to_um, ensure_list, redimension_data, get_filetitle, camel_to_snake, \
+    camel_to_snake_keys_dict
 
 
 class TiffSource(ImageSource):
@@ -82,8 +83,8 @@ class TiffSource(ImageSource):
                 name = plate.get('Name')
                 rows = set()
                 columns = set()
+                fields = set()
                 wells = {}
-                fields = []
                 image_refs = {}
                 for well in ensure_list(plate['Well']):
                     row = create_row_col_label(well['Row'], plate['RowNamingConvention'])
@@ -94,14 +95,20 @@ class TiffSource(ImageSource):
                     wells[label] = well['ID']
                     image_refs[label] = {}
                     for sample in ensure_list(well.get('WellSample')):
-                        index = sample.get('Index', 0)
-                        image_refs[label][str(index)] = sample['ImageRef']['ID']
-                        if index not in fields:
-                            fields.append(index)
-                self.rows = sorted(rows)
-                self.columns = list(columns)
+                        sample_id_parts = sample['ID'].split(':')
+                        field_id = sample_id_parts[-1]
+                        fields.add(int(field_id))
+                        image_refs[label][field_id] = sample['ImageRef']['ID']
+                if 'Rows' in plate:
+                    self.rows = [create_row_col_label(row, plate['RowNamingConvention']) for row in range(plate['Rows'])]
+                else:
+                    self.rows = sorted(rows)
+                if 'Columns' in plate:
+                    self.columns = [create_row_col_label(col, plate['ColumnNamingConvention']) for col in range(plate['Columns'])]
+                else:
+                    self.columns = sorted(columns, key=int)
                 self.wells = list(wells.keys())
-                self.fields = fields
+                self.fields = sorted(fields)
                 self.image_refs = image_refs
             else:
                 name = image0.get('Name')
@@ -130,15 +137,16 @@ class TiffSource(ImageSource):
                     channel['label'] = channel0['Name']
                 if 'Color' in channel0:
                     channel['color'] = int_to_rgba(channel0['Color'])
-                if 'EmissionWavelength' in channel0:
-                    channel['emission_wavelength'] = float(channel0['EmissionWavelength'])
-                if 'ExcitationWavelength' in channel0:
-                    channel['excitation_wavelength'] = float(channel0['ExcitationWavelength'])
+                for key, value in channel0.items():
+                    if key not in ['Name', 'Color']:
+                        channel[camel_to_snake(key)] = value
                 channels.append(channel)
             if 'SignificantBits' in pixels:
                 self.bits_per_pixel = int(pixels['SignificantBits'])
             else:
                 self.bits_per_pixel = self.dtype.itemsize * 8
+
+            self.microscope_info = camel_to_snake_keys_dict(self.metadata.get('Instrument'))
         else:
             self.is_plate = False
             if self.is_imagej:
@@ -190,8 +198,8 @@ class TiffSource(ImageSource):
 
     def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
         if well_id is not None:
-            index = self.image_refs[well_id][str(field_id)]
-            tiff = TiffFile(self.image_filenames[index])
+            image_id = self.image_refs[well_id][field_id]
+            tiff = TiffFile(self.image_filenames[image_id])
         else:
             tiff = self.tiff
         data = tiff.asarray(level=level)
@@ -259,6 +267,9 @@ class TiffSource(ImageSource):
 
     def get_significant_bits(self):
         return self.bits_per_pixel
+
+    def get_microscope_info(self):
+        return self.microscope_info
 
     def close(self):
         self.tiff.close()
