@@ -5,9 +5,9 @@ from ome_types import to_xml
 from tifffile import xml2dict
 import uuid
 
-from src.color_conversion import rgba_to_int
+from src.color_conversion import rgba_to_int, int_to_rgba
 from src.parameters import VERSION
-from src.util import split_well_name
+from src.util import *
 
 
 def metadata_to_dict(xml_metadata):
@@ -23,6 +23,90 @@ def create_uuid():
 
 def reset_ome_ids():
     ID_COUNTER.clear()   # this will reset all reference/ids
+
+
+def read_ome_xml_metadata(metadata):
+    pixel_size = {}
+    position = {}
+    channels = []
+    rows = set()
+    columns = set()
+    fields = set()
+    wells = {}
+    image_refs = {}
+
+    image0 = ensure_list(metadata.get('Image', []))[0]
+    is_plate = 'Plate' in metadata
+    if is_plate:
+        plate = metadata['Plate']
+        name = plate.get('Name')
+        for well in ensure_list(plate['Well']):
+            row = create_row_col_label(well['Row'], plate['RowNamingConvention'])
+            column = create_row_col_label(well['Column'], plate['ColumnNamingConvention'])
+            rows.add(row)
+            columns.add(column)
+            label = f'{row}{column}'
+            wells[label] = well['ID']
+            image_refs[label] = {}
+            for sample in ensure_list(well.get('WellSample')):
+                sample_id_parts = sample['ID'].split(':')
+                field_id = sample_id_parts[-1]
+                fields.add(int(field_id))
+                image_refs[label][field_id] = sample['ImageRef']['ID']
+        if 'Rows' in plate:
+            rows = [create_row_col_label(row, plate['RowNamingConvention']) for row in range(plate['Rows'])]
+        else:
+            rows = sorted(rows)
+        if 'Columns' in plate:
+            columns = [create_row_col_label(col, plate['ColumnNamingConvention']) for col in
+                            range(plate['Columns'])]
+        else:
+            columns = sorted(columns, key=int)
+        wells = list(wells.keys())
+        fields = sorted(fields)
+        image_refs = image_refs
+    else:
+        name = image0.get('Name')
+    acquisition_datetime = image0.get('AcquisitionDate')
+    pixels = image0.get('Pixels', {})
+    dtype0 = pixels['Type'].lower()
+    if dtype0 in ['float', 'double']:
+        dtype0 = 'float64' if dtype0 == 'double' else 'float32'
+    dtype = np.dtype(dtype0)
+    if 'PhysicalSizeX' in pixels:
+        pixel_size['x'] = convert_to_um(float(pixels.get('PhysicalSizeX')), pixels.get('PhysicalSizeXUnit'))
+    if 'PhysicalSizeY' in pixels:
+        pixel_size['y'] = convert_to_um(float(pixels.get('PhysicalSizeY')), pixels.get('PhysicalSizeYUnit'))
+    if 'PhysicalSizeZ' in pixels:
+        pixel_size['z'] = convert_to_um(float(pixels.get('PhysicalSizeZ')), pixels.get('PhysicalSizeZUnit'))
+    plane = pixels.get('Plane')
+    if plane:
+        if 'PositionX' in plane:
+            position['x'] = convert_to_um(float(plane.get('PositionX')), plane.get('PositionXUnit'))
+        if 'PositionY' in plane:
+            position['y'] = convert_to_um(float(plane.get('PositionY')), plane.get('PositionYUnit'))
+        if 'PositionZ' in plane:
+            position['z'] = convert_to_um(float(plane.get('PositionZ')), plane.get('PositionZUnit'))
+    for channel0 in ensure_list(pixels.get('Channel')):
+        channel = {}
+        if 'Name' in channel0:
+            channel['label'] = channel0['Name']
+        if 'Color' in channel0:
+            channel['color'] = int_to_rgba(channel0['Color'])
+        for key, value in channel0.items():
+            if key not in ['Name', 'Color'] and value is not None:
+                channel[camel_to_snake(key)] = value
+        channels.append(channel)
+    if 'SignificantBits' in pixels:
+        bits_per_pixel = int(pixels['SignificantBits'])
+    else:
+        bits_per_pixel = dtype.itemsize * 8
+
+    microscope_info = camel_to_snake_keys_dict(metadata.get('Instrument'))
+    microscope_info.update(microscope_info.pop('objective', {}))
+
+    return (name, is_plate, pixel_size, position, dtype, bits_per_pixel, channels, microscope_info, acquisition_datetime,
+            wells, list(rows), list(columns), list(fields), image_refs)
 
 
 def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, image_filenames=None, wells=None,
@@ -54,13 +138,15 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
 
         objective = Objective()
         has_objective = False
-        magnification = microscope_info.get('magnification')
+        magnification = microscope_info.get('magnification',
+                                            microscope_info.get('nominal_magnification',
+                                                                microscope_info.get('NominalMagnification')))
         if magnification is not None:
             objective.nominal_magnification = magnification
             has_objective = True
-        n_a = microscope_info.get('n_a')
-        if n_a is not None:
-            objective.lens_na = n_a
+        lens_na = microscope_info.get('n_a', microscope_info.get('lens_na'))
+        if lens_na is not None:
+            objective.lens_na = lens_na
             has_objective = True
 
         if has_microscope or has_objective:
@@ -69,7 +155,7 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
             if has_microscope:
                 instrument.microscope = microscope
             if has_objective:
-                instrument.objective = objective
+                instrument.objectives.append(objective)
             ome.instruments = [instrument]
 
     if source.is_screen():
@@ -157,16 +243,19 @@ def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None
             color = channel.get('color', channel.get('Color'))
             if color is not None:
                 ome_channel.color = Color(rgba_to_int(color))
+            acquisition_mode = channel.get('acquisition_mode', channel.get('AcquisitionMode'))
+            if acquisition_mode:
+                ome_channel.acquisition_mode = acquisition_mode
             emission_wavelength = channel.get('emission_wavelength', channel.get('EmissionWavelength'))
-            if emission_wavelength:
+            if emission_wavelength is not None:
                 ome_channel.emission_wavelength = emission_wavelength
                 ome_channel.emission_wavelength_unit = channel.get('emission_wavelength_unit', UnitsLength.NANOMETER)
             excitation_wavelength = channel.get('excitation_wavelength', channel.get('ExcitationWavelength'))
-            if excitation_wavelength:
+            if excitation_wavelength is not None:
                 ome_channel.excitation_wavelength = excitation_wavelength
                 ome_channel.excitation_wavelength_unit = channel.get('excitation_wavelength_unit', UnitsLength.NANOMETER)
             pinhole_size = channel.get('pinhole_size', channel.get('PinholeSize'))
-            if pinhole_size:
+            if pinhole_size is not None:
                 ome_channel.pinhole_size = pinhole_size
                 pinhole_size_unit = channel.get('pinhole_size_unit', channel.get('PinholeSizeUnit'))
                 if pinhole_size_unit:
@@ -174,9 +263,12 @@ def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None
 
             ome_channels.append(ome_channel)
 
+    pixel_type = str(source.get_dtype())
+    if pixel_type.startswith('float'):
+        pixel_type = PixelType.DOUBLE if '64' in pixel_type else PixelType.FLOAT
     pixels = Pixels(
         dimension_order=Pixels_DimensionOrder(dim_order[::-1].upper()),
-        type=PixelType(str(source.get_dtype())),
+        type=PixelType(pixel_type),
         channels=ome_channels,
         size_t=t, size_c=c, size_z=z, size_y=y, size_x=x,
     )

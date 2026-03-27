@@ -1,4 +1,7 @@
-VERSION = 'v0.1.22'
+VERSION = 'v0.1.23'
+
+OME_DIR = 'OME'
+OME_FILE = 'METADATA.ome.xml'
 
 TILE_SIZE = 1024
 

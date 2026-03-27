@@ -6,11 +6,9 @@ import os.path
 from tifffile import TiffFile, imread, PHOTOMETRIC
 
 from src.ImageSource import ImageSource
-from src.color_conversion import int_to_rgba
-from src.ome_tiff_util import metadata_to_dict, create_row_col_label
+from src.ome_tiff_util import metadata_to_dict, read_ome_xml_metadata
 from src.parameters import TILE_SIZE
-from src.util import convert_to_um, ensure_list, redimension_data, get_filetitle, camel_to_snake, \
-    camel_to_snake_keys_dict
+from src.util import convert_to_um, ensure_list, redimension_data, get_filetitle
 
 
 class TiffSource(ImageSource):
@@ -54,6 +52,12 @@ class TiffSource(ImageSource):
         pixel_size = {}
         position = {}
         channels = []
+        microscope_info = {}
+        wells = {}
+        rows = []
+        columns = []
+        fields = []
+        image_refs = {}
 
         if self.tiff.series:
             pages = self.tiff.series
@@ -76,79 +80,10 @@ class TiffSource(ImageSource):
             metadata = metadata_to_dict(self.tiff.ome_metadata)
             if metadata and not 'BinaryOnly' in metadata:
                 self.metadata = metadata
-            image0 = ensure_list(self.metadata.get('Image', []))[0]
-            self.is_plate = 'Plate' in self.metadata
-            if self.is_plate:
-                plate = self.metadata['Plate']
-                name = plate.get('Name')
-                rows = set()
-                columns = set()
-                fields = set()
-                wells = {}
-                image_refs = {}
-                for well in ensure_list(plate['Well']):
-                    row = create_row_col_label(well['Row'], plate['RowNamingConvention'])
-                    column = create_row_col_label(well['Column'], plate['ColumnNamingConvention'])
-                    rows.add(row)
-                    columns.add(column)
-                    label = f'{row}{column}'
-                    wells[label] = well['ID']
-                    image_refs[label] = {}
-                    for sample in ensure_list(well.get('WellSample')):
-                        sample_id_parts = sample['ID'].split(':')
-                        field_id = sample_id_parts[-1]
-                        fields.add(int(field_id))
-                        image_refs[label][field_id] = sample['ImageRef']['ID']
-                if 'Rows' in plate:
-                    self.rows = [create_row_col_label(row, plate['RowNamingConvention']) for row in range(plate['Rows'])]
-                else:
-                    self.rows = sorted(rows)
-                if 'Columns' in plate:
-                    self.columns = [create_row_col_label(col, plate['ColumnNamingConvention']) for col in range(plate['Columns'])]
-                else:
-                    self.columns = sorted(columns, key=int)
-                self.wells = list(wells.keys())
-                self.fields = sorted(fields)
-                self.image_refs = image_refs
-            else:
-                name = image0.get('Name')
-            if not name:
-                name = get_filetitle(self.uri)
-            self.acquisition_datetime = image0.get('AcquisitionDate')
-            pixels = image0.get('Pixels', {})
-            self.dtype = np.dtype(pixels['Type'])
-            if 'PhysicalSizeX' in pixels:
-                pixel_size['x'] = convert_to_um(float(pixels.get('PhysicalSizeX')), pixels.get('PhysicalSizeXUnit'))
-            if 'PhysicalSizeY' in pixels:
-                pixel_size['y'] = convert_to_um(float(pixels.get('PhysicalSizeY')), pixels.get('PhysicalSizeYUnit'))
-            if 'PhysicalSizeZ' in pixels:
-                pixel_size['z'] = convert_to_um(float(pixels.get('PhysicalSizeZ')), pixels.get('PhysicalSizeZUnit'))
-            plane = pixels.get('Plane')
-            if plane:
-                if 'PositionX' in plane:
-                    position['x'] = convert_to_um(float(plane.get('PositionX')), plane.get('PositionXUnit'))
-                if 'PositionY' in plane:
-                    position['y'] = convert_to_um(float(plane.get('PositionY')), plane.get('PositionYUnit'))
-                if 'PositionZ' in plane:
-                    position['z'] = convert_to_um(float(plane.get('PositionZ')), plane.get('PositionZUnit'))
-            for channel0 in ensure_list(pixels.get('Channel')):
-                channel = {}
-                if 'Name' in channel0:
-                    channel['label'] = channel0['Name']
-                if 'Color' in channel0:
-                    channel['color'] = int_to_rgba(channel0['Color'])
-                for key, value in channel0.items():
-                    if key not in ['Name', 'Color']:
-                        channel[camel_to_snake(key)] = value
-                channels.append(channel)
-            if 'SignificantBits' in pixels:
-                self.bits_per_pixel = int(pixels['SignificantBits'])
-            else:
-                self.bits_per_pixel = self.dtype.itemsize * 8
-
-            self.microscope_info = camel_to_snake_keys_dict(self.metadata.get('Instrument'))
+            (name, is_plate, pixel_size, position, dtype, bits_per_pixel, channels, microscope_info, acquisition_datetime,
+             wells, rows, columns, fields, image_refs) = read_ome_xml_metadata(self.metadata)
         else:
-            self.is_plate = False
+            is_plate = False
             if self.is_imagej:
                 self.imagej_metadata = self.tiff.imagej_metadata
                 pixel_size_unit = self.imagej_metadata.get('unit', '').encode().decode('unicode_escape')
@@ -160,13 +95,13 @@ class TiffSource(ImageSource):
                 if 'spacing' in self.imagej_metadata:
                     pixel_size['z'] = convert_to_um(self.imagej_metadata['spacing'], pixel_size_unit)
             self.metadata = tags_to_dict(self.tiff.pages.first.tags)
-            name = os.path.splitext(self.tiff.filename)[0]
+            name = self.tiff.filename
             if 'DateTime' in self.metadata:
-                self.acquisition_datetime = datetime.strptime(self.metadata['DateTime'],'%Y:%m:%d %H:%M:%S')
+                acquisition_datetime = datetime.strptime(self.metadata['DateTime'],'%Y:%m:%d %H:%M:%S')
             else:
-                self.acquisition_datetime = datetime.fromtimestamp(self.tiff.fstat.st_ctime)
-            self.dtype = page.dtype
-            self.bits_per_pixel = self.dtype.itemsize * 8
+                acquisition_datetime = datetime.fromtimestamp(self.tiff.fstat.st_ctime)
+            dtype = page.dtype
+            bits_per_pixel = self.dtype.itemsize * 8
             res_unit = self.metadata.get('ResolutionUnit', '').lower()
             if res_unit == 'none':
                 res_unit = ''
@@ -178,10 +113,23 @@ class TiffSource(ImageSource):
                 res0 = convert_rational_value(self.metadata.get('YResolution'))
                 if res0 is not None and res0 != 0:
                     pixel_size['y'] = convert_to_um(1 / res0, res_unit)
-        self.name = str(name).rstrip('.tiff').rstrip('.tif').rstrip('.ome')
+
+        if not name:
+            name = get_filetitle(self.uri)
+        self.name = os.path.splitext(str(name))[0].rstrip('.ome')
+        self.acquisition_datetime = acquisition_datetime
+        self.is_plate = is_plate
+        self.wells = wells
+        self.rows = rows
+        self.columns = columns
+        self.fields = fields
+        self.image_refs = image_refs
         self.pixel_size = pixel_size
         self.position = position
         self.channels = channels
+        self.dtype = dtype
+        self.bits_per_pixel = bits_per_pixel
+        self.microscope_info = microscope_info
         return self.metadata
 
     def is_screen(self):

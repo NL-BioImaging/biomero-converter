@@ -5,8 +5,9 @@ import os.path
 import skimage.transform as sk_transform
 
 from src.ImageSource import ImageSource
+from src.ome_tiff_util import metadata_to_dict, read_ome_xml_metadata
 from src.ome_zarr_util import *
-from src.parameters import TILE_SIZE
+from src.parameters import *
 from src.util import convert_to_um, get_level_from_scale, redimension_data, get_filetitle, get_numpy_data
 
 
@@ -81,6 +82,28 @@ class OmeZarrSource(ImageSource):
         self.widths = [shape[x_index] for shape in self.shapes]
         self.dtype = image_node.data[0].dtype
         self.bits_per_pixel = self.dtype.itemsize * 8
+
+        self.channels = []
+        colormaps = self.metadata['colormap']
+        for channeli, channel_name in enumerate(self.metadata['channel_names']):
+            channel = {'label': channel_name}
+            if channeli < len(colormaps):
+                channel['color'] = colormaps[channeli][-1]
+            self.channels.append(channel)
+
+        ome_xml_path = image_node.zarr.subpath(os.path.join(OME_DIR, OME_FILE))
+        if os.path.exists(ome_xml_path):
+            ome_xml_metadata = open(ome_xml_path, encoding='utf-8').read()
+            ome_metadata = metadata_to_dict(ome_xml_metadata)
+            (name, is_plate, pixel_size, position, dtype, bits_per_pixel, channels, microscope_info,
+             acquisition_datetime,
+             wells, rows, columns, fields, image_refs) = read_ome_xml_metadata(ome_metadata)
+            for channel, ome_channel in zip(self.channels, channels):
+                for key, value in ome_channel.items():
+                    if key not in channel:
+                        channel[key] = value
+            self.microscope_info = microscope_info
+
         return self.metadata
 
     def is_screen(self):
@@ -95,12 +118,13 @@ class OmeZarrSource(ImageSource):
     def get_scales(self):
         return self.scales
 
-    def get_data(self, level=0, well_id=None, field_id=None, **kwargs):
+    def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
         if well_id is None and field_id is None:
-            return self.data[level]
+            data = self.data[level]
         else:
             _, nodes = self._get_reader(self.paths[well_id][field_id])
-            return nodes[0].data[level]
+            data = nodes[0].data[level]
+        return redimension_data(data, self.dim_order, dim_order)
 
     def get_data_as_generator(self, dim_order, **kwargs):
         def data_generator(scale=1):
@@ -142,21 +166,17 @@ class OmeZarrSource(ImageSource):
         return self.pixel_size
 
     def get_position_um(self, well_id=None):
-        metadata = self._get_metadata(self.paths[well_id][0])
+        if well_id is not None:
+            metadata = self._get_metadata(self.paths[well_id][0])
+        else:
+            metadata = self.metadata
         for transforms in metadata['coordinateTransformations'][0]:
             if transforms['type'] == 'translation':
                 return {dim:value for dim, value in zip(self.dim_order, transforms['translation'])}
         return {}
 
     def get_channels(self):
-        channels = []
-        colormaps = self.metadata['colormap']
-        for channeli, channel_name in enumerate(self.metadata['channel_names']):
-            channel = {'label': channel_name}
-            if channeli < len(colormaps):
-                channel['color'] = colormaps[channeli][-1]
-            channels.append(channel)
-        return channels
+        return self.channels
 
     def get_nchannels(self):
         return self.shape[self.dim_order.index('c')] if 'c' in self.dim_order else 1
@@ -188,3 +208,6 @@ class OmeZarrSource(ImageSource):
 
     def get_significant_bits(self):
         return self.bits_per_pixel
+
+    def get_microscope_info(self):
+        return self.microscope_info

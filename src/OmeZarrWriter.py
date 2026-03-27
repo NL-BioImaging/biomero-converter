@@ -272,10 +272,10 @@ class OmeZarrWriter(OmeWriter):
         return pixel_size_scales, scaler
 
     def _write_ome_xml(self, filepath, source, wells=None):
-        path = os.path.join(filepath, 'OME')
+        path = os.path.join(filepath, OME_DIR)
         if not os.path.exists(path):
             os.makedirs(path)
-        ome_xml_filename = os.path.join(path, 'METADATA.ome.xml')
+        ome_xml_filename = os.path.join(path, OME_FILE)
         xml_metadata = create_metadata(source, wells=wells, metadata_only=True)
         with open(ome_xml_filename, 'wb') as file:
             file.write(xml_metadata.encode())

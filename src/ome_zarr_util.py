@@ -105,7 +105,7 @@ def create_channel_metadata(dtype, channels, nchannels, is_rgb, window, ome_vers
         else:
             info = np.iinfo(dtype)
             min, max = info.min, info.max
-        if starts and ends:
+        if len(starts) > 0 and len(ends) > 0:
             start, end = starts[channeli], ends[channeli]
         else:
             start, end = min, max
