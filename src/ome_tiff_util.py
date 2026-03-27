@@ -102,7 +102,7 @@ def read_ome_xml_metadata(metadata):
     else:
         bits_per_pixel = dtype.itemsize * 8
 
-    microscope_info = camel_to_snake_keys_dict(metadata.get('Instrument'))
+    microscope_info = camel_to_snake_keys_dict(metadata.get('Instrument', {}))
     microscope_info.update(microscope_info.pop('objective', {}))
 
     return (name, is_plate, pixel_size, position, dtype, bits_per_pixel, channels, microscope_info, acquisition_datetime,
