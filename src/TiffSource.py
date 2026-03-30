@@ -101,7 +101,7 @@ class TiffSource(ImageSource):
             else:
                 acquisition_datetime = datetime.fromtimestamp(self.tiff.fstat.st_ctime)
             dtype = page.dtype
-            bits_per_pixel = self.dtype.itemsize * 8
+            bits_per_pixel = dtype.itemsize * 8
             res_unit = self.metadata.get('ResolutionUnit', '').lower()
             if res_unit == 'none':
                 res_unit = ''

@@ -84,8 +84,8 @@ class OmeZarrSource(ImageSource):
         self.bits_per_pixel = self.dtype.itemsize * 8
 
         self.channels = []
-        colormaps = self.metadata['colormap']
-        for channeli, channel_name in enumerate(self.metadata['channel_names']):
+        colormaps = self.metadata.get('colormap', [])
+        for channeli, channel_name in enumerate(self.metadata.get('channel_names', [])):
             channel = {'label': channel_name}
             if channeli < len(colormaps):
                 channel['color'] = colormaps[channeli][-1]
