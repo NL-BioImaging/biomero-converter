@@ -111,7 +111,7 @@ class ImageDbSource(ImageSource):
             'model': info['DeviceModel'],
             'name': info['DeviceName'],
             'serial_number': info['DeviceSerialNumber'],
-            'objective': info['Objective'],
+            'magnification': info['Objective'],
             'n_a': info['NumericalAperture']
         }
 
