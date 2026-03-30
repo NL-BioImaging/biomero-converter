@@ -13847,7 +13847,7 @@
 
 
 <h3 id="src.ISyntaxSource.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.23&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.24&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
@@ -15612,7 +15612,7 @@
             <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;DeviceModel&#39;</span><span class="p">],</span>
             <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;DeviceName&#39;</span><span class="p">],</span>
             <span class="s1">&#39;serial_number&#39;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;DeviceSerialNumber&#39;</span><span class="p">],</span>
-            <span class="s1">&#39;objective&#39;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;Objective&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;magnification&#39;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;Objective&#39;</span><span class="p">],</span>
             <span class="s1">&#39;n_a&#39;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;NumericalAperture&#39;</span><span class="p">]</span>
         <span class="p">}</span>
 
@@ -23492,7 +23492,7 @@ Incucyte data stores channels separately, not as RGB.</p>
 
 
 <h3 id="src.MiraxSource.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.23&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.24&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
@@ -24912,7 +24912,7 @@ Incucyte data stores channels separately, not as RGB.</p>
 
 
 <h3 id="src.OmeTiffWriter.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.23&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.24&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
@@ -26990,7 +26990,7 @@ Incucyte data stores channels separately, not as RGB.</p>
 
 
 <h3 id="src.OmeZarrSource.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.23&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.24&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
@@ -27345,8 +27345,8 @@ Incucyte data stores channels separately, not as RGB.</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">bits_per_pixel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">*</span> <span class="mi">8</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">channels</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">colormaps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;colormap&#39;</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">channeli</span><span class="p">,</span> <span class="n">channel_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;channel_names&#39;</span><span class="p">]):</span>
+        <span class="n">colormaps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;colormap&#39;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">for</span> <span class="n">channeli</span><span class="p">,</span> <span class="n">channel_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;channel_names&#39;</span><span class="p">,</span> <span class="p">[])):</span>
             <span class="n">channel</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="n">channel_name</span><span class="p">}</span>
             <span class="k">if</span> <span class="n">channeli</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">colormaps</span><span class="p">):</span>
                 <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">colormaps</span><span class="p">[</span><span class="n">channeli</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
@@ -28202,8 +28202,8 @@ Incucyte data stores channels separately, not as RGB.</p>
     <span class="bp">self</span><span class="o">.</span><span class="n">bits_per_pixel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">*</span> <span class="mi">8</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">channels</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">colormaps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;colormap&#39;</span><span class="p">]</span>
-    <span class="k">for</span> <span class="n">channeli</span><span class="p">,</span> <span class="n">channel_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;channel_names&#39;</span><span class="p">]):</span>
+    <span class="n">colormaps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;colormap&#39;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="k">for</span> <span class="n">channeli</span><span class="p">,</span> <span class="n">channel_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;channel_names&#39;</span><span class="p">,</span> <span class="p">[])):</span>
         <span class="n">channel</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="n">channel_name</span><span class="p">}</span>
         <span class="k">if</span> <span class="n">channeli</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">colormaps</span><span class="p">):</span>
             <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">colormaps</span><span class="p">[</span><span class="n">channeli</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
@@ -29318,7 +29318,7 @@ Incucyte data stores channels separately, not as RGB.</p>
 
 
 <h3 id="src.OmeZarrWriter.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.23&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.24&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
@@ -31536,7 +31536,7 @@ Supports both single images and high-content screening (HCS) plates.</p>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">acquisition_datetime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tiff</span><span class="o">.</span><span class="n">fstat</span><span class="o">.</span><span class="n">st_ctime</span><span class="p">)</span>
             <span class="n">dtype</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">dtype</span>
-            <span class="n">bits_per_pixel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">*</span> <span class="mi">8</span>
+            <span class="n">bits_per_pixel</span> <span class="o">=</span> <span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">*</span> <span class="mi">8</span>
             <span class="n">res_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ResolutionUnit&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">res_unit</span> <span class="o">==</span> <span class="s1">&#39;none&#39;</span><span class="p">:</span>
                 <span class="n">res_unit</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
@@ -32555,7 +32555,7 @@ Supports both single images and high-content screening (HCS) plates.</p>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">acquisition_datetime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tiff</span><span class="o">.</span><span class="n">fstat</span><span class="o">.</span><span class="n">st_ctime</span><span class="p">)</span>
         <span class="n">dtype</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">dtype</span>
-        <span class="n">bits_per_pixel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">*</span> <span class="mi">8</span>
+        <span class="n">bits_per_pixel</span> <span class="o">=</span> <span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">*</span> <span class="mi">8</span>
         <span class="n">res_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ResolutionUnit&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">res_unit</span> <span class="o">==</span> <span class="s1">&#39;none&#39;</span><span class="p">:</span>
             <span class="n">res_unit</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
@@ -37477,7 +37477,7 @@ Supports both single images and high-content screening (HCS) plates.</p>
 
 
 <h3 id="src.parameters.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.23&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.24&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
