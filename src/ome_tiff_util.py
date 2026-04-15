@@ -93,6 +93,7 @@ def read_ome_xml_metadata(metadata):
             channel['label'] = channel0['Name']
         if 'Color' in channel0:
             channel['color'] = int_to_rgba(channel0['Color'])
+        # all additional channel metadata
         for key, value in channel0.items():
             if key not in ['Name', 'Color'] and value is not None:
                 channel[camel_to_snake(key)] = value
@@ -102,8 +103,10 @@ def read_ome_xml_metadata(metadata):
     else:
         bits_per_pixel = dtype.itemsize * 8
 
+    # all additional metadata
     microscope_info = camel_to_snake_keys_dict(metadata.get('Instrument', {}))
     microscope_info.update(microscope_info.pop('objective', {}))
+    microscope_info.update(camel_to_snake_keys_dict(image0.get('ObjectiveSettings', {})))
 
     return (name, is_plate, pixel_size, position, dtype, bits_per_pixel, channels, microscope_info, acquisition_datetime,
             wells, list(rows), list(columns), list(fields), image_refs)
@@ -148,6 +151,15 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
         if lens_na is not None:
             objective.lens_na = lens_na
             has_objective = True
+        working_distance = microscope_info.get('working_distance')
+        if working_distance is not None:
+            objective.working_distance = working_distance
+            objective.working_distance_unit = microscope_info.get('working_distance_unit', UnitsLength.MICROMETER)
+            has_objective = True
+        immersion = microscope_info.get('immersion')
+        if immersion:
+            ome_immersion = Objective_Immersion(immersion)
+            objective.immersion = ome_immersion
 
         if has_microscope or has_objective:
             instrument = Instrument()
@@ -155,6 +167,7 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
             if has_microscope:
                 instrument.microscope = microscope
             if has_objective:
+                objective_id = objective.id
                 instrument.objectives.append(objective)
             ome.instruments = [instrument]
 
@@ -302,7 +315,12 @@ def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None
     if instrument_id is not None:
         image.instrument_ref = InstrumentRef(id=instrument_id)
     if objective_id is not None:
-        image.objective_settings = ObjectiveSettings(id=objective_id)
+        objective_settings = ObjectiveSettings(id=objective_id)
+        info = source.get_microscope_info()
+        refractive_index = info.get('refractive_index')
+        if refractive_index is not None:
+            objective_settings.refractive_index = refractive_index
+        image.objective_settings = objective_settings
     return image
 
 

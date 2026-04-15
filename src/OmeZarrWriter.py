@@ -18,7 +18,7 @@ from skimage.transform import resize
 import zarr
 
 from src.OmeWriter import OmeWriter
-from src.ome_tiff_util import create_metadata
+from src.ome_tiff_util import create_metadata, reset_ome_ids
 from src.ome_zarr_util import *
 from src.parameters import *
 from src.util import split_well_name, print_hbytes, get_level_from_scale
@@ -272,6 +272,7 @@ class OmeZarrWriter(OmeWriter):
         return pixel_size_scales, scaler
 
     def _write_ome_xml(self, filepath, source, wells=None):
+        reset_ome_ids()
         path = os.path.join(filepath, OME_DIR)
         if not os.path.exists(path):
             os.makedirs(path)
