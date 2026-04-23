@@ -319,11 +319,13 @@ class ImageDbSource(ImageSource):
                 channel['label'] = channel0['Dye']
             if 'Color' in channel0:
                 channel['color'] = hexrgb_to_rgba(channel0['Color'].lstrip('#'))
-            if 'Emission' in channel0:
-                channel['emission_wavelength'] = channel0['Emission']
+            emission = channel0.get('Emission')
+            if emission:
+                channel['emission_wavelength'] = emission
                 channel['emission_wavelength_unit'] = 'nm'
-            if 'Excitation' in channel0:
-                channel['excitation_wavelength'] = channel0['Excitation']
+            excitation = channel0.get('Excitation')
+            if excitation:
+                channel['excitation_wavelength'] = excitation
                 channel['excitation_wavelength_unit'] = 'nm'
             channels.append(channel)
         return channels

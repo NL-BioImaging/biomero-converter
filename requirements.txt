@@ -2,7 +2,8 @@ ome-zarr
 tifffile
 imagecodecs
 imageio
-ome-types==0.6.2
+ome-types>=0.6.2
+rocrate>=0.15.0
 dask[array]
 psutil
 pyisyntax
