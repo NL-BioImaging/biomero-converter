@@ -13847,7 +13847,7 @@
 
 
 <h3 id="src.ISyntaxSource.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.26&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.27&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
@@ -15511,7 +15511,9 @@
 <span class="normal">382</span>
 <span class="normal">383</span>
 <span class="normal">384</span>
-<span class="normal">385</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ImageDbSource</span><span class="p">(</span><span class="n">ImageSource</span><span class="p">):</span>
+<span class="normal">385</span>
+<span class="normal">386</span>
+<span class="normal">387</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ImageDbSource</span><span class="p">(</span><span class="n">ImageSource</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads image and metadata from a database source for high-content screening.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -15820,11 +15822,13 @@
                 <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">channel0</span><span class="p">[</span><span class="s1">&#39;Dye&#39;</span><span class="p">]</span>
             <span class="k">if</span> <span class="s1">&#39;Color&#39;</span> <span class="ow">in</span> <span class="n">channel0</span><span class="p">:</span>
                 <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hexrgb_to_rgba</span><span class="p">(</span><span class="n">channel0</span><span class="p">[</span><span class="s1">&#39;Color&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">))</span>
-            <span class="k">if</span> <span class="s1">&#39;Emission&#39;</span> <span class="ow">in</span> <span class="n">channel0</span><span class="p">:</span>
-                <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;emission_wavelength&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">channel0</span><span class="p">[</span><span class="s1">&#39;Emission&#39;</span><span class="p">]</span>
+            <span class="n">emission</span> <span class="o">=</span> <span class="n">channel0</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Emission&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">emission</span><span class="p">:</span>
+                <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;emission_wavelength&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">emission</span>
                 <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;emission_wavelength_unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;nm&#39;</span>
-            <span class="k">if</span> <span class="s1">&#39;Excitation&#39;</span> <span class="ow">in</span> <span class="n">channel0</span><span class="p">:</span>
-                <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;excitation_wavelength&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">channel0</span><span class="p">[</span><span class="s1">&#39;Excitation&#39;</span><span class="p">]</span>
+            <span class="n">excitation</span> <span class="o">=</span> <span class="n">channel0</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Excitation&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">excitation</span><span class="p">:</span>
+                <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;excitation_wavelength&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">excitation</span>
                 <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;excitation_wavelength_unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;nm&#39;</span>
             <span class="n">channels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">channel</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">channels</span>
@@ -16049,11 +16053,11 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/ImageDbSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">381</span>
-<span class="normal">382</span>
-<span class="normal">383</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">383</span>
 <span class="normal">384</span>
-<span class="normal">385</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">385</span>
+<span class="normal">386</span>
+<span class="normal">387</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Closes the database connection.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -16078,8 +16082,8 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/ImageDbSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">349</span>
-<span class="normal">350</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_acquisition_datetime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">351</span>
+<span class="normal">352</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_acquisition_datetime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;DateCreated&#39;</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -16101,9 +16105,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/ImageDbSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">337</span>
-<span class="normal">338</span>
-<span class="normal">339</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">339</span>
 <span class="normal">340</span>
 <span class="normal">341</span>
 <span class="normal">342</span>
@@ -16111,7 +16113,9 @@
 <span class="normal">344</span>
 <span class="normal">345</span>
 <span class="normal">346</span>
-<span class="normal">347</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_acquisitions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">347</span>
+<span class="normal">348</span>
+<span class="normal">349</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_acquisitions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">acquisitions</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">acq</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acquisitions</span><span class="p">):</span>
         <span class="n">acquisitions</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
@@ -16157,7 +16161,9 @@
 <span class="normal">326</span>
 <span class="normal">327</span>
 <span class="normal">328</span>
-<span class="normal">329</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">329</span>
+<span class="normal">330</span>
+<span class="normal">331</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">channels</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">channel0</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">channels</span><span class="p">:</span>
         <span class="n">channel</span> <span class="o">=</span> <span class="p">{}</span>
@@ -16165,11 +16171,13 @@
             <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">channel0</span><span class="p">[</span><span class="s1">&#39;Dye&#39;</span><span class="p">]</span>
         <span class="k">if</span> <span class="s1">&#39;Color&#39;</span> <span class="ow">in</span> <span class="n">channel0</span><span class="p">:</span>
             <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hexrgb_to_rgba</span><span class="p">(</span><span class="n">channel0</span><span class="p">[</span><span class="s1">&#39;Color&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">))</span>
-        <span class="k">if</span> <span class="s1">&#39;Emission&#39;</span> <span class="ow">in</span> <span class="n">channel0</span><span class="p">:</span>
-            <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;emission_wavelength&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">channel0</span><span class="p">[</span><span class="s1">&#39;Emission&#39;</span><span class="p">]</span>
+        <span class="n">emission</span> <span class="o">=</span> <span class="n">channel0</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Emission&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">emission</span><span class="p">:</span>
+            <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;emission_wavelength&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">emission</span>
             <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;emission_wavelength_unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;nm&#39;</span>
-        <span class="k">if</span> <span class="s1">&#39;Excitation&#39;</span> <span class="ow">in</span> <span class="n">channel0</span><span class="p">:</span>
-            <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;excitation_wavelength&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">channel0</span><span class="p">[</span><span class="s1">&#39;Excitation&#39;</span><span class="p">]</span>
+        <span class="n">excitation</span> <span class="o">=</span> <span class="n">channel0</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Excitation&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">excitation</span><span class="p">:</span>
+            <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;excitation_wavelength&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">excitation</span>
             <span class="n">channel</span><span class="p">[</span><span class="s1">&#39;excitation_wavelength_unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;nm&#39;</span>
         <span class="n">channels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">channel</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">channels</span>
@@ -16316,8 +16324,8 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/ImageDbSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">378</span>
-<span class="normal">379</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_microscope_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">380</span>
+<span class="normal">381</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_microscope_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">microscope_info</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -16368,8 +16376,8 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/ImageDbSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">331</span>
-<span class="normal">332</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_nchannels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">333</span>
+<span class="normal">334</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_nchannels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nchannels</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -16535,8 +16543,8 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/ImageDbSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">352</span>
-<span class="normal">353</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_significant_bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">354</span>
+<span class="normal">355</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_significant_bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bits_per_pixel</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -16637,8 +16645,8 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/ImageDbSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">334</span>
-<span class="normal">335</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_rgb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">336</span>
+<span class="normal">337</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_rgb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="kc">False</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -16683,9 +16691,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/ImageDbSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">355</span>
-<span class="normal">356</span>
-<span class="normal">357</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">357</span>
 <span class="normal">358</span>
 <span class="normal">359</span>
 <span class="normal">360</span>
@@ -16704,7 +16710,9 @@
 <span class="normal">373</span>
 <span class="normal">374</span>
 <span class="normal">375</span>
-<span class="normal">376</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">print_timepoint_well_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">376</span>
+<span class="normal">377</span>
+<span class="normal">378</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">print_timepoint_well_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
 
     <span class="n">time_points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_points</span>
@@ -23492,7 +23500,7 @@ Incucyte data stores channels separately, not as RGB.</p>
 
 
 <h3 id="src.MiraxSource.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.26&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.27&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
@@ -24912,7 +24920,7 @@ Incucyte data stores channels separately, not as RGB.</p>
 
 
 <h3 id="src.OmeTiffWriter.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.26&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.27&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
@@ -26990,7 +26998,7 @@ Incucyte data stores channels separately, not as RGB.</p>
 
 
 <h3 id="src.OmeZarrSource.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.26&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.27&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
@@ -29318,7 +29326,7 @@ Incucyte data stores channels separately, not as RGB.</p>
 
 
 <h3 id="src.OmeZarrWriter.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.26&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.27&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
@@ -37515,7 +37523,7 @@ Supports both single images and high-content screening (HCS) plates.</p>
 
 
 <h3 id="src.parameters.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.26&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.27&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
