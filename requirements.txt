@@ -1,4 +1,4 @@
-ome-zarr
+ome-zarr>=v0.16.0
 tifffile
 imagecodecs
 imageio
