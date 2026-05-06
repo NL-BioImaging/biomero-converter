@@ -4331,10 +4331,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#src.OmeZarrWriter.OmeZarrWriter.zarr_version" class="md-nav__link">
+  <a href="#src.OmeZarrWriter.OmeZarrWriter.zarr_format" class="md-nav__link">
     <span class="md-ellipsis">
       
-        zarr_version
+        zarr_format
       
     </span>
   </a>
@@ -9848,10 +9848,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#src.OmeZarrWriter.OmeZarrWriter.zarr_version" class="md-nav__link">
+  <a href="#src.OmeZarrWriter.OmeZarrWriter.zarr_format" class="md-nav__link">
     <span class="md-ellipsis">
       
-        zarr_version
+        zarr_format
       
     </span>
   </a>
@@ -13847,7 +13847,7 @@
 
 
 <h3 id="src.ISyntaxSource.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.27&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.28&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
@@ -23500,7 +23500,7 @@ Incucyte data stores channels separately, not as RGB.</p>
 
 
 <h3 id="src.MiraxSource.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.27&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.28&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
@@ -24920,7 +24920,7 @@ Incucyte data stores channels separately, not as RGB.</p>
 
 
 <h3 id="src.OmeTiffWriter.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.27&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.28&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
@@ -26998,7 +26998,7 @@ Incucyte data stores channels separately, not as RGB.</p>
 
 
 <h3 id="src.OmeZarrSource.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.27&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.28&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
@@ -29326,7 +29326,7 @@ Incucyte data stores channels separately, not as RGB.</p>
 
 
 <h3 id="src.OmeZarrWriter.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.27&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.28&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
@@ -29666,13 +29666,14 @@ Supports both single images and high-content screening (HCS) plates.</p>
 <span class="normal">279</span>
 <span class="normal">280</span>
 <span class="normal">281</span>
-<span class="normal">282</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">OmeZarrWriter</span><span class="p">(</span><span class="n">OmeWriter</span><span class="p">):</span>
+<span class="normal">282</span>
+<span class="normal">283</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">OmeZarrWriter</span><span class="p">(</span><span class="n">OmeWriter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Writer for exporting image or screen data to OME-Zarr format.</span>
 <span class="sd">    Supports both single images and high-content screening (HCS) plates.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zarr_version</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ome_version</span><span class="o">=</span><span class="s1">&#39;0.4&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ome_version</span><span class="o">=</span><span class="s1">&#39;0.4&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize the OmeZarrWriter.</span>
 
@@ -29682,12 +29683,13 @@ Supports both single images and high-content screening (HCS) plates.</p>
 <span class="sd">            verbose (bool): If True, print additional information.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">zarr_version</span> <span class="o">=</span> <span class="n">zarr_version</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ome_version</span> <span class="o">=</span> <span class="n">ome_version</span>
         <span class="k">if</span> <span class="n">ome_version</span> <span class="o">==</span> <span class="s1">&#39;0.4&#39;</span><span class="p">:</span>
             <span class="kn">from</span><span class="w"> </span><span class="nn">ome_zarr.format</span><span class="w"> </span><span class="kn">import</span> <span class="n">FormatV04</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">zarr_format</span> <span class="o">=</span> <span class="mi">2</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ome_format</span> <span class="o">=</span> <span class="n">FormatV04</span><span class="p">()</span>
         <span class="k">elif</span> <span class="n">ome_version</span> <span class="o">==</span> <span class="s1">&#39;0.5&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">zarr_format</span> <span class="o">=</span> <span class="mi">3</span>
             <span class="kn">from</span><span class="w"> </span><span class="nn">ome_zarr.format</span><span class="w"> </span><span class="kn">import</span> <span class="n">FormatV05</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ome_format</span> <span class="o">=</span> <span class="n">FormatV05</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
@@ -29735,7 +29737,7 @@ Supports both single images and high-content screening (HCS) plates.</p>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1">#zarr_location = parse_url(filename, mode=&#39;w&#39;, fmt=self.ome_format)</span>
         <span class="n">zarr_location</span> <span class="o">=</span> <span class="n">filepath</span>
-        <span class="n">zarr_root</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">zarr_location</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">zarr_version</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">zarr_version</span><span class="p">)</span>
+        <span class="n">zarr_root</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">zarr_location</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">zarr_format</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">zarr_format</span><span class="p">)</span>
 
         <span class="n">row_names</span> <span class="o">=</span> <span class="p">[</span><span class="nb">chr</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="s1">&#39;A&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">index</span><span class="p">)</span> <span class="k">for</span> <span class="n">index</span>
                      <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">max</span><span class="p">([</span><span class="nb">ord</span><span class="p">(</span><span class="n">row_name</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span> <span class="o">-</span> <span class="nb">ord</span><span class="p">(</span><span class="s1">&#39;A&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">row_name</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">get_rows</span><span class="p">()])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
@@ -29781,7 +29783,7 @@ Supports both single images and high-content screening (HCS) plates.</p>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1">#zarr_location = parse_url(filename, mode=&#39;w&#39;, fmt=self.ome_format)</span>
         <span class="n">zarr_location</span> <span class="o">=</span> <span class="n">filepath</span>
-        <span class="n">zarr_root</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">zarr_location</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">zarr_version</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">zarr_version</span><span class="p">)</span>
+        <span class="n">zarr_root</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">zarr_location</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">zarr_format</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">zarr_format</span><span class="p">)</span>
 
         <span class="n">nlevels</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">get_scales</span><span class="p">())</span>
         <span class="n">size0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span> <span class="o">*</span> <span class="n">source</span><span class="o">.</span><span class="n">get_dtype</span><span class="p">()</span><span class="o">.</span><span class="n">itemsize</span>
@@ -29855,7 +29857,7 @@ Supports both single images and high-content screening (HCS) plates.</p>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">data0</span> <span class="o">=</span> <span class="n">data</span>
         <span class="n">storage_options</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">zarr_version</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ome_version</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mf">0.5</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data0</span><span class="p">,</span> <span class="s1">&#39;chunksize&#39;</span><span class="p">):</span>
                 <span class="n">chunks</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="n">shards</span> <span class="o">=</span> <span class="p">[]</span>
@@ -30018,8 +30020,8 @@ Supports both single images and high-content screening (HCS) plates.</p>
 
 
 
-<h4 id="src.OmeZarrWriter.OmeZarrWriter.zarr_version" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">zarr_version</span> <span class="o">=</span> <span class="n">zarr_version</span></code>
+<h4 id="src.OmeZarrWriter.OmeZarrWriter.zarr_format" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">zarr_format</span> <span class="o">=</span> <span class="mi">2</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
@@ -30041,7 +30043,7 @@ Supports both single images and high-content screening (HCS) plates.</p>
 
 
 <h4 id="src.OmeZarrWriter.OmeZarrWriter.__init__" class="doc doc-heading">
-            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">zarr_version</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ome_version</span><span class="o">=</span><span class="s1">&#39;0.4&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">ome_version</span><span class="o">=</span><span class="s1">&#39;0.4&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
 
 </h4>
 
@@ -30075,7 +30077,7 @@ Supports both single images and high-content screening (HCS) plates.</p>
               </div>
             </td>
             <td>
-                  <code>2</code>
+                <em>required</em>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -30137,7 +30139,8 @@ Supports both single images and high-content screening (HCS) plates.</p>
 <span class="normal">52</span>
 <span class="normal">53</span>
 <span class="normal">54</span>
-<span class="normal">55</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zarr_version</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ome_version</span><span class="o">=</span><span class="s1">&#39;0.4&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="normal">55</span>
+<span class="normal">56</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ome_version</span><span class="o">=</span><span class="s1">&#39;0.4&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Initialize the OmeZarrWriter.</span>
 
@@ -30147,12 +30150,13 @@ Supports both single images and high-content screening (HCS) plates.</p>
 <span class="sd">        verbose (bool): If True, print additional information.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">zarr_version</span> <span class="o">=</span> <span class="n">zarr_version</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">ome_version</span> <span class="o">=</span> <span class="n">ome_version</span>
     <span class="k">if</span> <span class="n">ome_version</span> <span class="o">==</span> <span class="s1">&#39;0.4&#39;</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">ome_zarr.format</span><span class="w"> </span><span class="kn">import</span> <span class="n">FormatV04</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zarr_format</span> <span class="o">=</span> <span class="mi">2</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ome_format</span> <span class="o">=</span> <span class="n">FormatV04</span><span class="p">()</span>
     <span class="k">elif</span> <span class="n">ome_version</span> <span class="o">==</span> <span class="s1">&#39;0.5&#39;</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zarr_format</span> <span class="o">=</span> <span class="mi">3</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">ome_zarr.format</span><span class="w"> </span><span class="kn">import</span> <span class="n">FormatV05</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ome_format</span> <span class="o">=</span> <span class="n">FormatV05</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
@@ -30264,8 +30268,7 @@ Supports both single images and high-content screening (HCS) plates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/OmeZarrWriter.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">57</span>
-<span class="normal">58</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">58</span>
 <span class="normal">59</span>
 <span class="normal">60</span>
 <span class="normal">61</span>
@@ -30288,7 +30291,8 @@ Supports both single images and high-content screening (HCS) plates.</p>
 <span class="normal">78</span>
 <span class="normal">79</span>
 <span class="normal">80</span>
-<span class="normal">81</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">81</span>
+<span class="normal">82</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Write the provided source data to an OME-Zarr file.</span>
 
@@ -34579,12 +34583,7 @@ Supports both single images and high-content screening (HCS) plates.</p>
 <span class="normal">148</span>
 <span class="normal">149</span>
 <span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_writer</span><span class="p">(</span><span class="n">output_format</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="normal">151</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_writer</span><span class="p">(</span><span class="n">output_format</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create a writer object and output extension based on the output format.</span>
 
@@ -34599,14 +34598,9 @@ Supports both single images and high-content screening (HCS) plates.</p>
 <span class="sd">        ValueError: If the output format is unsupported.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="s1">&#39;zar&#39;</span> <span class="ow">in</span> <span class="n">output_format</span><span class="p">:</span>
-        <span class="k">if</span> <span class="s1">&#39;3&#39;</span> <span class="ow">in</span> <span class="n">output_format</span><span class="p">:</span>
-            <span class="n">zarr_version</span> <span class="o">=</span> <span class="mi">3</span>
-            <span class="n">ome_version</span> <span class="o">=</span> <span class="s1">&#39;0.5&#39;</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">zarr_version</span> <span class="o">=</span> <span class="mi">2</span>
-            <span class="n">ome_version</span> <span class="o">=</span> <span class="s1">&#39;0.4&#39;</span>
+        <span class="n">ome_version</span> <span class="o">=</span> <span class="s1">&#39;0.5&#39;</span> <span class="k">if</span> <span class="s1">&#39;3&#39;</span> <span class="ow">in</span> <span class="n">output_format</span> <span class="k">else</span> <span class="s1">&#39;0.4&#39;</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">src.OmeZarrWriter</span><span class="w"> </span><span class="kn">import</span> <span class="n">OmeZarrWriter</span>
-        <span class="n">writer</span> <span class="o">=</span> <span class="n">OmeZarrWriter</span><span class="p">(</span><span class="n">zarr_version</span><span class="o">=</span><span class="n">zarr_version</span><span class="p">,</span> <span class="n">ome_version</span><span class="o">=</span><span class="n">ome_version</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="n">writer</span> <span class="o">=</span> <span class="n">OmeZarrWriter</span><span class="p">(</span><span class="n">ome_version</span><span class="o">=</span><span class="n">ome_version</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
         <span class="n">ext</span> <span class="o">=</span> <span class="s1">&#39;.ome.zarr&#39;</span>
     <span class="k">elif</span> <span class="s1">&#39;tif&#39;</span> <span class="ow">in</span> <span class="n">output_format</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">src.OmeTiffWriter</span><span class="w"> </span><span class="kn">import</span> <span class="n">OmeTiffWriter</span>
@@ -37523,7 +37517,7 @@ Supports both single images and high-content screening (HCS) plates.</p>
 
 
 <h3 id="src.parameters.VERSION" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.27&#39;</span></code>
+            <code class="highlight language-python"><span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;v0.1.28&#39;</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
