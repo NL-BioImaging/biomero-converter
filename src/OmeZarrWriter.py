@@ -31,7 +31,7 @@ class OmeZarrWriter(OmeWriter):
     Supports both single images and high-content screening (HCS) plates.
     """
 
-    def __init__(self, zarr_version=2, ome_version='0.4', verbose=False):
+    def __init__(self, ome_version='0.4', verbose=False):
         """
         Initialize the OmeZarrWriter.
 
@@ -41,12 +41,13 @@ class OmeZarrWriter(OmeWriter):
             verbose (bool): If True, print additional information.
         """
         super().__init__()
-        self.zarr_version = zarr_version
         self.ome_version = ome_version
         if ome_version == '0.4':
             from ome_zarr.format import FormatV04
+            self.zarr_format = 2
             self.ome_format = FormatV04()
         elif ome_version == '0.5':
+            self.zarr_format = 3
             from ome_zarr.format import FormatV05
             self.ome_format = FormatV05()
         else:
@@ -94,7 +95,7 @@ class OmeZarrWriter(OmeWriter):
         """
         #zarr_location = parse_url(filename, mode='w', fmt=self.ome_format)
         zarr_location = filepath
-        zarr_root = zarr.open_group(zarr_location, mode='w', zarr_version=self.zarr_version)
+        zarr_root = zarr.open_group(zarr_location, mode='w', zarr_format=self.zarr_format)
 
         row_names = [chr(ord('A') + index) for index
                      in range(max([ord(row_name.upper()) - ord('A') for row_name in source.get_rows()]) + 1)]
@@ -140,7 +141,7 @@ class OmeZarrWriter(OmeWriter):
         """
         #zarr_location = parse_url(filename, mode='w', fmt=self.ome_format)
         zarr_location = filepath
-        zarr_root = zarr.open_group(zarr_location, mode='w', zarr_version=self.zarr_version)
+        zarr_root = zarr.open_group(zarr_location, mode='w', zarr_format=self.zarr_format)
 
         nlevels = len(source.get_scales())
         size0 = np.prod(source.get_shape()) * source.get_dtype().itemsize
@@ -214,7 +215,7 @@ class OmeZarrWriter(OmeWriter):
         else:
             data0 = data
         storage_options = None
-        if self.zarr_version >= 3:
+        if float(self.ome_version) >= 0.5:
             if not hasattr(data0, 'chunksize'):
                 chunks = []
                 shards = []
