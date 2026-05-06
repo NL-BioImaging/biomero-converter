@@ -1,4 +1,4 @@
-VERSION = 'v0.1.28'
+VERSION = 'v0.1.29'
 
 OME_DIR = 'OME'
 OME_FILE = 'METADATA.ome.xml'
