@@ -138,14 +138,9 @@ def create_writer(output_format, verbose=False):
         ValueError: If the output format is unsupported.
     """
     if 'zar' in output_format:
-        if '3' in output_format:
-            zarr_version = 3
-            ome_version = '0.5'
-        else:
-            zarr_version = 2
-            ome_version = '0.4'
+        ome_version = '0.5' if '3' in output_format else '0.4'
         from src.OmeZarrWriter import OmeZarrWriter
-        writer = OmeZarrWriter(zarr_version=zarr_version, ome_version=ome_version, verbose=verbose)
+        writer = OmeZarrWriter(ome_version=ome_version, verbose=verbose)
         ext = '.ome.zarr'
     elif 'tif' in output_format:
         from src.OmeTiffWriter import OmeTiffWriter
