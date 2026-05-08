@@ -306,4 +306,4 @@ class OmeZarrWriter(OmeWriter):
             wells: Optional list of well names.
             **kwargs:
         """
-        crate = create_ro_crate(source)
+        create_ro_crate(source=source, dest_path=filepath)
