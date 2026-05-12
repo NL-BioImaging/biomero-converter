@@ -9,7 +9,7 @@ from src.rembi_extension import ImageAcquistion
 from src.zarr_extension import ZarrCrate
 
 
-def create_ro_crate(source, dest_path, acquisition_properties={}):
+def create_ro_crate(source, dest_path={}):
     crate = ZarrCrate()
 
     properties = {}
@@ -18,7 +18,7 @@ def create_ro_crate(source, dest_path, acquisition_properties={}):
     #properties["license"] = source.get_license()
     crate.add_dataset(dest_path='.', properties=properties)
 
-    acquisition_properties |= {'fbbi_id': {'@id': 'obo:FBbi_00000257'}}
+    acquisition_properties = {'fbbi_id': {'@id': 'obo:FBbi_00000257'}}
     crate.add(ImageAcquistion(crate, properties=acquisition_properties))
 
 #    crate.add(ComputationalWorkflow(crate, workflow_schema_filename))
