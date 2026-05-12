@@ -19,6 +19,7 @@ def create_ro_crate(source, dest_path={}):
     crate.add_dataset(dest_path='.', properties=properties)
 
     acquisition_properties = {'fbbi_id': {'@id': 'obo:FBbi_00000257'}}
+    # TODO: add to acquisition_properties from source
     crate.add(ImageAcquistion(crate, properties=acquisition_properties))
 
 #    crate.add(ComputationalWorkflow(crate, workflow_schema_filename))
