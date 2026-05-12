@@ -15,10 +15,26 @@ from src.util import print_dict, print_hbytes
 
 
 class TestConvert:
-    filenames = ['DB/TestData1/experiment.db', 'isyntax/small.isyntax', '3DHistech/sample4.mrxs', 'EM04573_01small.ome.tif']
-    input_filenames = ['C:/Project/slides/' + filename for filename in filenames]
+    filenames = ['DB/CellsSmall/experiment.db',
+                 'isyntax/small.isyntax',
+                 '3DHistech/sample4.mrxs',
+                 'EM04573_01small.ome.tif',
+                 'incucyte/251125_morphology_XW_2/20251125_morphology_XW2.icarch']
+    #filenames = ['incucyte/251125_morphology_XW_2/20251125_morphology_XW2.icarch']
+    #filenames = ['incucyte/251125_morphology_XW_2_plate1450.ome.zarr']
+    #filenames = ['DB/20220714_TKI_482_small/experiment.db']
+    #filenames = ['DB/20220714_TKI_482/experiment.db']
+    #filenames = ['XRays/DICOMDIR']
+    #filenames = ['XRays/DICOM/PA000001/ST000001/SE000006']
+    #filenames = ['XRays/DICOM/PA000002/ST000002/SE000007']
+    #filenames = ['rgb.tiff']
+    #filenames = ['cideconvolve/Vesicles.ome.tiff']
+
+    input_filenames = ['D:/slides/' + filename for filename in filenames]
+    #input_filenames = glob.glob('D:/slides/XRays/DICOM/PA*/ST*/SE*')
 
     output_formats = ['omezarr3', 'omezarr2', 'ometiff']
+    #output_formats = ['omezarr3']
 
     @pytest.mark.parametrize(
         "input_filename", input_filenames
@@ -84,7 +100,7 @@ if __name__ == '__main__':
     from pathlib import Path
 
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-    for module in ['ome_zarr', 'zarr', 'numcodecs']:
+    for module in ['ome_zarr', 'zarr', 'numcodecs', 'asyncio']:
         logging.getLogger(module).setLevel(logging.WARNING)
 
     test = TestConvert()

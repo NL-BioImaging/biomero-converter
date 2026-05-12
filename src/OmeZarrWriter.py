@@ -21,6 +21,7 @@ from src.OmeWriter import OmeWriter
 from src.ome_tiff_util import create_metadata, reset_ome_ids
 from src.ome_zarr_util import *
 from src.parameters import *
+from src.rocrate_utils import create_ro_crate
 from src.util import split_well_name, print_hbytes, get_level_from_scale
 from src.WindowScanner import WindowScanner
 
@@ -55,7 +56,7 @@ class OmeZarrWriter(OmeWriter):
         self.verbose = verbose
         self.dim_order = 'tczyx'
 
-    def write(self, filepath, source, **kwargs):
+    def write(self, filepath, source, write_xml=True, write_rocrate=True, **kwargs):
         """
         Write the provided source data to an OME-Zarr file.
 
@@ -74,7 +75,11 @@ class OmeZarrWriter(OmeWriter):
 
         zarr_root.attrs['_creator'] = {'name': 'nl.biomero.OmeZarrWriter', 'version': VERSION}
 
-        self._write_ome_xml(filepath, source, **kwargs)
+        if write_xml:
+            self._write_ome_xml(filepath, source, **kwargs)
+
+        if write_rocrate:
+            self._write_ro_crate(filepath, source, **kwargs)
 
         if self.verbose:
             print(f'Total data written: {print_hbytes(total_size)}')
@@ -272,7 +277,16 @@ class OmeZarrWriter(OmeWriter):
             factor *= scaler.downscale
         return pixel_size_scales, scaler
 
-    def _write_ome_xml(self, filepath, source, wells=None):
+    def _write_ome_xml(self, filepath, source, wells=None, **kwargs):
+        """
+        Write ome xml metadata to a Zarr file.
+
+        Args:
+            filepath: output file path.
+            source: source reader.
+            wells: Optional list of well names.
+            **kwargs:
+        """
         reset_ome_ids()
         path = os.path.join(filepath, OME_DIR)
         if not os.path.exists(path):
@@ -281,3 +295,15 @@ class OmeZarrWriter(OmeWriter):
         xml_metadata = create_metadata(source, wells=wells, metadata_only=True)
         with open(ome_xml_filename, 'wb') as file:
             file.write(xml_metadata.encode())
+
+    def _write_ro_crate(self, filepath, source, wells=None, **kwargs):
+        """
+        Write RO-Crate metadata to a Zarr file.
+
+        Args:
+            filepath: output file path.
+            source: source reader.
+            wells: Optional list of well names.
+            **kwargs:
+        """
+        create_ro_crate(source=source, dest_path=filepath)
