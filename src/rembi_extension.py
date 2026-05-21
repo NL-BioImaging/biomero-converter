@@ -5,7 +5,7 @@ from __future__ import annotations
 from rocrate.model.contextentity import ContextEntity
 
 
-class ImageAcquistion(ContextEntity):
+class ImageAcquisition(ContextEntity):
     def __init__(self, crate, identifier=None, properties=None):
         image_acquisition_type_path = "image_acquisition"
         if properties:

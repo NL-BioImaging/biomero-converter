@@ -5,7 +5,7 @@
 
 from rocrate.model import ComputationalWorkflow
 
-from src.rembi_extension import ImageAcquistion
+from src.rembi_extension import ImageAcquisition
 from src.zarr_extension import ZarrCrate
 
 
