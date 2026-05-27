@@ -18,8 +18,18 @@ def create_ro_crate(source, dest_path={}):
     #properties["license"] = source.get_license()
     crate.add_dataset(dest_path='.', properties=properties)
 
-    acquisition_properties = {'fbbi_id': {'@id': 'obo:FBbi_00000257'}}
-    # TODO: add to acquisition_properties from source
+    acquisition_properties = {
+        'fbbi_id': {'@id': 'obo:FBbi_00000257'},
+        'hasDefinedTerm': [
+            {
+                "@id": "#acq:001",
+                "@type": "PropertyValue",
+                "name": "MeanBeamCharge",
+                "value": "1.0"
+            },
+        ]
+    }
+    # add to acquisition_properties from source
     crate.add(ImageAcquisition(crate, properties=acquisition_properties))
 
 #    crate.add(ComputationalWorkflow(crate, workflow_schema_filename))
