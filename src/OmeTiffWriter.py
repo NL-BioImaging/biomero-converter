@@ -2,7 +2,7 @@ import inspect
 import numpy as np
 import os.path
 from skimage.transform import resize
-from tifffile import TiffWriter
+from tifffile import TiffWriter, FILETYPE
 
 from src.ome_tiff_util import create_metadata, create_binaryonly_metadata, create_resolution_metadata, create_uuid, \
     reset_ome_ids
@@ -225,7 +225,7 @@ class OmeTiffWriter(OmeWriter):
                     if not is_generator:
                         data = resize(data, new_shape, preserve_range=True).astype(dtype)
                     subifds = None
-                    subfiletype = 1
+                    subfiletype = FILETYPE.REDUCEDIMAGE
                     xml_metadata_bytes = None
                 if is_generator:
                     data = data_generator(scale)

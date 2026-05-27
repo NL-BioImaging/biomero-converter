@@ -65,7 +65,7 @@ class TiffSource(ImageSource):
         else:
             pages = self.tiff.pages
             page = self.tiff.pages.first
-        if hasattr(page, 'levels'):
+        if hasattr(page, 'levels') and len(page.levels) >= len(pages):
             pages = page.levels
         self.shapes = [page.shape for page in pages]
         self.shape = page.shape
