@@ -20,7 +20,16 @@ def create_ro_crate(source, dest_path={}):
 
     acquisition_properties = {
         'fbbi_id': {'@id': 'obo:FBbi_00000257'},
-        'hasDefinedTerm': [
+        'instrument': {
+            "@id": "#microscope-001",
+            "@type": "IndividualProduct",
+            "name": "Zeiss LSM 900",
+            "manufacturer": {
+                "@id": "https://ror.org"
+            },
+            "serialNumber": "12345-XYZ"
+        },
+        'additionalProperty': [
             {
                 "@id": "#acq:001",
                 "@type": "PropertyValue",
@@ -29,6 +38,9 @@ def create_ro_crate(source, dest_path={}):
             },
         ]
     }
+    # TODO: Consider hasDefinedTerm as a better alternative when using a defined ontology?
+    # TODO: Can add variableMeasured for output properties
+
     # add to acquisition_properties from source
     crate.add(ImageAcquisition(crate, properties=acquisition_properties))
 
