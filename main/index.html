@@ -23,15 +23,15 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
     
     
       
-        <title>Using Docker to Run the Main Script - biomero-converter</title>
+        <title>Run the Main Script - biomero-converter</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.618322db.min.css">
       
       
 
@@ -70,7 +70,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#using-docker-to-run-the-main-script" class="md-skip">
+        <a href="#run-the-main-script" class="md-skip">
           Skip to content
         </a>
       
@@ -105,7 +105,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Using Docker to Run the Main Script
+              Run the Main Script
             
           </span>
         </div>
@@ -294,7 +294,7 @@
   <span class="md-ellipsis">
     
   
-    Using Docker to Run the Main Script
+    Run the Main Script
   
 
     
@@ -312,7 +312,7 @@
   <span class="md-ellipsis">
     
   
-    Using Docker to Run the Main Script
+    Run the Main Script
   
 
     
@@ -338,6 +338,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#using-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using Docker
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#example" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -353,6 +364,17 @@
     <span class="md-ellipsis">
       
         Arguments
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#alternatively-run-the-main-script-directly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternatively Run the main script directly
       
     </span>
   </a>
@@ -475,6 +497,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#using-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using Docker
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#example" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -490,6 +523,17 @@
     <span class="md-ellipsis">
       
         Arguments
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#alternatively-run-the-main-script-directly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternatively Run the main script directly
       
     </span>
   </a>
@@ -516,13 +560,14 @@
   
 
 
-<h1 id="using-docker-to-run-the-main-script">Using Docker to Run the Main Script</h1>
+<h1 id="run-the-main-script">Run the Main Script</h1>
+<h2 id="using-docker">Using Docker</h2>
 <p>You can use Docker to run the conversion process by mounting your input and output folders and passing the required arguments.</p>
 <h2 id="example">Example</h2>
 <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-v<span class="w"> </span>/local/input_folder:/data/input<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-v<span class="w"> </span>/local/output_folder:/data/output<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>biomero-converter:latest<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>cellularimagingcf/biomero-converter:latest<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--inputfile<span class="w"> </span>/data/input/input_file.tiff<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--outputfolder<span class="w"> </span>/data/output<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--outputformat<span class="w"> </span>omezarr2<span class="w"> </span><span class="se">\</span>
@@ -541,6 +586,22 @@ Adjust the image name (<code>biomero-converter:latest</code>) as needed.</p>
 <li><code>--show_progress</code>: Show progress bar (flag)</li>
 <li><code>--verbose</code>: Enable verbose logging (flag)</li>
 </ul>
+<h2 id="alternatively-run-the-main-script-directly">Alternatively Run the main script directly</h2>
+<ol>
+<li>Clone the repository and navigate to the project directory.</li>
+<li>Install the required dependencies using <code>pip install -r requirements.txt</code>.</li>
+<li>Run the main script with the required arguments.</li>
+</ol>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>main.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--inputfile<span class="w"> </span>/data/input/input_file.tiff<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--outputfolder<span class="w"> </span>/data/output<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--outputformat<span class="w"> </span>omezarr2<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--show_progress<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--verbose
+
+usage:<span class="w"> </span>main.py<span class="w"> </span><span class="o">[</span>-h<span class="o">]</span><span class="w"> </span>--inputfile<span class="w"> </span>INPUTFILE<span class="w"> </span>--outputfolder<span class="w"> </span>OUTPUTFOLDER<span class="w"> </span><span class="o">[</span>--altoutputfolder<span class="w"> </span>ALTOUTPUTFOLDER<span class="o">]</span><span class="w"> </span><span class="o">[</span>--outputformat<span class="w"> </span>OUTPUTFORMAT<span class="o">]</span><span class="w"> </span><span class="o">[</span>--show_progress<span class="o">]</span><span class="w"> </span><span class="o">[</span>--verbose<span class="o">]</span><span class="w"> </span><span class="o">[</span>--plateid<span class="w"> </span>PLATEID<span class="o">]</span>
+main.py:<span class="w"> </span>error:<span class="w"> </span>the<span class="w"> </span>following<span class="w"> </span>arguments<span class="w"> </span>are<span class="w"> </span>required:<span class="w"> </span>--inputfile,<span class="w"> </span>--outputfolder
+</code></pre></div>
 
 
 
@@ -590,10 +651,10 @@ Adjust the image name (<code>biomero-converter:latest</code>) as needed.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.e71a0d61.min.js"></script>
       
     
   </body>
