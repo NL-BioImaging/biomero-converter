@@ -5,60 +5,77 @@
 
 from rocrate.model import ContextEntity, ComputationalWorkflow
 
-from src.rembi_extension import ImageAcquisition
 from src.zarr_extension import ZarrCrate
 
 
 def create_ro_crate(source, dest_path={}):
     crate = ZarrCrate()
-    # TODO: ContextEntity sub-classes needed for each type with verbose code, while essentially same functionality
-    # TODO: Alternative use github German-BioImaging idr_study_crates GraphBuilder class to low-level build instead?
+    # Alternative use github German-BioImaging idr_study_crates GraphBuilder class to low-level build instead?
 
     properties = {}
     properties['name'] = source.get_name()
     #properties["description"] = source.get_description()
     #properties["license"] = source.get_license()
-    zarr_root = crate.add_dataset(dest_path='.', properties=properties)
+    dataset_entity = crate.add_dataset(dest_path='.', properties=properties)
 
-    instrument_properties = {'instrument':
-        {
-            "@id": "#microscope-001",
-            "@type": "IndividualProduct",
-            "name": "Zeiss LSM 900",
-            "manufacturer": {
-                "@id": "https://ror.org"
-            },
-            "serialNumber": "12345-XYZ"
-        }
+    acquisition_properties = {
+        '@type': 'image_acquisition',
+        'fbbi_id': {'@id': 'obo:FBbi_00000257'},
     }
-    instrument_entity = ContextEntity(crate, properties=instrument_properties)
+    acquisition_entity = ContextEntity(crate, '#acquisition-001', acquisition_properties)
+    crate.add(acquisition_entity)
 
-    additional_properties = {
-        'additionalProperty': [
+    dataset_entity['resultOf'] = acquisition_entity
+
+    instrument_properties = {
+        '@id': '#microscope-001',
+        '@type': 'IndividualProduct',
+        'name': 'Zeiss LSM 900',
+        'manufacturer': {
+            '@id': 'https://ror.org'
+        },
+        'serialNumber': '12345-XYZ'
+    }
+    instrument_entity = ContextEntity(crate, identifier=instrument_properties['@id'], properties=instrument_properties)
+    crate.add(instrument_entity)
+
+    dataset_entity['instrument'] = instrument_entity
+
+    additional_properties = [
         {
-            "@id": "#acq:001",
-            "@type": "PropertyValue",
-            "name": "MeanBeamCharge",
-            "value": "1.0"
+            '@id': '#acq:001',
+            '@type': 'PropertyValue',
+            'name': 'MeanBeamCharge',
+            'value': '1.0'
+        },
+        {
+            '@id': '#acq:002',
+            '@type': 'PropertyValue',
+            'name': 'AcceleratedVoltage',
+            'value': '1.0'
+        },
+        {
+            '@id': '#acq:003',
+            '@type': 'PropertyValue',
+            'name': 'Detector',
+            'value': 'name'
         }
-    ]}
-    properties_entity = ContextEntity(crate, properties=additional_properties)
+    ]
+
+    properties_entities = []
+    for additional_property in additional_properties:
+        properties_entity = ContextEntity(crate, identifier=additional_property['@id'], properties=additional_property)
+        properties_entities.append(crate.add(properties_entity))
+
+    dataset_entity['additionalProperty'] = properties_entities
+
 
     # TODO: Consider hasDefinedTerm as a better alternative when using a defined ontology?
     # TODO: Can add variableMeasured for output properties
 
-    acquisition_properties = {
-        'fbbi_id': {'@id': 'obo:FBbi_00000257'},
-    }
-    acquisition_entity = ImageAcquisition(crate, identifier="#acquisition-001", properties=acquisition_properties)
-
-    # add to acquisition_properties from source
-    crate.add(acquisition_entity)
-    crate.add(instrument_entity)
-    crate.add(properties_entity)
-    zarr_root["resultOf"] = acquisition_entity
-
 #    crate.add(ComputationalWorkflow(crate, workflow_schema_filename))
+#    crate.add_workflow()
+#    crate.add_formal_parameter('bla', 'PropertyValue', '#acq:001')
 
     crate.write(dest_path)
     return crate
