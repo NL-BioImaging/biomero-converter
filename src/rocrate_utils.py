@@ -3,7 +3,7 @@
 # https://github.com/clbarnes/rembi-mifa-py/blob/main/examples/rembi.py
 
 
-from rocrate.model import ContextEntity, ComputationalWorkflow
+from rocrate.model import ContextEntity
 
 from src.zarr_extension import ZarrCrate
 
@@ -69,13 +69,8 @@ def create_ro_crate(source, dest_path={}):
 
     dataset_entity['additionalProperty'] = properties_entities
 
-
     # TODO: Consider hasDefinedTerm as a better alternative when using a defined ontology?
     # TODO: Can add variableMeasured for output properties
-
-#    crate.add(ComputationalWorkflow(crate, workflow_schema_filename))
-#    crate.add_workflow()
-#    crate.add_formal_parameter('bla', 'PropertyValue', '#acq:001')
 
     crate.write(dest_path)
     return crate
