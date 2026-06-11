@@ -307,5 +307,3 @@ class OmeZarrWriter(OmeWriter):
             **kwargs:
         """
         create_ro_crate(source=source, dest_path=filepath)
-
-        #print(open(os.path.join(filepath, 'ro-crate-metadata.json'), encoding='utf-8').read())
