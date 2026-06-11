@@ -23,23 +23,6 @@ def create_ro_crate(source, dest_path={}):
         'fbbi_id': {'@id': 'obo:FBbi_00000257'},
     }
     acquisition_entity = ContextEntity(crate, '#acquisition-001', acquisition_properties)
-    crate.add(acquisition_entity)
-
-    dataset_entity['resultOf'] = acquisition_entity
-
-    instrument_properties = {
-        '@id': '#microscope-001',
-        '@type': 'IndividualProduct',
-        'name': 'Zeiss LSM 900',
-        'manufacturer': {
-            '@id': 'https://ror.org'
-        },
-        'serialNumber': '12345-XYZ'
-    }
-    instrument_entity = ContextEntity(crate, identifier=instrument_properties['@id'], properties=instrument_properties)
-    crate.add(instrument_entity)
-
-    dataset_entity['instrument'] = instrument_entity
 
     additional_properties = [
         {
@@ -67,7 +50,25 @@ def create_ro_crate(source, dest_path={}):
         properties_entity = ContextEntity(crate, identifier=additional_property['@id'], properties=additional_property)
         properties_entities.append(crate.add(properties_entity))
 
-    dataset_entity['additionalProperty'] = properties_entities
+    acquisition_entity['additionalProperty'] = properties_entities
+
+    crate.add(acquisition_entity)
+
+    dataset_entity['resultOf'] = acquisition_entity
+
+    instrument_properties = {
+        '@id': '#microscope-001',
+        '@type': 'IndividualProduct',
+        'name': 'Zeiss LSM 900',
+        'manufacturer': {
+            '@id': 'https://ror.org'
+        },
+        'serialNumber': '12345-XYZ'
+    }
+    instrument_entity = ContextEntity(crate, identifier=instrument_properties['@id'], properties=instrument_properties)
+    crate.add_action(instrument_entity, identifier='#DataCapture-001')
+
+    #dataset_entity['instrument'] = instrument_entity
 
     # TODO: Consider hasDefinedTerm as a better alternative when using a defined ontology?
     # TODO: Can add variableMeasured for output properties
