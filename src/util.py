@@ -193,6 +193,17 @@ def xml_content_to_dict(element):
     return {key: value}
 
 
+def flatten_dict(dct, prefix=''):
+    flat_dct = {}
+    for key, value in dct.items():
+        full_key = prefix + ':' + key if prefix else key
+        if isinstance(value, dict):
+            flat_dct.update(flatten_dict(value, full_key))
+        else:
+            flat_dct[full_key] = value
+    return flat_dct
+
+
 def camel_to_snake_keys_dict(dct):
     if isinstance(dct, dict):
         result = {camel_to_snake(key): camel_to_snake_keys_dict(value) for key, value in dct.items()}
@@ -253,3 +264,14 @@ def print_hbytes(nbytes):
     else:
         e = f'e{exp * 3}'
     return f'{nbytes:.1f}{e}B'
+
+
+def fix_bad_micro_value(dct):
+    new_dct = {}
+    for key, value in dct.items():
+        if isinstance(value, dict):
+            value = fix_bad_micro_value(value)
+        elif isinstance(value, str) and '\xa6\xcc' in value:
+            value = value.replace('\xa6\xcc', '\xb5')
+        new_dct[key] = value
+    return new_dct

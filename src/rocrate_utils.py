@@ -5,6 +5,7 @@
 
 from rocrate.model import ContextEntity
 
+from src.util import flatten_dict
 from src.zarr_extension import ZarrCrate
 
 
@@ -24,26 +25,14 @@ def create_ro_crate(source, dest_path={}):
     }
     acquisition_entity = ContextEntity(crate, '#acquisition-001', acquisition_properties)
 
-    additional_properties = [
-        {
-            '@id': '#acq:001',
+    additional_properties = []
+    for index, (key, value) in enumerate(flatten_dict(source.get_microscope_info()).items()):
+        additional_properties.append({
+            '@id': f'#acq:{index:03d}',
             '@type': 'PropertyValue',
-            'name': 'MeanBeamCharge',
-            'value': '1.0'
-        },
-        {
-            '@id': '#acq:002',
-            '@type': 'PropertyValue',
-            'name': 'AcceleratedVoltage',
-            'value': '1.0'
-        },
-        {
-            '@id': '#acq:003',
-            '@type': 'PropertyValue',
-            'name': 'Detector',
-            'value': 'name'
-        }
-    ]
+            'name': key,
+            'value': value
+        })
 
     properties_entities = []
     for additional_property in additional_properties:

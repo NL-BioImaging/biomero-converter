@@ -15,6 +15,7 @@ from src.util import print_dict, print_hbytes
 
 class TestRocrate:
     input_filenames = ['C:/Project/slides/DB/CellsSmall/experiment.db']
+    input_filenames = ['C:/Project/slides/Ciqtek/Automap/24-079_Region1_r1_c1_260722174141591.tiff']
 
     output_formats = ['omezarr3']
 

@@ -8,7 +8,7 @@ from tifffile import TiffFile, imread, PHOTOMETRIC
 from src.ImageSource import ImageSource
 from src.ome_tiff_util import metadata_to_dict, read_ome_xml_metadata
 from src.parameters import TILE_SIZE
-from src.util import convert_to_um, ensure_list, redimension_data, get_filetitle
+from src.util import convert_to_um, ensure_list, redimension_data, get_filetitle, fix_bad_micro_value
 
 
 class TiffSource(ImageSource):
@@ -94,7 +94,41 @@ class TiffSource(ImageSource):
                             pixel_size[dim] = convert_to_um(float(scale), pixel_size_unit)
                 if 'spacing' in self.imagej_metadata:
                     pixel_size['z'] = convert_to_um(self.imagej_metadata['spacing'], pixel_size_unit)
-            self.metadata = tags_to_dict(self.tiff.pages.first.tags)
+
+            tags = tags_to_dict(self.tiff.pages.first.tags)
+            custom_metadata = {}
+            for key, value in tags.items():
+                metadata = {}
+                if isinstance(value, dict):
+                    metadata = value
+                elif isinstance(value, str) and value.lower().startswith('<xml>'):
+                    metadata = metadata_to_dict(value)
+                    if 'FeiImage' in metadata:
+                        metadata = metadata['FeiImage']
+                if metadata:
+                    custom_metadata.update(fix_bad_micro_value(metadata))
+
+            if custom_metadata:
+                self.metadata.update(custom_metadata)
+                microscope_info.update(custom_metadata)
+
+                hfw = custom_metadata.get('Beam', {}).get('HFW')
+                if 'x' not in pixel_size and hfw:
+                    # find non-alpha index:
+                    index = hfw.find(next(filter(str.isalpha, hfw)))
+                    if index >= 0:
+                        hfw = convert_to_um(float(hfw[:index]), hfw[index:])
+                    else:
+                        hfw = float(hfw)
+                    pixel_size_x = hfw / self.shape[x_index]
+                    pixel_size = {'x': pixel_size_x, 'y': pixel_size_x}
+
+                stage = custom_metadata.get('Stage')
+                if 'x' not in position and stage:
+                    position['x'] = stage.get('StagePosX')
+                    position['y'] = stage.get('StagePosY')
+                    position['z'] = stage.get('StagePosZ')
+
             name = self.tiff.filename
             if 'DateTime' in self.metadata:
                 acquisition_datetime = datetime.strptime(self.metadata['DateTime'],'%Y:%m:%d %H:%M:%S')
