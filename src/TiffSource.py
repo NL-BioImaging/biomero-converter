@@ -101,10 +101,8 @@ class TiffSource(ImageSource):
                 metadata = {}
                 if isinstance(value, dict):
                     metadata = value
-                elif isinstance(value, str) and value.lower().startswith('<xml>'):
+                elif isinstance(value, str) and 'xml' in value.lower():
                     metadata = metadata_to_dict(value)
-                    if 'FeiImage' in metadata:
-                        metadata = metadata['FeiImage']
                 if metadata:
                     custom_metadata.update(fix_bad_micro_value(metadata))
 
@@ -112,22 +110,32 @@ class TiffSource(ImageSource):
                 self.metadata.update(custom_metadata)
                 microscope_info.update(custom_metadata)
 
-                hfw = custom_metadata.get('Beam', {}).get('HFW')
-                if 'x' not in pixel_size and hfw:
-                    # find non-alpha index:
-                    index = hfw.find(next(filter(str.isalpha, hfw)))
-                    if index >= 0:
-                        hfw = convert_to_um(float(hfw[:index]), hfw[index:])
-                    else:
-                        hfw = float(hfw)
-                    pixel_size_x = hfw / self.shape[x_index]
-                    pixel_size = {'x': pixel_size_x, 'y': pixel_size_x}
+                if 'x' not in pixel_size:
+                    if 'FeiImage' in metadata:
+                        metadata = metadata['FeiImage']
+                        w = metadata.get('pixelWidth')
+                        pixel_size['x'] = convert_to_um(w.get('value'), w.get('unit'))
+                        h = metadata.get('pixelHeight')
+                        pixel_size['y'] = convert_to_um(h.get('value'), h.get('unit'))
+                        position = {dim: convert_to_um(value, 'm') for dim, value in metadata.get('samplePosition').items()}   # unit = m?
+                    elif 'Beam' in metadata:
+                        hfw = custom_metadata['Beam'].get('HFW')
+                        if hfw:
+                            # find non-alpha index:
+                            index = hfw.find(next(filter(str.isalpha, hfw)))
+                            if index >= 0:
+                                hfw = convert_to_um(float(hfw[:index]), hfw[index:])
+                            else:
+                                hfw = float(hfw)
+                            pixel_size_x = hfw / self.shape[x_index]
+                            pixel_size = {'x': pixel_size_x, 'y': pixel_size_x}
 
-                stage = custom_metadata.get('Stage')
-                if 'x' not in position and stage:
-                    position['x'] = stage.get('StagePosX')
-                    position['y'] = stage.get('StagePosY')
-                    position['z'] = stage.get('StagePosZ')
+                        stage = custom_metadata.get('Stage')
+                        if 'x' not in position and stage:
+                            position['x'] = stage.get('StagePosX')
+                            position['y'] = stage.get('StagePosY')
+                            position['z'] = stage.get('StagePosZ')
+                            rotation = stage.get('StagePosR')
 
             name = self.tiff.filename
             if 'DateTime' in self.metadata:
