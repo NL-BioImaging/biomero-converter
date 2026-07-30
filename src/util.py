@@ -195,6 +195,7 @@ def xml_content_to_dict(element):
 
 def flatten_dict(dct, prefix=''):
     flat_dct = {}
+    # TODO: fix for lists?
     for key, value in dct.items():
         full_key = prefix + ':' + key if prefix else key
         if isinstance(value, dict):
@@ -266,12 +267,7 @@ def print_hbytes(nbytes):
     return f'{nbytes:.1f}{e}B'
 
 
-def fix_bad_micro_value(dct):
-    new_dct = {}
-    for key, value in dct.items():
-        if isinstance(value, dict):
-            value = fix_bad_micro_value(value)
-        elif isinstance(value, str) and '\xa6\xcc' in value:
-            value = value.replace('\xa6\xcc', '\xb5')
-        new_dct[key] = value
-    return new_dct
+def fix_bad_micro_value(value):
+    if isinstance(value, str) and '\xa6\xcc' in value:
+        value = value.replace('\xa6\xcc', '\xb5')
+    return value

@@ -32,7 +32,7 @@ class TiffSource(ImageSource):
             # read metadata
             with open(uri, 'rb') as file:
                 self.metadata = metadata_to_dict(file.read().decode())
-            # try to open a ome-tiff file
+            # try to open linked ome-tiff file
             self.image_filenames = {}
             for image in ensure_list(self.metadata.get('Image', {})):
                 filename = image.get('Pixels', {}).get('TiffData', {}).get('UUID', {}).get('FileName')
@@ -49,15 +49,17 @@ class TiffSource(ImageSource):
     def init_metadata(self):
         self.is_ome = self.tiff.is_ome
         self.is_imagej = self.tiff.is_imagej
+        acquisition_datetime = None
         pixel_size = {}
         position = {}
         channels = []
-        microscope_info = {}
+        acquisition_metadata = {}
         wells = {}
         rows = []
         columns = []
         fields = []
         image_refs = {}
+        metadata = {}
 
         if self.tiff.series:
             pages = self.tiff.series
@@ -80,68 +82,63 @@ class TiffSource(ImageSource):
             metadata = metadata_to_dict(self.tiff.ome_metadata)
             if metadata and not 'BinaryOnly' in metadata:
                 self.metadata = metadata
-            (name, is_plate, pixel_size, position, dtype, bits_per_pixel, channels, microscope_info, acquisition_datetime,
+            (name, is_plate, pixel_size, position, dtype, bits_per_pixel, channels, acquisition_metadata, acquisition_datetime,
              wells, rows, columns, fields, image_refs) = read_ome_xml_metadata(self.metadata)
         else:
             is_plate = False
             if self.is_imagej:
-                self.imagej_metadata = self.tiff.imagej_metadata
-                pixel_size_unit = self.imagej_metadata.get('unit', '').encode().decode('unicode_escape')
-                if 'scales' in self.imagej_metadata:
-                    for dim, scale in zip(['x', 'y'], self.imagej_metadata['scales'].split(',')):
-                        scale = scale.strip()
-                        if scale != '':
-                            pixel_size[dim] = convert_to_um(float(scale), pixel_size_unit)
-                if 'spacing' in self.imagej_metadata:
-                    pixel_size['z'] = convert_to_um(self.imagej_metadata['spacing'], pixel_size_unit)
+                metadata = self.tiff.imagej_metadata
+                pixel_size = get_fiji_pixelsize(metadata)
 
-            tags = tags_to_dict(self.tiff.pages.first.tags)
-            custom_metadata = {}
-            for key, value in tags.items():
-                metadata = {}
-                if isinstance(value, dict):
-                    metadata = value
-                elif isinstance(value, str) and 'xml' in value.lower():
-                    metadata = metadata_to_dict(value)
-                if metadata:
-                    custom_metadata.update(fix_bad_micro_value(metadata))
+            metadata |= {key: value for page in self.tiff.pages for key, value in tags_to_dict(page.tags).items()}
 
-            if custom_metadata:
-                self.metadata.update(custom_metadata)
-                microscope_info.update(custom_metadata)
-
+            if 'FEI_TITAN' in metadata:
+                acquisition_metadata = metadata['FEI_TITAN']
+                if isinstance(acquisition_metadata, str) and 'xml' in acquisition_metadata.lower():
+                    acquisition_metadata = metadata_to_dict(acquisition_metadata)
+                if 'FeiImage' in acquisition_metadata:
+                    acquisition_metadata = acquisition_metadata['FeiImage']
                 if 'x' not in pixel_size:
-                    if 'FeiImage' in metadata:
-                        metadata = metadata['FeiImage']
-                        w = metadata.get('pixelWidth')
-                        pixel_size['x'] = convert_to_um(w.get('value'), w.get('unit'))
-                        h = metadata.get('pixelHeight')
-                        pixel_size['y'] = convert_to_um(h.get('value'), h.get('unit'))
-                        position = {dim: convert_to_um(value, 'm') for dim, value in metadata.get('samplePosition').items()}   # unit = m?
-                    elif 'Beam' in metadata:
-                        hfw = custom_metadata['Beam'].get('HFW')
-                        if hfw:
-                            # find non-alpha index:
-                            index = hfw.find(next(filter(str.isalpha, hfw)))
-                            if index >= 0:
-                                hfw = convert_to_um(float(hfw[:index]), hfw[index:])
-                            else:
-                                hfw = float(hfw)
-                            pixel_size_x = hfw / self.shape[x_index]
-                            pixel_size = {'x': pixel_size_x, 'y': pixel_size_x}
+                    w = acquisition_metadata.get('pixelWidth')
+                    pixel_size['x'] = convert_to_um(w.get('value'), w.get('unit'))
+                    h = acquisition_metadata.get('pixelHeight')
+                    pixel_size['y'] = convert_to_um(h.get('value'), h.get('unit'))
+                if 'x' not in position:
+                    position = {dim: convert_to_um(value, 'm') for dim, value in acquisition_metadata.get('samplePosition').items()}   # unit = m?
+            elif 'FEI_HELIOS' in metadata:
+                acquisition_metadata = metadata['FEI_HELIOS']
+                if 'x' not in pixel_size:
+                    hfw = fix_bad_micro_value(acquisition_metadata.get('Beam', {}).get('HFW'))
+                    if hfw:
+                        # find non-alpha index:
+                        index = hfw.find(next(filter(str.isalpha, hfw)))
+                        if index >= 0:
+                            hfw = convert_to_um(float(hfw[:index]), hfw[index:])
+                        else:
+                            hfw = float(hfw)
+                        pixel_size_x = hfw / self.shape[x_index]
+                        pixel_size = {'x': pixel_size_x, 'y': pixel_size_x}
+                if 'x' not in position:
+                    stage = acquisition_metadata.get('Stage')
+                    if stage:
+                        position['x'] = stage.get('StagePosX')
+                        position['y'] = stage.get('StagePosY')
+                        position['z'] = stage.get('StagePosZ')
+                        rotation = stage.get('StagePosR')
+            elif 'OlympusSIS' in metadata:
+                acquisition_metadata = metadata['OlympusSIS']
+                acquisition_datetime = acquisition_metadata['datetime']
+                if 'x' not in pixel_size:
+                    pixel_size['x'] = convert_to_um(acquisition_metadata['pixelsizex'], 'm')
+                    pixel_size['y'] = convert_to_um(acquisition_metadata['pixelsizey'], 'm')
 
-                        stage = custom_metadata.get('Stage')
-                        if 'x' not in position and stage:
-                            position['x'] = stage.get('StagePosX')
-                            position['y'] = stage.get('StagePosY')
-                            position['z'] = stage.get('StagePosZ')
-                            rotation = stage.get('StagePosR')
-
+            self.metadata = metadata
             name = self.tiff.filename
-            if 'DateTime' in self.metadata:
-                acquisition_datetime = datetime.strptime(self.metadata['DateTime'],'%Y:%m:%d %H:%M:%S')
-            else:
-                acquisition_datetime = datetime.fromtimestamp(self.tiff.fstat.st_ctime)
+            if not acquisition_datetime:
+                if 'DateTime' in self.metadata:
+                    acquisition_datetime = datetime.strptime(self.metadata['DateTime'],'%Y:%m:%d %H:%M:%S')
+                else:
+                    acquisition_datetime = datetime.fromtimestamp(self.tiff.fstat.st_ctime)
             dtype = page.dtype
             bits_per_pixel = dtype.itemsize * 8
             res_unit = self.metadata.get('ResolutionUnit', '').lower()
@@ -171,7 +168,7 @@ class TiffSource(ImageSource):
         self.channels = channels
         self.dtype = dtype
         self.bits_per_pixel = bits_per_pixel
-        self.microscope_info = microscope_info
+        self.acquisition_metadata = acquisition_metadata
         return self.metadata
 
     def is_screen(self):
@@ -258,11 +255,24 @@ class TiffSource(ImageSource):
     def get_significant_bits(self):
         return self.bits_per_pixel
 
-    def get_microscope_info(self):
-        return self.microscope_info
+    def get_acquisition_metadata(self):
+        return self.acquisition_metadata
 
     def close(self):
         self.tiff.close()
+
+
+def get_fiji_pixelsize(metadata):
+    pixel_size = {}
+    pixel_size_unit = metadata.get('unit', '').encode().decode('unicode_escape')
+    if 'scales' in metadata:
+        for dim, scale in zip(['x', 'y'], metadata['scales'].split(',')):
+            scale = scale.strip()
+            if scale != '':
+                pixel_size[dim] = convert_to_um(float(scale), pixel_size_unit)
+    if 'spacing' in metadata:
+        pixel_size['z'] = convert_to_um(metadata['spacing'], pixel_size_unit)
+    return pixel_size
 
 
 def tags_to_dict(tags):

@@ -1,7 +1,7 @@
 # https://pypi.org/project/rocrate/
 # https://github.com/ome/ome2024-ngff-challenge/tree/main/src/ome2024_ngff_challenge/zarr_crate
 # https://github.com/clbarnes/rembi-mifa-py/blob/main/examples/rembi.py
-
+from datetime import datetime
 
 from rocrate.model import ContextEntity
 
@@ -26,7 +26,9 @@ def create_ro_crate(source, dest_path={}):
     acquisition_entity = ContextEntity(crate, '#acquisition-001', acquisition_properties)
 
     additional_properties = []
-    for index, (key, value) in enumerate(flatten_dict(source.get_microscope_info()).items()):
+    for index, (key, value) in enumerate(flatten_dict(source.get_acquisition_metadata()).items()):
+        if isinstance(value, datetime):
+            value = str(value)
         additional_properties.append({
             '@id': f'#acq:{index:03d}',
             '@type': 'PropertyValue',

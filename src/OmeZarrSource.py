@@ -209,5 +209,5 @@ class OmeZarrSource(ImageSource):
     def get_significant_bits(self):
         return self.bits_per_pixel
 
-    def get_microscope_info(self):
+    def get_acquisition_metadata(self):
         return self.microscope_info
