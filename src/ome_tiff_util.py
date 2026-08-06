@@ -109,10 +109,14 @@ def read_ome_xml_metadata(metadata):
     acquisition_metadata.update(camel_to_snake_keys_dict(image0.get('ObjectiveSettings', {})))
 
     for annotations_type, annotations in metadata.get('StructuredAnnotations', {}).items():
-        acquisition_metadata[annotations_type] = {}
         for annotation in ensure_list(annotations):
             key, value = annotation.get('ID'), annotation.get('Value')
-            acquisition_metadata[annotations_type][key] = value
+            if 'Namespace' in annotation:
+                key = annotation['Namespace']
+            if 'pyramidresolution' not in key.lower():
+                if isinstance(value, dict) and 'M' in value:
+                    value = {item.get('K'): item.get('value') for item in ensure_list(value['M'])}
+                acquisition_metadata[key] = value
 
     return (name, is_plate, pixel_size, position, dtype, bits_per_pixel, channels, acquisition_metadata, acquisition_datetime,
             wells, list(rows), list(columns), list(fields), image_refs)
@@ -253,7 +257,7 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
             map_dict[acq_key] = acq_value
 
     if map_dict:
-        annotation = MapAnnotation(value=Map(m=[Map.M(k=key, value=str(value)) for key, value in map_dict.items()]))
+        annotation = MapAnnotation(value=Map(ms=[Map.M(k=key, value=str(value)) for key, value in map_dict.items()]))
         ome.structured_annotations.append(annotation)
 
     return to_xml(ome)
