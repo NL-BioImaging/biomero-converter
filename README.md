@@ -6,8 +6,9 @@ This tool can be used as biomero plugin, Docker container or stand-alone
 
 ## Features
 - Extract and process image data including bioformats unsupported formats
-  - Tiff
-  - Ome-zarr
+  - OME-Zarr
+  - (OME-) Tiff
+  - Thermo Fisher tiff files
   - ImageXpress Pico
   - Molecular Devices
   - CellReporterXpress experiment
@@ -17,8 +18,8 @@ This tool can be used as biomero plugin, Docker container or stand-alone
   - 3DHistech files (.mrxs)
   - DICOM files
 - Export to Ome formats
-  - Ome-tiff
-  - Ome-zarr
+  - OME-Tiff
+  - OME-Zarr
 - Supporting
   - (Large) whole slide images
   - Screen Plate Well / High Content Screening format

@@ -1,28 +1,68 @@
 # https://pypi.org/project/rocrate/
 # https://github.com/ome/ome2024-ngff-challenge/tree/main/src/ome2024_ngff_challenge/zarr_crate
 # https://github.com/clbarnes/rembi-mifa-py/blob/main/examples/rembi.py
+from datetime import datetime
 
+from rocrate.model import ContextEntity
 
-from rocrate.model import ComputationalWorkflow
-
-from src.rembi_extension import ImageAcquistion
+from src.util import flatten_dict
 from src.zarr_extension import ZarrCrate
 
 
 def create_ro_crate(source, dest_path={}):
     crate = ZarrCrate()
+    # Alternative use github German-BioImaging idr_study_crates GraphBuilder class to low-level build instead?
 
     properties = {}
     properties['name'] = source.get_name()
     #properties["description"] = source.get_description()
     #properties["license"] = source.get_license()
-    crate.add_dataset(dest_path='.', properties=properties)
+    dataset_entity = crate.add_dataset(dest_path='.', properties=properties)
 
-    acquisition_properties = {'fbbi_id': {'@id': 'obo:FBbi_00000257'}}
-    # TODO: add to acquisition_properties from source
-    crate.add(ImageAcquistion(crate, properties=acquisition_properties))
+    acquisition_properties = {
+        '@type': 'image_acquisition',
+        'fbbi_id': {'@id': 'obo:FBbi_00000257'},
+    }
+    acquisition_entity = ContextEntity(crate, '#acquisition-001', acquisition_properties)
 
-#    crate.add(ComputationalWorkflow(crate, workflow_schema_filename))
+    additional_properties = []
+    for index, (key, value) in enumerate(flatten_dict(source.get_acquisition_metadata()).items()):
+        if isinstance(value, datetime):
+            value = str(value)
+        additional_properties.append({
+            '@id': f'#acq:{index:03d}',
+            '@type': 'PropertyValue',
+            'name': key,
+            'value': value
+        })
+
+    properties_entities = []
+    for additional_property in additional_properties:
+        properties_entity = ContextEntity(crate, identifier=additional_property['@id'], properties=additional_property)
+        properties_entities.append(crate.add(properties_entity))
+
+    acquisition_entity['additionalProperty'] = properties_entities
+
+    crate.add(acquisition_entity)
+
+    dataset_entity['resultOf'] = acquisition_entity
+
+    instrument_properties = {
+        '@id': '#microscope-001',
+        '@type': 'IndividualProduct',
+        'name': 'Zeiss LSM 900',
+        'manufacturer': {
+            '@id': 'https://ror.org'
+        },
+        'serialNumber': '12345-XYZ'
+    }
+    instrument_entity = ContextEntity(crate, identifier=instrument_properties['@id'], properties=instrument_properties)
+    crate.add_action(instrument_entity, identifier='#DataCapture-001')
+
+    #dataset_entity['instrument'] = instrument_entity
+
+    # TODO: Consider hasDefinedTerm as a better alternative when using a defined ontology?
+    # TODO: Can add variableMeasured for output properties
 
     crate.write(dest_path)
     return crate

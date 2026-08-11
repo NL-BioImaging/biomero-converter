@@ -265,7 +265,7 @@ class ImageSource(ABC):
         """
         raise NotImplementedError("The 'get_significant_bits' method must be implemented by subclasses.")
 
-    def get_microscope_info(self):
+    def get_acquisition_metadata(self):
         """
         Get microscope information. This can include details such as the microscope model, objective lens, and other relevant information.
         """

@@ -106,7 +106,8 @@ class ImageDbSource(ImageSource):
         self.metadata['wells'] = self.wells
         self.pixel_size = info.get('PixelSizeUm', 1)
 
-        self.microscope_info = {
+        # TODO: Dump all extra metadata in here
+        self.acquisition_metadata = {
             'manufacturer': info['DeviceManufacturer'],
             'model': info['DeviceModel'],
             'name': info['DeviceName'],
@@ -377,8 +378,8 @@ class ImageDbSource(ImageSource):
             s += f'{time_points[idx]:9}  ' + '   '.join(row) + '\n'
         return s
 
-    def get_microscope_info(self):
-        return self.microscope_info
+    def get_acquisition_metadata(self):
+        return self.acquisition_metadata
 
     def close(self):
         """

@@ -104,11 +104,21 @@ def read_ome_xml_metadata(metadata):
         bits_per_pixel = dtype.itemsize * 8
 
     # all additional metadata
-    microscope_info = camel_to_snake_keys_dict(metadata.get('Instrument', {}))
-    microscope_info.update(microscope_info.pop('objective', {}))
-    microscope_info.update(camel_to_snake_keys_dict(image0.get('ObjectiveSettings', {})))
+    acquisition_metadata = camel_to_snake_keys_dict(metadata.get('Instrument', {}))
+    acquisition_metadata.update(acquisition_metadata.pop('objective', {}))
+    acquisition_metadata.update(camel_to_snake_keys_dict(image0.get('ObjectiveSettings', {})))
 
-    return (name, is_plate, pixel_size, position, dtype, bits_per_pixel, channels, microscope_info, acquisition_datetime,
+    for annotations_type, annotations in metadata.get('StructuredAnnotations', {}).items():
+        for annotation in ensure_list(annotations):
+            key, value = annotation.get('ID'), annotation.get('Value')
+            if 'Namespace' in annotation:
+                key = annotation['Namespace']
+            if 'pyramidresolution' not in key.lower():
+                if isinstance(value, dict) and 'M' in value:
+                    value = {item.get('K'): item.get('value') for item in ensure_list(value['M'])}
+                acquisition_metadata[key] = value
+
+    return (name, is_plate, pixel_size, position, dtype, bits_per_pixel, channels, acquisition_metadata, acquisition_datetime,
             wells, list(rows), list(columns), list(fields), image_refs)
 
 
@@ -120,43 +130,43 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
     ome.uuid = uuid
     ome.creator = f'nl.biomero.OmeTiffWriter {VERSION}'
 
-    microscope_info = source.get_microscope_info()
+    acquisition_metadata = source.get_acquisition_metadata().copy()
     instrument_id = None
     objective_id = None
-    if microscope_info:
+    if acquisition_metadata:
         microscope = Microscope()
         has_microscope = False
-        manufacturer = microscope_info.get('manufacturer')
+        manufacturer = acquisition_metadata.pop('manufacturer', None)
         if manufacturer is not None:
             microscope.manufacturer = manufacturer
             has_microscope = True
-        model = microscope_info.get('model')
+        model = acquisition_metadata.pop('model', None)
         if model is not None:
             microscope.model = model
             has_microscope = True
-        serial_number = microscope_info.get('serial_number')
+        serial_number = acquisition_metadata.pop('serial_number', None)
         if serial_number is not None:
             microscope.serial_number = serial_number
             has_microscope = True
 
         objective = Objective()
         has_objective = False
-        magnification = microscope_info.get('magnification',
-                                            microscope_info.get('nominal_magnification',
-                                                                microscope_info.get('NominalMagnification')))
+        magnification = acquisition_metadata.pop('magnification',
+                                            acquisition_metadata.pop('nominal_magnification',
+                                                                acquisition_metadata.pop('NominalMagnification', None)))
         if magnification is not None:
             objective.nominal_magnification = magnification
             has_objective = True
-        lens_na = microscope_info.get('n_a', microscope_info.get('lens_na'))
+        lens_na = acquisition_metadata.pop('n_a', acquisition_metadata.pop('lens_na', None))
         if lens_na is not None:
             objective.lens_na = lens_na
             has_objective = True
-        working_distance = microscope_info.get('working_distance')
+        working_distance = acquisition_metadata.pop('working_distance', None)
         if working_distance is not None:
             objective.working_distance = working_distance
-            objective.working_distance_unit = microscope_info.get('working_distance_unit', UnitsLength.MICROMETER)
+            objective.working_distance_unit = acquisition_metadata.pop('working_distance_unit', UnitsLength.MICROMETER)
             has_objective = True
-        immersion = microscope_info.get('immersion')
+        immersion = acquisition_metadata.pop('immersion', None)
         if immersion:
             ome_immersion = Objective_Immersion(immersion)
             objective.immersion = ome_immersion
@@ -232,6 +242,23 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
                                   instrument_id=instrument_id, objective_id=objective_id,
                                   metadata_only=metadata_only)
         ]
+
+    map_dict = {}
+    for acq_key, acq_value in acquisition_metadata.items():
+        if acq_key == 'XMLAnnotation':
+            # cls = getattr(sys.modules[__name__], 'XMLAnnotation')
+            # annotation = cls(acquisition_element)
+            # TODO: fix this; does value need converting to XML?
+            annotation = XMLAnnotation(value=acq_value)
+            ome.structured_annotations.append(annotation)
+        elif 'map' in acq_key.lower():
+            map_dict.update(acq_value)
+        else:
+            map_dict[acq_key] = acq_value
+
+    if map_dict:
+        annotation = MapAnnotation(value=Map(ms=[Map.M(k=key, value=str(value)) for key, value in map_dict.items()]))
+        ome.structured_annotations.append(annotation)
 
     return to_xml(ome)
 
@@ -316,7 +343,7 @@ def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None
         image.instrument_ref = InstrumentRef(id=instrument_id)
     if objective_id is not None:
         objective_settings = ObjectiveSettings(id=objective_id)
-        info = source.get_microscope_info()
+        info = source.get_acquisition_metadata()
         refractive_index = info.get('refractive_index')
         if refractive_index is not None:
             objective_settings.refractive_index = refractive_index
