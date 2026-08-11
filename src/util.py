@@ -195,11 +195,13 @@ def xml_content_to_dict(element):
 
 def flatten_dict(dct, prefix=''):
     flat_dct = {}
-    # TODO: fix for lists?
     for key, value in dct.items():
         full_key = prefix + ':' + key if prefix else key
         if isinstance(value, dict):
             flat_dct.update(flatten_dict(value, full_key))
+        elif isinstance(value, (list, tuple)):
+            for index, item in enumerate(value):
+                flat_dct.update(flatten_dict({str(index): item}, full_key))
         else:
             flat_dct[full_key] = value
     return flat_dct

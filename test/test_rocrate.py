@@ -1,16 +1,16 @@
 import glob
-import json
 import logging
 import os
 import pytest
+from rocrate.model.metadata import BASENAME
 import sys
 import tempfile
 
 sys.path.append(os.getcwd())
 
-from converter import init_logging, _convert
+from converter import init_logging
 from src.helper import create_source
-from src.util import print_dict, print_hbytes
+from src.rocrate_utils import create_ro_crate
 
 
 class TestRocrate:
@@ -18,18 +18,17 @@ class TestRocrate:
     #input_filenames = ['C:/Project/slides/tiff/DNAcropSmall.ome.tiff']
     input_filenames = glob.glob('C:/Project/slides/tiff/*.tif*')
 
-    output_formats = ['omezarr3']
-
     @pytest.mark.parametrize(
-        "input_filename", input_filenames,
-        "output_format", output_formats,
+        "input_filename", input_filenames
     )
-    def test_convert(self, tmp_path, input_filename, output_format):
+    def test_rocrate(self, tmp_path, input_filename):
         init_logging('log/biomero_converter.log', verbose=True)
-        output = _convert(input_filename, tmp_path, output_format=output_format)
+        source = create_source(input_filename)
+        source.init_metadata()
+        create_ro_crate(source=source, dest_path=tmp_path)
 
-        output_path = os.path.join(json.loads(output)[0]['full_path'], 'ro-crate-metadata.json')
-        print(open(output_path, encoding='utf-8').read())
+        print(input_filename)
+        print(open(tmp_path / BASENAME, encoding='utf-8').read())
 
 
 if __name__ == '__main__':
@@ -43,4 +42,4 @@ if __name__ == '__main__':
     test = TestRocrate()
     for input_filename in test.input_filenames:
         for output_format in test.output_formats:
-            test.test_convert(Path(tempfile.TemporaryDirectory().name), input_filename, output_format)
+            test.test_rocrate(Path(tempfile.TemporaryDirectory().name), input_filename)
