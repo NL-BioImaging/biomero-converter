@@ -1,17 +1,12 @@
 import json
 from pprint import pprint
 
+from src.TreeBuilder import TreeBuilder
+
 
 def recreate_tree(data):
-    # TODO: read all root items, then find referred ids, and pop them from root
-    
-    if isinstance(data, dict):
-        tree = {key: recreate_tree(value) for key, value in data.items()}
-    elif isinstance(data, list):
-        tree = [recreate_tree(item) for item in data]
-    else:
-        tree = data
-    return tree
+    tree_builder = TreeBuilder(data)
+    return tree_builder.recreate_tree()
 
 
 def extract_types(data):
@@ -26,8 +21,10 @@ def extract_types(data):
 if __name__ == '__main__':
     root_dir = 'C:/Project/AMC/TDCC/Metadata examples/'
     filename = root_dir + 'ARC450/arc-ro-crate-metadata.json'
+    #filename = 'C:/Project/slides/tiff/output_jsons/24-079_Region1_r1_c1_260722174141591 ro-crate-metadata.json'
+
     with open(filename, 'r') as file:
         data = json.load(file)
         root = data['@graph']
     #extract_types(root)
-    pprint(recreate_tree(root))
+    pprint(recreate_tree(root), indent=2, sort_dicts=False)
