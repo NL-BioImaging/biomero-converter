@@ -1,3 +1,4 @@
+@ -0,0 +1,46 @@
 import glob
 import json
 import logging
@@ -15,7 +16,8 @@ from src.util import print_dict, print_hbytes
 
 class TestRocrate:
     input_filenames = ['C:/Project/slides/DB/CellsSmall/experiment.db']
-    input_filenames = ['C:/Project/slides/Ciqtek/Automap/24-079_Region1_r1_c1_260722174141591.tiff']
+    #input_filenames = ['C:/Project/slides/tiff/DNAcropSmall.ome.tiff']
+    input_filenames = glob.glob('C:/Project/slides/tiff/*.tif*')
 
     output_formats = ['omezarr3']
 
