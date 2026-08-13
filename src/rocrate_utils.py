@@ -14,16 +14,14 @@ def create_ro_crate(source, dest_path={}):
     # Alternative use github German-BioImaging idr_study_crates GraphBuilder class to low-level build instead?
 
     properties = {}
-    properties['name'] = source.get_name()
+    properties['name'] = source.get_name()  # use output path(s) instead
+    properties['encodingFormat'] = [
+        'application/vnd.zarr',
+        {'@id': 'https://openminds.docs.om-i.org/en/v3.0/instance_libraries/contentTypes.html#application-vnd-zarr'}
+    ]
     #properties["description"] = source.get_description()
     #properties["license"] = source.get_license()
     dataset_entity = crate.add_dataset(dest_path='.', properties=properties)
-
-    acquisition_properties = {
-        '@type': 'image_acquisition',
-        'fbbi_id': {'@id': 'obo:FBbi_00000257'},
-    }
-    acquisition_entity = ContextEntity(crate, '#acquisition-001', acquisition_properties)
 
     additional_properties = []
     for index, (key, value) in enumerate(flatten_dict(source.get_acquisition_metadata()).items()):
@@ -41,27 +39,29 @@ def create_ro_crate(source, dest_path={}):
         properties_entity = ContextEntity(crate, identifier=additional_property['@id'], properties=additional_property)
         properties_entities.append(crate.add(properties_entity))
 
-    acquisition_entity['additionalProperty'] = properties_entities
-
-    crate.add(acquisition_entity)
-
-    dataset_entity['resultOf'] = acquisition_entity
-
     instrument_properties = {
         '@id': '#microscope-001',
         '@type': 'IndividualProduct',
-        'name': 'Zeiss LSM 900',
-        'manufacturer': {
-            '@id': 'https://ror.org'
-        },
-        'serialNumber': '12345-XYZ'
     }
+    # TODO: Go through all source.metadata to find something that resembles these properties:
+    instrument_name = source.metadata.get('Model')
+    if instrument_name:
+        instrument_properties['name'] = instrument_name
+    manufacturer = source.metadata.get('Make')
+    if manufacturer:
+        instrument_properties['manufacturer'] = manufacturer
+    serial_number = source.metadata.get('SerialNumber')
+    if serial_number:
+        instrument_properties['serialNumber'] = serial_number
+
     instrument_entity = ContextEntity(crate, identifier=instrument_properties['@id'], properties=instrument_properties)
-    crate.add_action(instrument_entity, identifier='#DataCapture-001')
+    instrument_entity['additionalProperty'] = properties_entities
+    create_entity = crate.add_action(instrument_entity, identifier='#data-capture-001')
+    create_entity['instrument'] = instrument_entity
+    create_entity['result'] = dataset_entity
 
-    #dataset_entity['instrument'] = instrument_entity
+    crate.add(instrument_entity)
 
-    # TODO: Consider hasDefinedTerm as a better alternative when using a defined ontology?
     # TODO: Can add variableMeasured for output properties
 
     crate.write(dest_path)
