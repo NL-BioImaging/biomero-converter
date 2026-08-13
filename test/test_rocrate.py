@@ -41,5 +41,4 @@ if __name__ == '__main__':
 
     test = TestRocrate()
     for input_filename in test.input_filenames:
-        for output_format in test.output_formats:
-            test.test_rocrate(Path(tempfile.TemporaryDirectory().name), input_filename)
+        test.test_rocrate(Path(tempfile.TemporaryDirectory().name), input_filename)
