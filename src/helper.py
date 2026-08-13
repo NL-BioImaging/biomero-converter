@@ -39,26 +39,26 @@ def create_source(filename, **kwargs):
         source = IncucyteSource(archive_folder, **kwargs)
     elif input_ext == '.isyntax':
         from src.ISyntaxSource import ISyntaxSource
-        source = ISyntaxSource(filename)
+        source = ISyntaxSource(filename, **kwargs)
     elif input_ext == '.mrxs':
         from src.MiraxSource import MiraxSource
-        source = MiraxSource(filename)
+        source = MiraxSource(filename, **kwargs)
     elif input_ext in ['.dcm', '.dicom']:
         from src.DicomSource import DicomSource
-        source = DicomSource(filename)
+        source = DicomSource(filename, **kwargs)
     elif '.zar' in input_ext:
         from src.OmeZarrSource import OmeZarrSource
-        source = OmeZarrSource(filename)
-    elif '.tif' in input_ext or input_ext == '.ome':
+        source = OmeZarrSource(filename, **kwargs)
+    elif '.tif' in input_ext or input_ext in ('.ome', '.xml'):
         from src.TiffSource import TiffSource
-        source = TiffSource(filename)
+        source = TiffSource(filename, **kwargs)
     else:
         from src.GenericSource import GenericSource
         error = ''
-        source = GenericSource(filename)
+        source = GenericSource(filename, **kwargs)
         if source.format == 'dicom':
             from src.DicomSource import DicomSource
-            source = DicomSource(filename)
+            source = DicomSource(filename, **kwargs)
         if error:
             raise ValueError(f'Unsupported input file format: {input_ext}\n{error}')
     return source

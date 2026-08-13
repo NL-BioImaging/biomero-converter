@@ -30,15 +30,13 @@ class TestConvert:
     #filenames = ['rgb.tiff']
     #filenames = ['cideconvolve/Vesicles.ome.tiff']
 
-    input_filenames = ['D:/slides/' + filename for filename in filenames]
+    input_filenames = ['C:/Project/slides/' + filename for filename in filenames]
     #input_filenames = glob.glob('D:/slides/XRays/DICOM/PA*/ST*/SE*')
 
     output_formats = ['omezarr3', 'omezarr2', 'ometiff']
     #output_formats = ['omezarr3']
 
-    @pytest.mark.parametrize(
-        "input_filename", input_filenames
-    )
+    @pytest.mark.parametrize("input_filename", input_filenames)
     def test_source(self, input_filename, verbose=False, **kwargs):
         init_logging('log/biomero_converter.log', verbose=True)
         source = create_source(input_filename)
@@ -53,10 +51,8 @@ class TestConvert:
             print(f'Total data size:    {print_hbytes(source.get_total_data_size())}')
         print(input_filename, 'ok')
 
-    @pytest.mark.parametrize(
-        "input_filename", input_filenames,
-        "output_format", output_formats,
-    )
+    @pytest.mark.parametrize("input_filename", input_filenames)
+    @pytest.mark.parametrize("output_format", output_formats)
     def test_convert(self, tmp_path, input_filename, output_format, alt_output_folder=None, show_progess=False, verbose=False, **kwargs):
         init_logging('log/biomero_converter.log', verbose=True)
         with Timer(f'convert {input_filename} to {output_format}'):

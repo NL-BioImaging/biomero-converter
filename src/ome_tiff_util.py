@@ -34,37 +34,38 @@ def read_ome_xml_metadata(metadata):
     fields = set()
     wells = {}
     image_refs = {}
+    acquisition_metadata = {}
 
     image0 = ensure_list(metadata.get('Image', []))[0]
     is_plate = 'Plate' in metadata
     if is_plate:
-        plate = metadata['Plate']
-        name = plate.get('Name')
-        for well in ensure_list(plate['Well']):
-            row = create_row_col_label(well['Row'], plate['RowNamingConvention'])
-            column = create_row_col_label(well['Column'], plate['ColumnNamingConvention'])
-            rows.add(row)
-            columns.add(column)
-            label = f'{row}{column}'
-            wells[label] = well['ID']
-            image_refs[label] = {}
-            for sample in ensure_list(well.get('WellSample')):
-                sample_id_parts = sample['ID'].split(':')
-                field_id = sample_id_parts[-1]
-                fields.add(int(field_id))
-                image_refs[label][field_id] = sample['ImageRef']['ID']
-        if 'Rows' in plate:
-            rows = [create_row_col_label(row, plate['RowNamingConvention']) for row in range(plate['Rows'])]
-        else:
-            rows = sorted(rows)
-        if 'Columns' in plate:
-            columns = [create_row_col_label(col, plate['ColumnNamingConvention']) for col in
-                            range(plate['Columns'])]
-        else:
-            columns = sorted(columns, key=int)
+        for plate in ensure_list(metadata['Plate']):
+            name = plate.get('Name')
+            row_naming_convention = plate.get('RowNamingConvention', NamingConvention.LETTER.name)
+            column_naming_convention = plate.get('ColumnNamingConvention', NamingConvention.NUMBER.name)
+            for well in ensure_list(plate.get('Well', [])):
+                row = create_row_col_label(well['Row'], row_naming_convention)
+                column = create_row_col_label(well['Column'], column_naming_convention)
+                rows.add(row)
+                columns.add(column)
+                label = f'{row}{column}'
+                wells[label] = well['ID']
+                image_refs[label] = {}
+                for sample in ensure_list(well.get('WellSample', [])):
+                    sample_id_parts = sample['ID'].split(':')
+                    field_id = sample_id_parts[-1]
+                    fields.add(int(field_id))
+                    image_refs[label][field_id] = sample['ImageRef']['ID']
+            if 'Rows' in plate:
+                rows = [create_row_col_label(row, row_naming_convention) for row in range(plate['Rows'])]
+            else:
+                rows = sorted(rows)
+            if 'Columns' in plate:
+                columns = [create_row_col_label(col, column_naming_convention) for col in range(plate['Columns'])]
+            else:
+                columns = sorted(columns, key=int)
         wells = list(wells.keys())
         fields = sorted(fields)
-        image_refs = image_refs
     else:
         name = image0.get('Name')
     acquisition_datetime = image0.get('AcquisitionDate')
@@ -87,7 +88,7 @@ def read_ome_xml_metadata(metadata):
             position['y'] = convert_to_um(float(plane.get('PositionY')), plane.get('PositionYUnit'))
         if 'PositionZ' in plane:
             position['z'] = convert_to_um(float(plane.get('PositionZ')), plane.get('PositionZUnit'))
-    for channel0 in ensure_list(pixels.get('Channel')):
+    for channel0 in ensure_list(pixels.get('Channel', [])):
         channel = {}
         if 'Name' in channel0:
             channel['label'] = channel0['Name']
@@ -104,8 +105,7 @@ def read_ome_xml_metadata(metadata):
         bits_per_pixel = dtype.itemsize * 8
 
     # all additional metadata
-    acquisition_metadata = camel_to_snake_keys_dict(metadata.get('Instrument', {}))
-    acquisition_metadata.update(acquisition_metadata.pop('objective', {}))
+    acquisition_metadata.update(camel_to_snake_keys_dict(metadata.get('Instrument', {})))
     acquisition_metadata.update(camel_to_snake_keys_dict(image0.get('ObjectiveSettings', {})))
 
     for annotations_type, annotations in metadata.get('StructuredAnnotations', {}).items():

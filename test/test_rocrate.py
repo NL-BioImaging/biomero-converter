@@ -6,6 +6,8 @@ from rocrate.model.metadata import BASENAME
 import sys
 import tempfile
 
+from src.ome_tiff_util import metadata_to_dict
+
 sys.path.append(os.getcwd())
 
 from converter import init_logging
@@ -16,7 +18,9 @@ from src.rocrate_utils import create_ro_crate
 class TestRocrate:
     input_filenames = ['C:/Project/slides/DB/CellsSmall/experiment.db']
     #input_filenames = ['C:/Project/slides/tiff/DNAcropSmall.ome.tiff']
-    input_filenames = glob.glob('C:/Project/slides/tiff/*.tif*')
+    #input_filenames = glob.glob('C:/Project/slides/tiff/*.tif*') + glob.glob('C:/Project/slides/ome-xml/*')
+    input_filenames = glob.glob('C:/Project/slides/ome-xml/*')
+    simple_image_filename = 'C:/Project/slides/tiff/DNAcropSmall.ome.tiff'
 
     @pytest.mark.parametrize(
         "input_filename", input_filenames

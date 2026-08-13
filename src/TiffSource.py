@@ -26,12 +26,14 @@ class TiffSource(ImageSource):
         super().__init__(uri, metadata)
         image_filename = None
         ext = os.path.splitext(uri)[1].lower()
+        self.is_ome = False
         if 'tif' in ext:
             image_filename = uri
-        elif 'ome' in ext:
+        elif ext in ('.ome', '.xml'):
             # read metadata
             with open(uri, 'rb') as file:
                 self.metadata = metadata_to_dict(file.read().decode())
+            self.is_ome = True
             # try to open linked ome-tiff file
             self.image_filenames = {}
             for image in ensure_list(self.metadata.get('Image', {})):
@@ -44,11 +46,12 @@ class TiffSource(ImageSource):
         else:
             raise RuntimeError(f'Unsupported tiff extension: {ext}')
 
-        self.tiff = TiffFile(image_filename)
+        if image_filename:
+            self.tiff = TiffFile(image_filename)
+        else:
+            self.tiff = None
 
     def init_metadata(self):
-        self.is_ome = self.tiff.is_ome
-        self.is_imagej = self.tiff.is_imagej
         acquisition_datetime = None
         pixel_size = {}
         position = {}
@@ -61,25 +64,30 @@ class TiffSource(ImageSource):
         image_refs = {}
         metadata = {}
 
-        if self.tiff.series:
-            pages = self.tiff.series
-            page = pages[0]
-        else:
-            pages = self.tiff.pages
-            page = self.tiff.pages.first
-        if hasattr(page, 'levels') and len(page.levels) >= len(pages):
-            pages = page.levels
-        self.shapes = [page.shape for page in pages]
-        self.shape = page.shape
-        self.dim_order = page.axes.lower().replace('s', 'c').replace('r', '')
-        x_index, y_index = self.dim_order.index('x'), self.dim_order.index('y')
-        self.scales = [float(np.mean([shape[x_index] / self.shape[x_index], shape[y_index] / self.shape[y_index]]))
-                       for shape in self.shapes]
-        self.is_photometric_rgb = (self.tiff.pages.first.photometric == PHOTOMETRIC.RGB)
-        self.nchannels = self.shape[self.dim_order.index('c')] if 'c' in self.dim_order else 1
+        if self.tiff:
+            self.is_ome = self.tiff.is_ome
+            self.is_imagej = self.tiff.is_imagej
+
+            if self.tiff.series:
+                pages = self.tiff.series
+                page = pages[0]
+            else:
+                pages = self.tiff.pages
+                page = self.tiff.pages.first
+            if hasattr(page, 'levels') and len(page.levels) >= len(pages):
+                pages = page.levels
+            self.shapes = [page.shape for page in pages]
+            self.shape = page.shape
+            self.dim_order = page.axes.lower().replace('s', 'c').replace('r', '')
+            x_index, y_index = self.dim_order.index('x'), self.dim_order.index('y')
+            self.scales = [float(np.mean([shape[x_index] / self.shape[x_index], shape[y_index] / self.shape[y_index]]))
+                           for shape in self.shapes]
+            self.is_photometric_rgb = (self.tiff.pages.first.photometric == PHOTOMETRIC.RGB)
+            self.nchannels = self.shape[self.dim_order.index('c')] if 'c' in self.dim_order else 1
 
         if self.is_ome:
-            metadata = metadata_to_dict(self.tiff.ome_metadata)
+            if self.tiff:
+                metadata = metadata_to_dict(self.tiff.ome_metadata)
             if metadata and not 'BinaryOnly' in metadata:
                 self.metadata = metadata
             (name, is_plate, pixel_size, position, dtype, bits_per_pixel, channels, acquisition_metadata, acquisition_datetime,
