@@ -90,8 +90,9 @@ def search_metadata(metadata, labels):
         if isinstance(value, dict):
             return search_metadata(value, labels)
         else:
+            key1 = key.lower()
             for label in labels:
-                label = label.lower()
-                if label in key.lower() and not isinstance(value, dict):
+                label1 = label.lower()
+                if label1 in key1 and not isinstance(value, dict):
                     return value
     return None
