@@ -43,14 +43,19 @@ def create_ro_crate(source, dest_path={}):
         '@id': '#microscope-001',
         '@type': 'IndividualProduct',
     }
-    # TODO: Go through all source.metadata to find something that resembles these properties:
-    instrument_name = source.metadata.get('Model')
+
+    instrument_name = search_metadata_fully(source.metadata, ['name', 'model', 'identifier'],
+                                            contexts=['instrument', 'microscope', 'device', ''])
     if instrument_name:
         instrument_properties['name'] = instrument_name
-    manufacturer = source.metadata.get('Make')
+
+    manufacturer = search_metadata_fully(source.metadata, ['manufacturer', 'make'],
+                                         contexts=['instrument', 'microscope', 'device', ''])
     if manufacturer:
         instrument_properties['manufacturer'] = manufacturer
-    serial_number = source.metadata.get('SerialNumber')
+
+    serial_number = search_metadata_fully(source.metadata, ['serialnumber', 'serial'],
+                                         contexts=['instrument', 'microscope', 'device', ''])
     if serial_number:
         instrument_properties['serialNumber'] = serial_number
 
@@ -66,3 +71,27 @@ def create_ro_crate(source, dest_path={}):
 
     crate.write(dest_path)
     return crate
+
+
+def search_metadata_fully(metadata, labels, contexts=None):
+    for context in contexts:
+        for label in labels:
+            search_labels = [label]
+            if context:
+                search_labels.append(context)
+            value = search_metadata(metadata, search_labels)
+            if value is not None:
+                return value
+    return None
+
+
+def search_metadata(metadata, labels):
+    for key, value in metadata.items():
+        if isinstance(value, dict):
+            return search_metadata(value, labels)
+        else:
+            for label in labels:
+                label = label.lower()
+                if label in key.lower() and not isinstance(value, dict):
+                    return value
+    return None
