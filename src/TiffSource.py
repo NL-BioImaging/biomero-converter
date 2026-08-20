@@ -100,11 +100,10 @@ class TiffSource(ImageSource):
                 metadata = self.tiff.imagej_metadata
                 pixel_size = get_fiji_pixelsize(metadata)
 
-            metadata |= {key: value for page in self.tiff.pages for key, value in tags_to_dict(page.tags).items()}
+            metadata |= {key: value for page in self.tiff.pages for key, value in tags_to_dict(page.tags).items()
+                         if key not in ('StripOffsets', 'StripByteCounts', 'TileOffsets', 'TileByteCounts', 'JPEGTables')}
 
             if 'FEI_TITAN' in metadata:
-                metadata['manufacturer'] = 'FEI'
-                metadata['model'] = 'Titan'
                 acquisition_metadata = metadata.pop('FEI_TITAN')
                 if isinstance(acquisition_metadata, str) and '<?xml' in acquisition_metadata.lower():
                     acquisition_metadata = metadata_to_dict(acquisition_metadata)
@@ -118,9 +117,9 @@ class TiffSource(ImageSource):
                     pixel_size['y'] = convert_to_um(h.get('value'), h.get('unit'))
                 if 'x' not in position:
                     position = {dim: convert_to_um(value, 'm') for dim, value in acquisition_metadata.get('samplePosition').items()}   # unit = m?
-            elif 'FEI_HELIOS' in metadata:
                 metadata['manufacturer'] = 'FEI'
-                metadata['model'] = 'Helios'
+                metadata['model'] = 'Titan'
+            elif 'FEI_HELIOS' in metadata:
                 acquisition_metadata = metadata['FEI_HELIOS']
                 if 'x' not in pixel_size:
                     hfw = fix_bad_micro_value(acquisition_metadata.get('Beam', {}).get('HFW'))
@@ -140,6 +139,8 @@ class TiffSource(ImageSource):
                         position['y'] = stage.get('StagePosY')
                         position['z'] = stage.get('StagePosZ')
                         rotation = stage.get('StagePosR')
+                metadata['manufacturer'] = 'FEI'
+                metadata['model'] = 'Helios'
             elif 'FibicsXML' in metadata:
                 acquisition_metadata = metadata.pop('FibicsXML')
                 if isinstance(acquisition_metadata, str) and '<?xml' in acquisition_metadata.lower():
