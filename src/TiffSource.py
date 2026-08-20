@@ -1,5 +1,6 @@
 import dask.array as da
 from datetime import datetime
+import dateutil
 from enum import Enum
 import numpy as np
 import os.path
@@ -55,6 +56,7 @@ class TiffSource(ImageSource):
         acquisition_datetime = None
         pixel_size = {}
         position = {}
+        rotation = None
         channels = []
         acquisition_metadata = {}
         wells = {}
@@ -101,11 +103,14 @@ class TiffSource(ImageSource):
             metadata |= {key: value for page in self.tiff.pages for key, value in tags_to_dict(page.tags).items()}
 
             if 'FEI_TITAN' in metadata:
-                acquisition_metadata = metadata['FEI_TITAN']
-                if isinstance(acquisition_metadata, str) and 'xml' in acquisition_metadata.lower():
+                metadata['manufacturer'] = 'FEI'
+                metadata['model'] = 'Titan'
+                acquisition_metadata = metadata.pop('FEI_TITAN')
+                if isinstance(acquisition_metadata, str) and '<?xml' in acquisition_metadata.lower():
                     acquisition_metadata = metadata_to_dict(acquisition_metadata)
                 if 'FeiImage' in acquisition_metadata:
                     acquisition_metadata = acquisition_metadata['FeiImage']
+                metadata['FeiImage'] = acquisition_metadata
                 if 'x' not in pixel_size:
                     w = acquisition_metadata.get('pixelWidth')
                     pixel_size['x'] = convert_to_um(w.get('value'), w.get('unit'))
@@ -114,6 +119,8 @@ class TiffSource(ImageSource):
                 if 'x' not in position:
                     position = {dim: convert_to_um(value, 'm') for dim, value in acquisition_metadata.get('samplePosition').items()}   # unit = m?
             elif 'FEI_HELIOS' in metadata:
+                metadata['manufacturer'] = 'FEI'
+                metadata['model'] = 'Helios'
                 acquisition_metadata = metadata['FEI_HELIOS']
                 if 'x' not in pixel_size:
                     hfw = fix_bad_micro_value(acquisition_metadata.get('Beam', {}).get('HFW'))
@@ -133,6 +140,35 @@ class TiffSource(ImageSource):
                         position['y'] = stage.get('StagePosY')
                         position['z'] = stage.get('StagePosZ')
                         rotation = stage.get('StagePosR')
+            elif 'FibicsXML' in metadata:
+                acquisition_metadata = metadata.pop('FibicsXML')
+                if isinstance(acquisition_metadata, str) and '<?xml' in acquisition_metadata.lower():
+                    acquisition_metadata = metadata_to_dict(acquisition_metadata)
+                if 'Fibics' in acquisition_metadata:
+                    acquisition_metadata = acquisition_metadata['Fibics']
+                metadata['Fibics'] = acquisition_metadata
+                application_version = acquisition_metadata.get('Application', {}).get('Version', '').split()
+                if len(application_version) >= 2:
+                    metadata['manufacturer'] = application_version[0]
+                    metadata['model'] = application_version[1]
+                fov_x = acquisition_metadata.get('Scan', {}).get('FOV_X')
+                fov_y = acquisition_metadata.get('Scan', {}).get('FOV_Y')
+                fov_x_um = convert_to_um(fov_x.get('value'), fov_x.get('units'))
+                fov_y_um = convert_to_um(fov_y.get('value'), fov_y.get('units'))
+                pixel_size = {'x': fov_x_um / self.shape[x_index], 'y': fov_y_um / self.shape[y_index]}
+                stage = acquisition_metadata.get('Stage', {})
+                x = stage.get('X')
+                y = stage.get('Y')
+                z = stage.get('Z')
+                position = {'x': convert_to_um(x['value'], x['units']),
+                            'y': convert_to_um(y['value'], y['units']),
+                            'z': convert_to_um(z['value'], z['units'])}
+                rotation = stage.get('Rot')
+                if 'units' in rotation:
+                    if rotation['units'].startswith('rad'):
+                        rotation = np.rad2deg(rotation['value'])
+                    else:
+                        rotation = rotation['value']
             elif 'OlympusSIS' in metadata:
                 acquisition_metadata = metadata['OlympusSIS']
                 acquisition_datetime = acquisition_metadata['datetime']
@@ -144,7 +180,7 @@ class TiffSource(ImageSource):
             name = self.tiff.filename
             if not acquisition_datetime:
                 if 'DateTime' in self.metadata:
-                    acquisition_datetime = datetime.strptime(self.metadata['DateTime'],'%Y:%m:%d %H:%M:%S')
+                    acquisition_datetime = dateutil.parser.parse(self.metadata['DateTime'])
                 else:
                     acquisition_datetime = datetime.fromtimestamp(self.tiff.fstat.st_ctime)
             dtype = page.dtype
@@ -173,6 +209,7 @@ class TiffSource(ImageSource):
         self.image_refs = image_refs
         self.pixel_size = pixel_size
         self.position = position
+        self.rotation = rotation
         self.channels = channels
         self.dtype = dtype
         self.bits_per_pixel = bits_per_pixel

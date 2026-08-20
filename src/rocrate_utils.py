@@ -1,8 +1,8 @@
 # https://pypi.org/project/rocrate/
 # https://github.com/ome/ome2024-ngff-challenge/tree/main/src/ome2024_ngff_challenge/zarr_crate
 # https://github.com/clbarnes/rembi-mifa-py/blob/main/examples/rembi.py
-from datetime import datetime
 
+from datetime import datetime
 from rocrate.model import ContextEntity
 
 from src.util import flatten_dict
@@ -44,17 +44,19 @@ def create_ro_crate(source, dest_path={}):
         '@type': 'IndividualProduct',
     }
 
-    instrument_name = search_metadata_fully(source.metadata, ['name', 'model', 'identifier'],
+    metadata = source.get_metadata()
+
+    instrument_name = search_metadata_fully(metadata, ['model', 'name', 'identifier'],
                                             contexts=['instrument', 'microscope', 'device', ''])
     if instrument_name:
         instrument_properties['name'] = instrument_name
 
-    manufacturer = search_metadata_fully(source.metadata, ['manufacturer', 'make'],
+    manufacturer = search_metadata_fully(metadata, ['manufacturer', 'make'],
                                          contexts=['instrument', 'microscope', 'device', ''])
     if manufacturer:
         instrument_properties['manufacturer'] = manufacturer
 
-    serial_number = search_metadata_fully(source.metadata, ['serialnumber', 'serial'],
+    serial_number = search_metadata_fully(metadata, ['serialnumber', 'serial'],
                                          contexts=['instrument', 'microscope', 'device', ''])
     if serial_number:
         instrument_properties['serialNumber'] = serial_number
@@ -88,7 +90,9 @@ def search_metadata_fully(metadata, labels, contexts=None):
 def search_metadata(metadata, labels):
     for key, value in metadata.items():
         if isinstance(value, dict):
-            return search_metadata(value, labels)
+            match = search_metadata(value, labels)
+            if match is not None:
+                return match
         else:
             key1 = key.lower()
             for label in labels:
