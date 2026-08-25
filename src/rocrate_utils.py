@@ -46,6 +46,8 @@ def create_ro_crate(source, dest_path={}):
 
     metadata = source.get_metadata()
 
+    uri = source.uri
+
     instrument_name = search_metadata_fully(metadata, ['model', 'name', 'identifier'],
                                             contexts=['instrument', 'microscope', 'device', ''])
     if instrument_name:
@@ -69,7 +71,7 @@ def create_ro_crate(source, dest_path={}):
 
     crate.add(instrument_entity)
 
-    # TODO: Can add variableMeasured for output properties
+    # TODO: Can add variableMeasured for output properties - or link to external file e.g. csv
 
     crate.write(dest_path)
     return crate
