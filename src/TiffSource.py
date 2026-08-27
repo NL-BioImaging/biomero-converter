@@ -109,6 +109,8 @@ class TiffSource(ImageSource):
                     acquisition_metadata = metadata_to_dict(acquisition_metadata)
                 if 'FeiImage' in acquisition_metadata:
                     acquisition_metadata = acquisition_metadata['FeiImage']
+                acquisition_metadata = {key: value for key, value in acquisition_metadata.items()
+                                        if not (isinstance(value, str) and '.xsd' in value.lower())}
                 metadata['FeiImage'] = acquisition_metadata
                 if 'x' not in pixel_size:
                     w = acquisition_metadata.get('pixelWidth')
@@ -149,6 +151,8 @@ class TiffSource(ImageSource):
                     acquisition_metadata = metadata_to_dict(acquisition_metadata)
                 if 'Fibics' in acquisition_metadata:
                     acquisition_metadata = acquisition_metadata['Fibics']
+                acquisition_metadata = {key: value for key, value in acquisition_metadata.items()
+                                        if not (isinstance(value, str) and '.xsd' in value.lower())}
                 metadata['Fibics'] = acquisition_metadata
                 application_version = acquisition_metadata.get('Application', {}).get('Version', '').split()
                 if len(application_version) >= 2:
@@ -178,6 +182,11 @@ class TiffSource(ImageSource):
                 if 'x' not in pixel_size:
                     pixel_size['x'] = convert_to_um(acquisition_metadata['pixelsizex'], 'm')
                     pixel_size['y'] = convert_to_um(acquisition_metadata['pixelsizey'], 'm')
+            else:
+                if 'Make' in metadata:
+                    acquisition_metadata['Make'] = metadata['Make']
+                if 'Model' in metadata:
+                    acquisition_metadata['Model'] = metadata['Model']
 
             self.metadata = metadata
             name = self.tiff.filename
