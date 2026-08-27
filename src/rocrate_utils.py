@@ -48,20 +48,29 @@ def create_ro_crate(source, dest_path={}):
 
     uri = source.uri
 
-    instrument_name = search_metadata_fully(metadata, ['model', 'name', 'identifier'],
-                                            contexts=['instrument', 'microscope', 'device', ''])
-    if instrument_name:
-        instrument_properties['name'] = instrument_name
-
-    manufacturer = search_metadata_fully(metadata, ['manufacturer', 'make'],
-                                         contexts=['instrument', 'microscope', 'device', ''])
+    if 'manufacturer' in metadata and metadata['manufacturer']:
+        manufacturer = metadata['manufacturer']
+    else:
+        manufacturer = search_metadata_fully(metadata, ['manufacturer', 'make'],
+                                             contexts=['instrument', 'microscope', 'device', 'system', ''])
     if manufacturer:
         instrument_properties['manufacturer'] = manufacturer
 
-    serial_number = search_metadata_fully(metadata, ['serialnumber', 'serial'],
-                                         contexts=['instrument', 'microscope', 'device', ''])
-    if serial_number:
-        instrument_properties['serialNumber'] = serial_number
+    if 'model' in metadata and metadata['model']:
+        model = metadata['model']
+    else:
+        model = search_metadata_fully(metadata, ['model', 'name', 'product', 'productname', 'identifier'],
+                                      contexts=['instrument', 'microscope', 'device', 'system', ''])
+    if model:
+        instrument_properties['name'] = model
+
+    if 'serial' in metadata and metadata['serial']:
+        serial = metadata['serial']
+    else:
+        serial = search_metadata_fully(metadata, ['serialnumber', 'serial'],
+                                       contexts=['instrument', 'microscope', 'device', 'system', ''])
+    if serial:
+        instrument_properties['serialNumber'] = serial
 
     instrument_entity = ContextEntity(crate, identifier=instrument_properties['@id'], properties=instrument_properties)
     instrument_entity['additionalProperty'] = properties_entities

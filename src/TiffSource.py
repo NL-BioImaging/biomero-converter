@@ -118,7 +118,9 @@ class TiffSource(ImageSource):
                 if 'x' not in position:
                     position = {dim: convert_to_um(value, 'm') for dim, value in acquisition_metadata.get('samplePosition').items()}   # unit = m?
                 metadata['manufacturer'] = 'FEI'
-                metadata['model'] = 'Titan'
+                instrument = acquisition_metadata.get('instrument', acquisition_metadata)
+                metadata['model'] = instrument.get('edition', instrument.get('type', 'Titan'))
+                metadata['serial'] = instrument.get('uniqueID')
             elif 'FEI_HELIOS' in metadata:
                 acquisition_metadata = metadata['FEI_HELIOS']
                 if 'x' not in pixel_size:
@@ -140,7 +142,7 @@ class TiffSource(ImageSource):
                         position['z'] = stage.get('StagePosZ')
                         rotation = stage.get('StagePosR')
                 metadata['manufacturer'] = 'FEI'
-                metadata['model'] = 'Helios'
+                metadata['model'] = acquisition_metadata.get('System', {}).get('ProductName', 'Helios')
             elif 'FibicsXML' in metadata:
                 acquisition_metadata = metadata.pop('FibicsXML')
                 if isinstance(acquisition_metadata, str) and '<?xml' in acquisition_metadata.lower():
