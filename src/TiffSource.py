@@ -126,6 +126,7 @@ class TiffSource(ImageSource):
                 if 'x' not in pixel_size:
                     hfw = fix_bad_micro_value(acquisition_metadata.get('Beam', {}).get('HFW'))
                     if hfw:
+                        acquisition_metadata['Beam']['HFW'] = hfw
                         # find non-alpha index:
                         index = hfw.find(next(filter(str.isalpha, hfw)))
                         if index >= 0:
@@ -141,6 +142,9 @@ class TiffSource(ImageSource):
                         position['y'] = stage.get('StagePosY')
                         position['z'] = stage.get('StagePosZ')
                         rotation = stage.get('StagePosR')
+                user_timestamp = acquisition_metadata.get('User', {}).get('TimeStamp')
+                if user_timestamp:
+                    acquisition_metadata['User']['TimeStamp'] = datetime.fromtimestamp(user_timestamp)
                 metadata['manufacturer'] = 'FEI'
                 metadata['model'] = acquisition_metadata.get('System', {}).get('ProductName', 'Helios')
             elif 'FibicsXML' in metadata:
