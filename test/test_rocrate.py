@@ -48,8 +48,10 @@ if __name__ == '__main__':
         test.test_rocrate(Path(tempfile.TemporaryDirectory().name), input_filename)
 
     # Test load ome-tiff/xml metadata -> acquisition_metadata, export to json
-    source = create_source(test.simple_image_filename)
-    source.init_metadata()
-    acquisition_metadata = source.get_acquisition_metadata()
-    with open('test.json', 'w') as f:
-        json.dump(acquisition_metadata, f)
+    simple_image_filename = getattr(test, 'simple_image_filename', None)
+    if simple_image_filename:
+        source = create_source(simple_image_filename)
+        source.init_metadata()
+        acquisition_metadata = source.get_acquisition_metadata()
+        with open('test.json', 'w') as f:
+            json.dump(acquisition_metadata, f)
