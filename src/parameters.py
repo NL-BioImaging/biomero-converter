@@ -1,4 +1,6 @@
-VERSION = 'v0.2.1'
+from src.version import get_version
+
+VERSION = get_version()
 
 OME_DIR = 'OME'
 OME_FILE = 'METADATA.ome.xml'
