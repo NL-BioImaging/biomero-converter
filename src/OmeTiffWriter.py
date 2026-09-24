@@ -231,6 +231,7 @@ class OmeTiffWriter(OmeWriter):
                 if is_generator:
                     data = data_generator(scale)
                 writer.write(data, shape=tuple(new_shape), dtype=dtype, metadata={'axes': self.dim_order},
+                             photometric='rgb' if source.is_rgb() else 'minisblack',
                              subifds=subifds, subfiletype=subfiletype,
                              resolution=resolution, resolutionunit=resolution_unit, tile=tile_size,
                              compression=compression, compressionargs=compressionargs,
