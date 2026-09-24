@@ -1,10 +1,10 @@
 import glob
+import json
 import logging
 import os
 import pytest
 from rocrate.model.metadata import BASENAME
 import sys
-import tempfile
 
 sys.path.append(os.getcwd())
 
@@ -37,6 +37,7 @@ class TestRocrate:
 if __name__ == '__main__':
     # Emulate pytest / fixtures
     from pathlib import Path
+    import tempfile
 
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
     for module in ['ome_zarr', 'zarr', 'numcodecs', 'asyncio']:
@@ -45,3 +46,10 @@ if __name__ == '__main__':
     test = TestRocrate()
     for input_filename in test.input_filenames:
         test.test_rocrate(Path(tempfile.TemporaryDirectory().name), input_filename)
+
+    # Test load ome-tiff/xml metadata -> acquisition_metadata, export to json
+    source = create_source(test.simple_image_filename)
+    source.init_metadata()
+    acquisition_metadata = source.get_acquisition_metadata()
+    with open('test.json', 'w') as f:
+        json.dump(acquisition_metadata, f)

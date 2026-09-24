@@ -222,7 +222,7 @@ def camel_to_snake(name):
 
 def convert_to_um(value, unit):
     conversions = {
-        'nm': 1e-3,
+        'nm': 1e-3, 'nanometer': 1e-3,
         'µm': 1, 'um': 1, 'micrometer': 1, 'micron': 1,
         'mm': 1e3, 'millimeter': 1e3,
         'cm': 1e4, 'centimeter': 1e4,
