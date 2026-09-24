@@ -28953,7 +28953,8 @@ otherwise the git tag of the source tree (e.g. 'v0.1.31', or 'v0.1.31-2-gabc1234
 <span class="normal">237</span>
 <span class="normal">238</span>
 <span class="normal">239</span>
-<span class="normal">240</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">OmeTiffWriter</span><span class="p">(</span><span class="n">OmeWriter</span><span class="p">):</span>
+<span class="normal">240</span>
+<span class="normal">241</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">OmeTiffWriter</span><span class="p">(</span><span class="n">OmeWriter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Writes image data and metadata to OME-TIFF files.</span>
 <span class="sd">    """</span>
@@ -29172,6 +29173,7 @@ otherwise the git tag of the source tree (e.g. 'v0.1.31', or 'v0.1.31-2-gabc1234
                 <span class="k">if</span> <span class="n">is_generator</span><span class="p">:</span>
                     <span class="n">data</span> <span class="o">=</span> <span class="n">data_generator</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span>
                 <span class="n">writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">new_shape</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">'axes'</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span><span class="p">},</span>
+                             <span class="n">photometric</span><span class="o">=</span><span class="s1">'rgb'</span> <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">is_rgb</span><span class="p">()</span> <span class="k">else</span> <span class="s1">'minisblack'</span><span class="p">,</span>
                              <span class="n">subifds</span><span class="o">=</span><span class="n">subifds</span><span class="p">,</span> <span class="n">subfiletype</span><span class="o">=</span><span class="n">subfiletype</span><span class="p">,</span>
                              <span class="n">resolution</span><span class="o">=</span><span class="n">resolution</span><span class="p">,</span> <span class="n">resolutionunit</span><span class="o">=</span><span class="n">resolution_unit</span><span class="p">,</span> <span class="n">tile</span><span class="o">=</span><span class="n">tile_size</span><span class="p">,</span>
                              <span class="n">compression</span><span class="o">=</span><span class="n">compression</span><span class="p">,</span> <span class="n">compressionargs</span><span class="o">=</span><span class="n">compressionargs</span><span class="p">,</span>
