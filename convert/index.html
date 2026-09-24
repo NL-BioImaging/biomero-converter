@@ -566,6 +566,9 @@
 <li><code>output_format</code> (str): Output format string (default: <code>'omezarr2'</code>).</li>
 <li><code>show_progress</code> (bool): If <code>True</code>, prints progress.</li>
 <li><code>verbose</code> (bool): If <code>True</code>, enables verbose logging.</li>
+<li><code>**kwargs</code>: Source specific parameters, e.g.:</li>
+<li><code>plate_id</code> (str): Incucyte plate ID (default: all plates).</li>
+<li><code>image_uuid</code> (str) or <code>image_index</code> (int): Leica image to convert (default: all images in the file).</li>
 </ul>
 <h2 id="returns">Returns</h2>
 <p>A JSON string containing an array with conversion result info, e.g.:</p>
