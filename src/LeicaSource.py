@@ -37,17 +37,18 @@ IMMERSIONS = {
 class LeicaSource(ImageSource):
     """
     Loads image and metadata from Leica LIF, LOF or XLEF files.
-    A file can contain multiple images; a single image is selected by its UUID (default: first image).
+    A file can contain multiple images; a single image is selected by UUID or index (default: first image).
     Tile scans (mosaic) are stitched using the tile field positions.
     """
-    def __init__(self, uri, metadata={}, image_uuid=None, **kwargs):
+    def __init__(self, uri, metadata={}, image_uuid=None, image_index=None, **kwargs):
         """
         Initialize LeicaSource.
 
         Args:
             uri (str): Path to the Leica file.
             metadata (dict): Optional metadata dictionary.
-            image_uuid (str, optional): UUID of the image to read (default: first image).
+            image_uuid (str, optional): UUID of the image to read.
+            image_index (int, optional): Index of the image to read (e.g. for older files without UUIDs).
         """
         super().__init__(uri, metadata)
         self.lif = LifFile(uri)
@@ -56,22 +57,26 @@ class LeicaSource(ImageSource):
             if not images:
                 raise ValueError(f'Image UUID {image_uuid} not found in {uri}')
             self.image = images[0]
+        elif image_index is not None:
+            self.image = self.lif.images[int(image_index)]
         else:
+            if not self.lif.images:
+                raise ValueError(f'No images found in {uri}')
             self.image = self.lif.images[0]
 
     @staticmethod
-    def get_image_uuids(uri):
+    def get_image_count(uri):
         """
-        Get the UUIDs of all images in a Leica file.
+        Get the number of images in a Leica file.
 
         Args:
             uri (str): Path to the Leica file.
 
         Returns:
-            list: Image UUIDs.
+            int: Number of images.
         """
         with LifFile(uri) as lif:
-            return [image.uuid for image in lif.images]
+            return len(lif.images)
 
     def init_metadata(self):
         image = self.image
@@ -88,6 +93,7 @@ class LeicaSource(ImageSource):
 
         self.dim_order = 'tczyx'
         self.tile_size = sizes['Y'], sizes['X']
+        self.tile_flip = False, False, False
         self.tile_grid = self._get_tile_grid(sizes.get('M', 1))
         if self.tile_grid is not None:
             ny, nx = len(self.tile_grid), len(self.tile_grid[0])
@@ -147,7 +153,9 @@ class LeicaSource(ImageSource):
             self.acquisition_datetime = None
 
         self.acquisition_metadata = self._get_acquisition_metadata()
-        self.name = get_filetitle(self.uri) + '_' + image.path.replace('/', '_')
+        filetitle = get_filetitle(self.uri)
+        image_name = image.path.replace('/', '_')
+        self.name = filetitle if image_name == filetitle else f'{filetitle}_{image_name}'
         return self.metadata
 
     def _get_tile_grid(self, ntiles):
@@ -158,8 +166,15 @@ class LeicaSource(ImageSource):
             list: Nested list [y][x] of mosaic (M) index (or None for empty positions), or None if not a tile scan.
         """
         tilescan = self.image.tilescan
-        if ntiles <= 1 or tilescan is None:
+        if ntiles <= 1:
             return None
+        if tilescan is None:
+            logging.warning(f'Leica image {self.image.name}: mosaic without tile scan info, using first tile')
+            return None
+        # tiles are flipped / transposed before placing on the grid
+        self.tile_flip = tilescan.flip_y, tilescan.flip_x, tilescan.swap_xy
+        if tilescan.swap_xy:
+            self.tile_size = self.tile_size[::-1]
 
         # mosaic coordinates index into the tile scan (e.g. for cropped tile scans)
         tile_indices = self.image.coords.get('M', range(ntiles))
@@ -246,6 +261,7 @@ class LeicaSource(ImageSource):
         if self.tile_grid is None:
             return data[0]
         lib = da if as_dask else np
+        flip_y, flip_x, swap_xy = self.tile_flip
         ny, nx = len(self.tile_grid), len(self.tile_grid[0])
         rows = []
         for y, grid_row in enumerate(self.tile_grid):
@@ -255,7 +271,14 @@ class LeicaSource(ImageSource):
                 height = self.tile_step[0] if y < ny - 1 else self.tile_size[0]
                 width = self.tile_step[1] if x < nx - 1 else self.tile_size[1]
                 if m_index is not None:
-                    tile = data[m_index][..., :height, :width]
+                    tile = data[m_index]
+                    if flip_y:
+                        tile = tile[..., ::-1, :]
+                    if flip_x:
+                        tile = tile[..., ::-1]
+                    if swap_xy:
+                        tile = lib.swapaxes(tile, -1, -2)
+                    tile = tile[..., :height, :width]
                 else:
                     tile = lib.zeros(data.shape[1:-2] + (height, width), dtype=data.dtype)
                 row.append(tile)
