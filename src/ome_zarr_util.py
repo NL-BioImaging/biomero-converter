@@ -1,6 +1,34 @@
 import numpy as np
+import os
+import sys
 
 from src.color_conversion import rgba_to_hexrgb
+
+
+def patch_zarr_windows_network_move():
+    """
+    Work around zarr LocalStore failing on Windows network shares (see issue #10).
+
+    On Windows zarr uses os.rename for exclusive writes (set_if_not_exists) and relies on
+    FileExistsError when the destination exists. Some network shares (SMB) report this as
+    PermissionError [WinError 5] instead, which zarr does not handle.
+    """
+    if sys.platform != 'win32':
+        return
+    import zarr.storage._local as zarr_local
+    if getattr(zarr_local._safe_move, '_patched', False):
+        return
+
+    def _safe_move(src, dst):
+        try:
+            os.rename(src, dst)
+        except PermissionError as e:
+            if os.path.exists(dst):
+                raise FileExistsError(*e.args) from e
+            raise
+
+    _safe_move._patched = True
+    zarr_local._safe_move = _safe_move
 
 
 def create_axes_metadata(dimension_order):
