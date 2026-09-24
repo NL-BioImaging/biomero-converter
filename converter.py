@@ -89,6 +89,28 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
                 results.extend(json.loads(result))
             return json.dumps(results)
 
+    # Leica file: if image not specified, process all images
+    from src.helper import LEICA_EXTENSIONS
+    if (input_ext in LEICA_EXTENSIONS and not kwargs.get('image_uuid')
+            and kwargs.get('image_index') is None):
+        from src.LeicaSource import LeicaSource
+
+        image_count = LeicaSource.get_image_count(input_filename)
+        logging.info(f'Processing {image_count} image(s)')
+        results = []
+        for image_index in range(image_count):
+            image_kwargs = kwargs.copy()
+            image_kwargs['image_index'] = image_index
+            result = _convert_single(
+                input_filename, output_folder,
+                alt_output_folder=alt_output_folder,
+                output_format=output_format,
+                show_progress=show_progress,
+                verbose=verbose,
+                **image_kwargs)
+            results.extend(json.loads(result))
+        return json.dumps(results)
+
     # Single source conversion
     return _convert_single(
         input_filename, output_folder,

@@ -1,6 +1,9 @@
 import os.path
 
 
+LEICA_EXTENSIONS = ['.lif', '.lof', '.lifext', '.xlif', '.xlcf', '.xlef']
+
+
 def create_source(filename, **kwargs):
     """
     Create an image source object based on the input file extension.
@@ -17,7 +20,10 @@ def create_source(filename, **kwargs):
     """
     input_ext = os.path.splitext(filename)[1].lower()
 
-    if input_ext == '.db':
+    if input_ext in LEICA_EXTENSIONS:
+        from src.LeicaSource import LeicaSource
+        source = LeicaSource(filename, **kwargs)
+    elif input_ext == '.db':
         from src.ImageDbSource import ImageDbSource
         source = ImageDbSource(filename)
     elif input_ext == '.icarch':

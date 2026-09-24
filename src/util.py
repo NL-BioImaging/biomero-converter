@@ -51,6 +51,15 @@ def get_numpy_data(data, dim_order, t, c, z, y, x, y_size, x_size):
     return data[tuple(slices)]
 
 
+def get_pyramid_levels(shape, dim_order, max_levels, downscale):
+    # limit number of pyramid levels, keeping the smallest level at least 1 pixel
+    min_size = min(shape[dim_order.index('x')], shape[dim_order.index('y')])
+    levels = 0
+    while levels < max_levels and min_size / downscale ** (levels + 1) >= 1:
+        levels += 1
+    return levels
+
+
 def get_level_from_scale(source_scales, target_scale=1):
     best_level_scale = 0, target_scale
     for level, scale in enumerate(source_scales):
