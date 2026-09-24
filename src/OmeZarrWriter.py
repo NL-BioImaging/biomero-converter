@@ -22,7 +22,7 @@ from src.ome_tiff_util import create_metadata, reset_ome_ids
 from src.ome_zarr_util import *
 from src.parameters import *
 from src.rocrate_utils import create_ro_crate
-from src.util import split_well_name, print_hbytes, get_level_from_scale
+from src.util import split_well_name, print_hbytes, get_level_from_scale, get_pyramid_levels
 from src.WindowScanner import WindowScanner
 
 
@@ -160,7 +160,9 @@ class OmeZarrWriter(OmeWriter):
         last_level = None
         if nlevels > 1:
             # load best matching levels for pyramid
-            for index in range(PYRAMID_LEVELS + 1):
+            pyramid_levels = get_pyramid_levels(source.get_shape(), source.get_dim_order(),
+                                                PYRAMID_LEVELS, PYRAMID_DOWNSCALE)
+            for index in range(pyramid_levels + 1):
                 level, rescale = get_level_from_scale(source.get_scales(), scale)
                 if level != last_level:
                     if size0 < available:
@@ -270,7 +272,9 @@ class OmeZarrWriter(OmeWriter):
             tuple: (pixel_size_scales, scaler)
         """
         if scaler is None:
-            scaler = Scaler(downscale=PYRAMID_DOWNSCALE, max_layer=PYRAMID_LEVELS)
+            pyramid_levels = get_pyramid_levels(source.get_shape(), source.get_dim_order(),
+                                                PYRAMID_LEVELS, PYRAMID_DOWNSCALE)
+            scaler = Scaler(downscale=PYRAMID_DOWNSCALE, max_layer=pyramid_levels)
         pixel_size_scales = []
         factor = 1
         for i in range(scaler.max_layer + 1):

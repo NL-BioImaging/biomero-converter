@@ -183,6 +183,7 @@ class OmeTiffWriter(OmeWriter):
 
         x_index = self.dim_order.index('x')
         y_index = self.dim_order.index('y')
+        pyramid_levels = get_pyramid_levels(shape, self.dim_order, pyramid_levels, pyramid_downscale)
         if tile_size is not None:
             if isinstance(tile_size, int):
                 tile_size = [tile_size] * 2
