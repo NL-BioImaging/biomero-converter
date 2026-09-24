@@ -12,6 +12,10 @@ COPY *.py .
 # Install dependencies
 RUN pip install -r requirements.txt
 
+# Version from the GitHub release tag (no .git in the image)
+ARG VERSION=unknown
+ENV BIOMERO_CONVERTER_VERSION=$VERSION
+
 # Expose as a CLI
 ENTRYPOINT ["python", "/app/main.py"]
 
