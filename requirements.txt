@@ -1,6 +1,7 @@
 ome-zarr==v0.13.0
 zarr>=3.0.0
 tifffile
+liffile
 imagecodecs
 imageio
 ome-types>=0.6.2

@@ -8,6 +8,7 @@ dependencies:
  - ome-zarr>=v0.16.0
  - zarr>=v3.2.0
  - tifffile
+ - liffile
  - imagecodecs
  - dask[array]
  - imageio
