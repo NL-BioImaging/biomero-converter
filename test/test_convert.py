@@ -19,7 +19,8 @@ class TestConvert:
                  'isyntax/small.isyntax',
                  '3DHistech/sample4.mrxs',
                  'EM04573_01small.ome.tif',
-                 'incucyte/251125_morphology_XW_2/20251125_morphology_XW2.icarch']
+                 'incucyte/251125_morphology_XW_2/20251125_morphology_XW2.icarch',
+                 'Leica/lif/3dtiny.lif']
     #filenames = ['incucyte/251125_morphology_XW_2/20251125_morphology_XW2.icarch']
     #filenames = ['incucyte/251125_morphology_XW_2_plate1450.ome.zarr']
     #filenames = ['DB/20220714_TKI_482_small/experiment.db']
@@ -29,6 +30,15 @@ class TestConvert:
     #filenames = ['XRays/DICOM/PA000002/ST000002/SE000007']
     #filenames = ['rgb.tiff']
     #filenames = ['cideconvolve/Vesicles.ome.tiff']
+    filenames = ['Ciqtek/Normal/ETD-SE_1800X_6144P_3kV_20260721_SEM4000X_CH1_33_original.tiff']
+    filenames = ['Ciqtek/Normal/INLENS-SE_12000X_3072P_3kV_20260721_SEM4000X_CH1_29.tiff']
+    # Leica: z-stack, multi-image, tile scan (negative overlap), tiny tile scan (flip/swap), RGB, xlef collection
+    filenames = ['Leica/lif/3dtiny.lif',
+                 'Leica/lif/Test-subs_copies.lif',
+                 'Leica/lif/TestTileScan16bit.lif',
+                 'Leica/TileScan.lof',
+                 'Leica/SmallImage.lof',
+                 'Leica/RGB-XLEF/RGB.xlef']
 
     input_filenames = ['C:/Project/slides/' + filename for filename in filenames]
     #input_filenames = glob.glob('D:/slides/XRays/DICOM/PA*/ST*/SE*')
