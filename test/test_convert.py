@@ -29,6 +29,8 @@ class TestConvert:
     #filenames = ['XRays/DICOM/PA000002/ST000002/SE000007']
     #filenames = ['rgb.tiff']
     #filenames = ['cideconvolve/Vesicles.ome.tiff']
+    filenames = ['Ciqtek/Normal/ETD-SE_1800X_6144P_3kV_20260721_SEM4000X_CH1_33_original.tiff']
+    filenames = ['Ciqtek/Normal/INLENS-SE_12000X_3072P_3kV_20260721_SEM4000X_CH1_29.tiff']
 
     input_filenames = ['C:/Project/slides/' + filename for filename in filenames]
     #input_filenames = glob.glob('D:/slides/XRays/DICOM/PA*/ST*/SE*')

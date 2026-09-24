@@ -19,7 +19,7 @@ class TestRocrate:
     #input_filenames = ['C:/Project/slides/tiff/DNAcropSmall.ome.tiff']
     input_filenames = glob.glob('C:/Project/slides/tiff/*.tif*') + glob.glob('C:/Project/slides/ome-xml/*')
 
-    simple_image_filename = 'C:/Project/slides/tiff/DNAcropSmall.ome.tiff'
+    #simple_image_filename = 'C:/Project/slides/DNAcropSmall.ome.tiff'
 
     @pytest.mark.parametrize(
         "input_filename", input_filenames
