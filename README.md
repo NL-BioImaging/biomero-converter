@@ -17,6 +17,9 @@ This tool can be used as biomero plugin, Docker container or stand-alone
   - Incucyte archives (.icharch)
   - 3DHistech files (.mrxs)
   - DICOM files
+  - Leica files (.lif, .lof, .xlef, .xlcf, .xlif)
+    - all images in a file, or a single image selected by UUID
+    - RGB, multi-channel, Z-stack, time series and tile scans (stitched)
 - Export to Ome formats
   - OME-Tiff
   - OME-Zarr

@@ -31,6 +31,9 @@ print(result_json)
 - `output_format` (str): Output format string (default: `'omezarr2'`).
 - `show_progress` (bool): If `True`, prints progress.
 - `verbose` (bool): If `True`, enables verbose logging.
+- `**kwargs`: Source specific parameters, e.g.:
+  - `plate_id` (str): Incucyte plate ID (default: all plates).
+  - `image_uuid` (str) or `image_index` (int): Leica image to convert (default: all images in the file).
 
 ## Returns
 

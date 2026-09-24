@@ -31,6 +31,8 @@ Refer to the main script for all available arguments:
 - `--outputformat`: Output format version (default: `omezarr2`)
 - `--show_progress`: Show progress bar (flag)
 - `--verbose`: Enable verbose logging (flag)
+- `--plateid`: Incucyte plate ID (optional, default: all plates)
+- `--image_uuid`: Leica image UUID (optional, default: all images in the file)
 
 ## Alternatively Run the main script directly
 
@@ -46,6 +48,6 @@ python main.py \
     --show_progress \
     --verbose
     
-usage: main.py [-h] --inputfile INPUTFILE --outputfolder OUTPUTFOLDER [--altoutputfolder ALTOUTPUTFOLDER] [--outputformat OUTPUTFORMAT] [--show_progress] [--verbose] [--plateid PLATEID]
+usage: main.py [-h] --inputfile INPUTFILE --outputfolder OUTPUTFOLDER [--altoutputfolder ALTOUTPUTFOLDER] [--outputformat OUTPUTFORMAT] [--show_progress] [--verbose] [--plateid PLATEID] [--image_uuid IMAGE_UUID]
 main.py: error: the following arguments are required: --inputfile, --outputfolder
 ```
