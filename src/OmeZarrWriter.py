@@ -26,6 +26,9 @@ from src.util import split_well_name, print_hbytes, get_level_from_scale
 from src.WindowScanner import WindowScanner
 
 
+patch_zarr_windows_network_move()
+
+
 class OmeZarrWriter(OmeWriter):
     """
     Writer for exporting image or screen data to OME-Zarr format.
