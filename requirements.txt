@@ -1,6 +1,6 @@
 ome-zarr==v0.13.0
 zarr>=3.0.0
-tifffile
+tifffile>=2026.9.20
 liffile
 imagecodecs
 imageio

@@ -34,9 +34,7 @@ Only simulated locally; not yet confirmed on the reporter's `L:` share.
   first output of multi-image (e.g. Leica) files.
 - `EM04573_01small.ome.tif` from the default test list is missing locally.
 - tifffile < 2026.9.20 reports squeezed shape/axes for 'shaped' series (our OME-TIFF output) but returns
-  unsqueezed data, so reading back our OME-TIFF gave a wrong shape; fixed by tifffile 2026.9.20.
-- `read_ome_xml_metadata` fails on an empty `StructuredAnnotations` element (`None.items()`), e.g. MicroManager
-  `tiles_1_MMStack_New Grid 1-Grid_0_0.ome.tiff`.
+  unsqueezed data, so reading back our OME-TIFF gave a wrong shape; fixed by tifffile 2026.9.20 (pinned as minimum).
 - Leica: old LAS AF files (e.g. SP5) have `HardwareSettingList` with flat `ScannerSetting`/`FilterSetting`
   record lists instead of `HardwareSetting`; not included in acquisition metadata yet.
 
