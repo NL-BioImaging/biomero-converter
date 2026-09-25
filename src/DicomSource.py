@@ -6,7 +6,7 @@ pydicom.config.convert_wrong_length_to_UN = True
 from pydicom import dcmread
 
 from src.ImageSource import ImageSource
-from src.util import get_filetitle, redimension_data
+from src.util import get_filetitle, redimension_data, dicom_to_dict
 
 
 class DicomSource(ImageSource):
@@ -24,8 +24,7 @@ class DicomSource(ImageSource):
         self.dicom = dcmread(uri)
 
     def init_metadata(self):
-        metadata = {elem.keyword: elem.value for elem in self.dicom.iterall() if elem.keyword}
-
+        metadata = dicom_to_dict(self.dicom)
         self.metadata = metadata
         pixel_array = self.dicom.pixel_array
         shape = list(pixel_array.shape)

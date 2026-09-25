@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 import numpy as np
 import os.path
+from collections.abc import Sequence
+from decimal import Decimal
 import re
 
 
@@ -200,6 +202,26 @@ def xml_content_to_dict(element):
     if key == 'Attribute':
         key = element.attrib['Name']
     return {key: value}
+
+
+def dicom_to_dict(obj):
+    # Recursively convert a pydicom Dataset (or element value) to plain python types, using duck typing:
+    # Dataset -> dict, Sequence / MultiValue -> list, DS / IS -> float / int, PersonName / UID -> str
+    if hasattr(obj, 'iterall'):
+        # Dataset: iterating yields its (top-level) data elements
+        return {elem.keyword: dicom_to_dict(elem.value) for elem in obj
+                if elem.keyword and elem.keyword != 'PixelData'}
+    if obj is None or isinstance(obj, (bool, bytes)):
+        return obj
+    if isinstance(obj, int):
+        return int(obj)
+    if isinstance(obj, (float, Decimal)):
+        return float(obj)
+    if isinstance(obj, str):
+        return str(obj)
+    if isinstance(obj, Sequence):
+        return [dicom_to_dict(item) for item in obj]
+    return str(obj)
 
 
 def flatten_dict(dct, prefix=''):
