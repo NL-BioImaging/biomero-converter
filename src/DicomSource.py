@@ -51,7 +51,7 @@ class DicomSource(ImageSource):
         self.shapes = [self.shape]
         self.scales = [1]
         if 'ImagePositionPatient' in metadata:
-            self.position = {dim: size for dim, size in zip(self.dim_order, metadata['ImagePositionPatient'])}
+            self.position = {dim: size for dim, size in zip('xyz', metadata['ImagePositionPatient'])}
         else:
             self.position = None
         date_time = metadata.get('AcquisitionDate', '') + metadata.get('AcquisitionTime', '')
