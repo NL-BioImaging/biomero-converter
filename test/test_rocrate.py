@@ -1,12 +1,10 @@
 import glob
+import json
 import logging
 import os
 import pytest
 from rocrate.model.metadata import BASENAME
 import sys
-import tempfile
-
-from src.ome_tiff_util import metadata_to_dict
 
 sys.path.append(os.getcwd())
 
@@ -16,11 +14,12 @@ from src.rocrate_utils import create_ro_crate
 
 
 class TestRocrate:
+    # OME-XML examples: https://downloads.openmicroscopy.org/images/OME-XML/2016-06/
     input_filenames = ['C:/Project/slides/DB/CellsSmall/experiment.db']
     #input_filenames = ['C:/Project/slides/tiff/DNAcropSmall.ome.tiff']
-    #input_filenames = glob.glob('C:/Project/slides/tiff/*.tif*') + glob.glob('C:/Project/slides/ome-xml/*')
-    input_filenames = glob.glob('C:/Project/slides/ome-xml/*')
-    simple_image_filename = 'C:/Project/slides/tiff/DNAcropSmall.ome.tiff'
+    input_filenames = glob.glob('C:/Project/slides/tiff/*.tif*') + glob.glob('C:/Project/slides/ome-xml/*')
+
+    #simple_image_filename = 'C:/Project/slides/DNAcropSmall.ome.tiff'
 
     @pytest.mark.parametrize(
         "input_filename", input_filenames
@@ -38,6 +37,7 @@ class TestRocrate:
 if __name__ == '__main__':
     # Emulate pytest / fixtures
     from pathlib import Path
+    import tempfile
 
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
     for module in ['ome_zarr', 'zarr', 'numcodecs', 'asyncio']:
@@ -46,3 +46,12 @@ if __name__ == '__main__':
     test = TestRocrate()
     for input_filename in test.input_filenames:
         test.test_rocrate(Path(tempfile.TemporaryDirectory().name), input_filename)
+
+    # Test load ome-tiff/xml metadata -> acquisition_metadata, export to json
+    simple_image_filename = getattr(test, 'simple_image_filename', None)
+    if simple_image_filename:
+        source = create_source(simple_image_filename)
+        source.init_metadata()
+        acquisition_metadata = source.get_acquisition_metadata()
+        with open('test.json', 'w') as f:
+            json.dump(acquisition_metadata, f)
