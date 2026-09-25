@@ -108,7 +108,8 @@ def read_ome_xml_metadata(metadata):
     acquisition_metadata.update(camel_to_snake_keys_dict(metadata.get('Instrument', {})))
     acquisition_metadata.update(camel_to_snake_keys_dict(image0.get('ObjectiveSettings', {})))
 
-    for annotations_type, annotations in metadata.get('StructuredAnnotations', {}).items():
+    # empty element gives None
+    for annotations_type, annotations in (metadata.get('StructuredAnnotations') or {}).items():
         for annotation in ensure_list(annotations):
             key, value = annotation.get('ID'), annotation.get('Value')
             if 'Namespace' in annotation:
