@@ -71,13 +71,11 @@ class TiffSource(ImageSource):
             self.is_imagej = self.tiff.is_imagej
 
             if self.tiff.series:
-                pages = self.tiff.series
-                page = pages[0]
+                page = self.tiff.series[0]
             else:
-                pages = self.tiff.pages
                 page = self.tiff.pages.first
-            if hasattr(page, 'levels') and len(page.levels) >= len(pages):
-                pages = page.levels
+            # pyramid levels of the first series only (other series are e.g. thumbnails), as read in get_data()
+            pages = page.levels if hasattr(page, 'levels') else [page]
             self.shapes = [page.shape for page in pages]
             self.shape = page.shape
             self.dim_order = page.axes.lower().replace('s', 'c').replace('r', '')

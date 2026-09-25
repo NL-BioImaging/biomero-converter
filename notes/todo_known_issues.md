@@ -33,8 +33,10 @@ Only simulated locally; not yet confirmed on the reporter's `L:` share.
 - `test_convert` compares only pixel size (exact float equality) and wells, not pixel data, and only the
   first output of multi-image (e.g. Leica) files.
 - `EM04573_01small.ome.tif` from the default test list is missing locally.
-- `TiffSource.get_data` (reading back our OME-TIFF) returns 5D data while `dim_order` is 3D (e.g. `cyx`), so
-  `get_data('tczyx')` gives a wrong shape; the pixel values themselves are correct.
+- tifffile < 2026.9.20 reports squeezed shape/axes for 'shaped' series (our OME-TIFF output) but returns
+  unsqueezed data, so reading back our OME-TIFF gave a wrong shape; fixed by tifffile 2026.9.20.
+- `read_ome_xml_metadata` fails on an empty `StructuredAnnotations` element (`None.items()`), e.g. MicroManager
+  `tiles_1_MMStack_New Grid 1-Grid_0_0.ome.tiff`.
 - Leica: old LAS AF files (e.g. SP5) have `HardwareSettingList` with flat `ScannerSetting`/`FilterSetting`
   record lists instead of `HardwareSetting`; not included in acquisition metadata yet.
 
