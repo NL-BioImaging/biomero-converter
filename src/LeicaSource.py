@@ -219,8 +219,6 @@ class LeicaSource(ImageSource):
                          if key.endswith('SettingDefinition') and isinstance(value, dict)), {})
         if 'MicroscopeModel' in settings:
             acquisition_metadata['model'] = settings['MicroscopeModel']
-        if 'ObjectiveName' in settings:
-            acquisition_metadata['objective_name'] = settings['ObjectiveName'].strip()
         if 'Magnification' in settings:
             acquisition_metadata['magnification'] = float(settings['Magnification'])
         if 'NumericalAperture' in settings:
