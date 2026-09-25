@@ -8,7 +8,7 @@ import numpy as np
 
 from src.ImageSource import ImageSource
 from src.parameters import TILE_SIZE
-from src.util import get_filetitle, redimension_data
+from src.util import get_filetitle, redimension_data, remove_key_prefix
 
 
 LUT_COLORS = {
@@ -210,8 +210,13 @@ class LeicaSource(ImageSource):
     def _get_acquisition_metadata(self):
         acquisition_metadata = {'manufacturer': 'Leica Microsystems'}
         hardware_setting = self.metadata.get('HardwareSetting', {})
+        if not isinstance(hardware_setting, dict):
+            hardware_setting = {}
+        # keep hierarchy, without (repeated per sequence) Block settings and without ATL prefix
+        hardware_setting = remove_key_prefix({key: value for key, value in hardware_setting.items()
+                                              if key != 'Name' and 'Block' not in key}, 'ATL')
         settings = next((value for key, value in hardware_setting.items()
-                         if key.startswith('ATL') and isinstance(value, dict)), {})
+                         if key.endswith('SettingDefinition') and isinstance(value, dict)), {})
         if 'MicroscopeModel' in settings:
             acquisition_metadata['model'] = settings['MicroscopeModel']
         if 'ObjectiveName' in settings:
@@ -224,6 +229,8 @@ class LeicaSource(ImageSource):
             acquisition_metadata['immersion'] = IMMERSIONS.get(str(settings['Immersion']).lower(), 'Other')
         if 'RefractionIndex' in settings:
             acquisition_metadata['refractive_index'] = float(settings['RefractionIndex'])
+        if hardware_setting:
+            acquisition_metadata['HardwareSetting'] = hardware_setting
         return acquisition_metadata
 
     def _get_source_data(self, as_dask=False):

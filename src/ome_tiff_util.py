@@ -253,6 +253,8 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
             ome.structured_annotations.append(annotation)
         elif 'map' in acq_key.lower():
             map_dict.update(acq_value)
+        elif isinstance(acq_value, (dict, list, tuple)):
+            map_dict.update(flatten_dict({acq_key: acq_value}))
         else:
             map_dict[acq_key] = acq_value
 

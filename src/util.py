@@ -224,6 +224,16 @@ def dicom_to_dict(obj):
     return str(obj)
 
 
+def remove_key_prefix(obj, prefix):
+    # recursively remove prefix from dict keys
+    if isinstance(obj, dict):
+        return {(key[len(prefix):] if key.startswith(prefix) and len(key) > len(prefix) else key):
+                remove_key_prefix(value, prefix) for key, value in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [remove_key_prefix(item, prefix) for item in obj]
+    return obj
+
+
 def flatten_dict(dct, prefix=''):
     flat_dct = {}
     for key, value in dct.items():
