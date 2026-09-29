@@ -194,7 +194,7 @@ class TiffSource(ImageSource):
             name = self.tiff.filename
             if not acquisition_datetime:
                 if 'DateTime' in self.metadata:
-                    acquisition_datetime = dateutil.parser.parse(self.metadata['DateTime'])
+                    acquisition_datetime = parse_tiff_datetime(self.metadata['DateTime'])
                 else:
                     acquisition_datetime = datetime.fromtimestamp(self.tiff.fstat.st_ctime)
             dtype = page.dtype
@@ -369,3 +369,20 @@ def convert_rational_value(value):
         else:
             value = value[0] / value[1]
     return value
+
+
+def parse_tiff_datetime(value):
+    """
+    Parses a TIFF DateTime tag value.
+
+    Args:
+        value (str): 'YYYY:MM:DD HH:MM:SS' as the TIFF spec defines, or another format some writers use.
+
+    Returns:
+        datetime: Parsed datetime.
+    """
+    try:
+        return datetime.strptime(value.strip(), '%Y:%m:%d %H:%M:%S')
+    except ValueError:
+        # dateutil reads the TIFF format as a time of today, so only use it for other formats
+        return dateutil.parser.parse(value)
