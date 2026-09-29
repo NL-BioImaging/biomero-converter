@@ -3,6 +3,7 @@ from ome_types._mixins._ids import ID_COUNTER
 from ome_types.model import *
 from ome_types import to_xml
 from tifffile import xml2dict
+import re
 import uuid
 
 from src.color_conversion import rgba_to_int, int_to_rgba
@@ -10,11 +11,19 @@ from src.parameters import VERSION
 from src.util import *
 
 
+INVALID_XML_CHARS = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')
+
+
 def metadata_to_dict(xml_metadata):
     metadata = xml2dict(xml_metadata)
     if 'OME' in metadata:
         metadata = metadata['OME']
     return metadata
+
+
+def remove_invalid_xml_chars(value):
+    # control characters (e.g. a \x01 user name in Ciqtek metadata) are not allowed in XML 1.0
+    return INVALID_XML_CHARS.sub('', str(value))
 
 
 def create_uuid():
@@ -260,7 +269,8 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
             map_dict[acq_key] = acq_value
 
     if map_dict:
-        annotation = MapAnnotation(value=Map(ms=[Map.M(k=key, value=str(value)) for key, value in map_dict.items()]))
+        annotation = MapAnnotation(value=Map(ms=[Map.M(k=remove_invalid_xml_chars(key), value=remove_invalid_xml_chars(value))
+                                                 for key, value in map_dict.items()]))
         ome.structured_annotations.append(annotation)
 
     return to_xml(ome)
