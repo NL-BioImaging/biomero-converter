@@ -3,11 +3,16 @@
 # https://github.com/clbarnes/rembi-mifa-py/blob/main/examples/rembi.py
 
 from datetime import datetime
+import os
+import yaml
 from imaging_metadata_converter import SOURCE_MAP_KEY
 from rocrate.model import ContextEntity
 
-from src.util import flatten_dict
+from src.util import flatten_dict, to_plain_types
 from src.zarr_extension import ZarrCrate
+
+
+ACQUISITION_METADATA_FILENAME = 'acquisition_metadata.yaml'
 
 
 def create_ro_crate(source, dest_path={}):
@@ -24,8 +29,22 @@ def create_ro_crate(source, dest_path={}):
     #properties["license"] = source.get_license()
     dataset_entity = crate.add_dataset(dest_path='.', properties=properties)
 
-    # acquisition metadata on the common imaging metadata model, without the map of where each field came from
-    model_metadata = {key: value for key, value in source.get_model_metadata().items() if key != SOURCE_MAP_KEY}
+    # acquisition metadata on the common imaging metadata model, written in full (with the map of where each field
+    # came from) to a yaml file the crate points to
+    model_metadata = source.get_model_metadata()
+    with open(os.path.join(dest_path, ACQUISITION_METADATA_FILENAME), 'w', encoding='utf-8') as file:
+        yaml.safe_dump(to_plain_types(model_metadata), file, sort_keys=False, allow_unicode=True)
+    acquisition_metadata_entity = crate.add_file(dest_path=ACQUISITION_METADATA_FILENAME, properties={
+        'name': 'Acquisition metadata',
+        'description': 'Image acquisition metadata converted to the imaging metadata model '
+                       '(https://github.com/NL-BioImaging/imaging-metadata-converter)',
+        'encodingFormat': 'application/yaml',
+        'about': dataset_entity,
+    })
+    # the dataset entity replaced the crate's root dataset, so link the file to it explicitly
+    dataset_entity.append_to('hasPart', acquisition_metadata_entity)
+
+    model_metadata = {key: value for key, value in model_metadata.items() if key != SOURCE_MAP_KEY}
     model_instrument = model_metadata.get('Instrument', {})
 
     additional_properties = []
@@ -91,7 +110,7 @@ def create_ro_crate(source, dest_path={}):
 
     crate.add(instrument_entity)
 
-    # TODO: Can add variableMeasured for output properties - or link to external file e.g. csv
+    # TODO: Can add variableMeasured for output properties
 
     crate.write(dest_path)
     return crate

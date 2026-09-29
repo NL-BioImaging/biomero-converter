@@ -13,4 +13,5 @@ openslide-python
 openslide-bin
 pydicom
 chardet
+pyyaml
 imaging-metadata-converter @ https://github.com/NL-BioImaging/imaging-metadata-converter/archive/refs/heads/main.zip
