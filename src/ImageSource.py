@@ -1,4 +1,5 @@
 from abc import ABC
+from imaging_metadata_converter import convert_metadata
 import numpy as np
 
 from src.util import pad_leading_zero
@@ -279,6 +280,16 @@ class ImageSource(ABC):
         Get microscope information. This can include details such as the microscope model, objective lens, and other relevant information.
         """
         return {}
+
+    def get_model_metadata(self):
+        """
+        Get the acquisition metadata mapped onto the common imaging metadata model
+        (https://github.com/NL-BioImaging/imaging-metadata-converter). Unmapped fields keep their original path.
+
+        Returns:
+            dict: Nested model metadata, e.g. {'Instrument': {'Manufacturer': ..., 'Model': ...}, ...}.
+        """
+        return convert_metadata(self.get_acquisition_metadata())
 
     def get_total_data_size(self):
         """

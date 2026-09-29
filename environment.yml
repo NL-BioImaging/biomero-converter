@@ -22,3 +22,4 @@ dependencies:
    - openslide-bin
    - pydicom
    - chardet
+   - imaging-metadata-converter @ https://github.com/NL-BioImaging/imaging-metadata-converter/archive/refs/heads/main.zip

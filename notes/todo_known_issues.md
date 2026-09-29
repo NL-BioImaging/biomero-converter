@@ -20,6 +20,13 @@ Only simulated locally; not yet confirmed on the reporter's `L:` share.
 - Tile flip/swap (`FlipX`/`FlipY`/`SwapXY`) follows ConvertLeica, but has not been compared against a
   LAS X merged image of the same tile scan.
 
+### Acquisition metadata
+
+- TIFF vendor metadata comes from `src/tiff_metadata.py`, a copy of napari-meta-tiff `_metadata.py`: keep in sync.
+- Model metadata (`get_model_metadata()`, imaging-metadata-converter): Fibics maps no instrument manufacturer/model,
+  and the model has no serial number field (Phenom's serial ends up as `Instrument.ID`).
+- Zeiss Fibics (800 MB) round-trip not checked after the change (ran out of memory).
+
 ### Conversion
 
 - `convert()` retries every exception `RETRY_ATTEMPTS` times, also deterministic ones, and its error

@@ -141,16 +141,17 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
     ome.creator = f'nl.biomero.OmeTiffWriter {VERSION}'
 
     acquisition_metadata = source.get_acquisition_metadata().copy()
+    model_instrument = source.get_model_metadata().get('Instrument', {})
     instrument_id = None
     objective_id = None
     if acquisition_metadata:
         microscope = Microscope()
         has_microscope = False
-        manufacturer = acquisition_metadata.pop('manufacturer', None)
+        manufacturer = acquisition_metadata.pop('manufacturer', model_instrument.get('Manufacturer'))
         if manufacturer is not None:
             microscope.manufacturer = manufacturer
             has_microscope = True
-        model = acquisition_metadata.pop('model', None)
+        model = acquisition_metadata.pop('model', model_instrument.get('Model', model_instrument.get('Name')))
         if model is not None:
             microscope.model = model
             has_microscope = True

@@ -3,6 +3,7 @@
 # https://github.com/clbarnes/rembi-mifa-py/blob/main/examples/rembi.py
 
 from datetime import datetime
+from imaging_metadata_converter import SOURCE_MAP_KEY
 from rocrate.model import ContextEntity
 
 from src.util import flatten_dict
@@ -23,8 +24,12 @@ def create_ro_crate(source, dest_path={}):
     #properties["license"] = source.get_license()
     dataset_entity = crate.add_dataset(dest_path='.', properties=properties)
 
+    # acquisition metadata on the common imaging metadata model, without the map of where each field came from
+    model_metadata = {key: value for key, value in source.get_model_metadata().items() if key != SOURCE_MAP_KEY}
+    model_instrument = model_metadata.get('Instrument', {})
+
     additional_properties = []
-    for index, (key, value) in enumerate(flatten_dict(source.get_acquisition_metadata()).items()):
+    for index, (key, value) in enumerate(flatten_dict(model_metadata).items()):
         if isinstance(value, datetime):
             value = str(value)
         additional_properties.append({
@@ -45,21 +50,27 @@ def create_ro_crate(source, dest_path={}):
     }
 
     metadata = source.get_metadata()
+    # fallback: search the decoded acquisition metadata first, then the source metadata
+    searchable = {'acquisition': source.get_acquisition_metadata(), 'source': metadata}
 
     uri = source.uri
 
-    if 'manufacturer' in metadata and metadata['manufacturer']:
+    if model_instrument.get('Manufacturer'):
+        manufacturer = model_instrument['Manufacturer']
+    elif 'manufacturer' in metadata and metadata['manufacturer']:
         manufacturer = metadata['manufacturer']
     else:
-        manufacturer = search_metadata_fully(metadata, ['manufacturer', 'make'],
+        manufacturer = search_metadata_fully(searchable, ['manufacturer', 'make'],
                                              contexts=['instrument', 'microscope', 'device', 'system', ''])
     if manufacturer:
         instrument_properties['manufacturer'] = manufacturer
 
-    if 'model' in metadata and metadata['model']:
+    if model_instrument.get('Model') or model_instrument.get('Name'):
+        model = model_instrument.get('Model') or model_instrument['Name']
+    elif 'model' in metadata and metadata['model']:
         model = metadata['model']
     else:
-        model = search_metadata_fully(metadata, ['model', 'name', 'product', 'productname', 'identifier'],
+        model = search_metadata_fully(searchable, ['model', 'name', 'product', 'productname', 'identifier'],
                                       contexts=['instrument', 'microscope', 'device', 'system', ''])
     if model:
         instrument_properties['name'] = model
@@ -67,7 +78,7 @@ def create_ro_crate(source, dest_path={}):
     if 'serial' in metadata and metadata['serial']:
         serial = metadata['serial']
     else:
-        serial = search_metadata_fully(metadata, ['serialnumber', 'serial'],
+        serial = search_metadata_fully(searchable, ['serialnumber', 'serial'],
                                        contexts=['instrument', 'microscope', 'device', 'system', ''])
     if serial:
         instrument_properties['serialNumber'] = serial
