@@ -141,7 +141,9 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
     ome.creator = f'nl.biomero.OmeTiffWriter {VERSION}'
 
     acquisition_metadata = source.get_acquisition_metadata().copy()
-    model_instrument = source.get_model_metadata().get('Instrument', {})
+    model_metadata = source.get_model_metadata()
+    model_instrument = model_metadata.get('Instrument', {})
+    model_objective = model_metadata.get('Objective', {})
     instrument_id = None
     objective_id = None
     if acquisition_metadata:
@@ -164,11 +166,12 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
         has_objective = False
         magnification = acquisition_metadata.pop('magnification',
                                             acquisition_metadata.pop('nominal_magnification',
-                                                                acquisition_metadata.pop('NominalMagnification', None)))
+                                                                acquisition_metadata.pop('NominalMagnification',
+                                                                                         model_objective.get('Magnification'))))
         if magnification is not None:
             objective.nominal_magnification = magnification
             has_objective = True
-        lens_na = acquisition_metadata.pop('n_a', acquisition_metadata.pop('lens_na', None))
+        lens_na = acquisition_metadata.pop('n_a', acquisition_metadata.pop('lens_na', model_objective.get('LensNA')))
         if lens_na is not None:
             objective.lens_na = lens_na
             has_objective = True
@@ -177,8 +180,9 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
             objective.working_distance = working_distance
             objective.working_distance_unit = acquisition_metadata.pop('working_distance_unit', UnitsLength.MICROMETER)
             has_objective = True
-        immersion = acquisition_metadata.pop('immersion', None)
-        if immersion:
+        immersion = acquisition_metadata.pop('immersion', model_objective.get('ImmersionType'))
+        # the model's immersions include LiMi's, such as Mineral Oil, that OME's enumeration does not
+        if immersion in {member.value for member in Objective_Immersion}:
             ome_immersion = Objective_Immersion(immersion)
             objective.immersion = ome_immersion
 
@@ -358,7 +362,8 @@ def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None
     if objective_id is not None:
         objective_settings = ObjectiveSettings(id=objective_id)
         info = source.get_acquisition_metadata()
-        refractive_index = info.get('refractive_index')
+        refractive_index = info.get('refractive_index',
+                                    source.get_model_metadata().get('ImmersionLiquid', {}).get('RefractiveIndex'))
         if refractive_index is not None:
             objective_settings.refractive_index = refractive_index
         image.objective_settings = objective_settings

@@ -22,16 +22,6 @@ LUT_COLORS = {
     'grey': [1, 1, 1, 1],
 }
 
-IMMERSIONS = {
-    'oil': 'Oil',
-    'water': 'Water',
-    'water dipping': 'WaterDipping',
-    'air': 'Air',
-    'dry': 'Air',
-    'multi': 'Multi',
-    'glycerol': 'Glycerol',
-    'glyc': 'Glycerol',
-}
 
 
 class LeicaSource(ImageSource):
@@ -215,18 +205,7 @@ class LeicaSource(ImageSource):
         # keep hierarchy, without (repeated per sequence) Block settings and without ATL prefix
         hardware_setting = remove_key_prefix({key: value for key, value in hardware_setting.items()
                                               if key != 'Name' and 'Block' not in key}, 'ATL')
-        settings = next((value for key, value in hardware_setting.items()
-                         if key.endswith('SettingDefinition') and isinstance(value, dict)), {})
-        if 'MicroscopeModel' in settings:
-            acquisition_metadata['model'] = settings['MicroscopeModel']
-        if 'Magnification' in settings:
-            acquisition_metadata['magnification'] = float(settings['Magnification'])
-        if 'NumericalAperture' in settings:
-            acquisition_metadata['lens_na'] = float(settings['NumericalAperture'])
-        if 'Immersion' in settings:
-            acquisition_metadata['immersion'] = IMMERSIONS.get(str(settings['Immersion']).lower(), 'Other')
-        if 'RefractionIndex' in settings:
-            acquisition_metadata['refractive_index'] = float(settings['RefractionIndex'])
+        # the microscope and objective are read from these settings by the imaging metadata converter
         if hardware_setting:
             acquisition_metadata['HardwareSetting'] = hardware_setting
         return acquisition_metadata
