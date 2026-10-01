@@ -9,7 +9,8 @@ from tifffile import TiffFile, imread, PHOTOMETRIC
 from src.ImageSource import ImageSource
 from src.ome_tiff_util import metadata_to_dict, read_ome_xml_metadata
 from src.parameters import TILE_SIZE
-from src.util import convert_to_um, ensure_list, redimension_data, get_filetitle, fix_bad_micro_value
+from src.tiff_metadata import get_extra_metadata, get_pixel_size_um, get_position_um
+from src.util import convert_to_um, ensure_list, redimension_data, get_filetitle
 
 
 class TiffSource(ImageSource):
@@ -101,115 +102,22 @@ class TiffSource(ImageSource):
             metadata |= {key: value for page in self.tiff.pages for key, value in tags_to_dict(page.tags).items()
                          if key not in ('StripOffsets', 'StripByteCounts', 'TileOffsets', 'TileByteCounts', 'JPEGTables')}
 
-            if 'FEI_TITAN' in metadata:
-                acquisition_metadata = metadata.pop('FEI_TITAN')
-                if isinstance(acquisition_metadata, str) and '<?xml' in acquisition_metadata.lower():
-                    acquisition_metadata = metadata_to_dict(acquisition_metadata)
-                if 'FeiImage' in acquisition_metadata:
-                    acquisition_metadata = acquisition_metadata['FeiImage']
-                acquisition_metadata = {key: value for key, value in acquisition_metadata.items()
-                                        if not (isinstance(value, str) and '.xsd' in value.lower())}
-                metadata['FeiImage'] = acquisition_metadata
-                if 'x' not in pixel_size:
-                    w = acquisition_metadata.get('pixelWidth')
-                    pixel_size['x'] = convert_to_um(w.get('value'), w.get('unit'))
-                    h = acquisition_metadata.get('pixelHeight')
-                    pixel_size['y'] = convert_to_um(h.get('value'), h.get('unit'))
-                if 'x' not in position:
-                    position = {dim: convert_to_um(value, 'm') for dim, value in acquisition_metadata.get('samplePosition').items()}   # unit = m?
-                metadata['manufacturer'] = 'FEI'
-                instrument = acquisition_metadata.get('instrument', acquisition_metadata)
-                metadata['model'] = instrument.get('edition', instrument.get('type', 'Titan'))
-                metadata['serial'] = instrument.get('uniqueID')
-            elif 'FEI_HELIOS' in metadata:
-                acquisition_metadata = metadata['FEI_HELIOS']
-                if 'x' not in pixel_size:
-                    hfw = fix_bad_micro_value(acquisition_metadata.get('Beam', {}).get('HFW'))
-                    if hfw:
-                        acquisition_metadata['Beam']['HFW'] = hfw
-                        # find non-alpha index:
-                        index = hfw.find(next(filter(str.isalpha, hfw)))
-                        if index >= 0:
-                            hfw = convert_to_um(float(hfw[:index]), hfw[index:])
-                        else:
-                            hfw = float(hfw)
-                        pixel_size_x = hfw / self.shape[x_index]
-                        pixel_size = {'x': pixel_size_x, 'y': pixel_size_x}
-                if 'x' not in position:
-                    stage = acquisition_metadata.get('Stage')
-                    if stage:
-                        position['x'] = stage.get('StagePosX')
-                        position['y'] = stage.get('StagePosY')
-                        position['z'] = stage.get('StagePosZ')
-                        rotation = stage.get('StagePosR')
-                user_timestamp = acquisition_metadata.get('User', {}).get('TimeStamp')
-                if user_timestamp:
-                    acquisition_metadata['User']['TimeStamp'] = datetime.fromtimestamp(user_timestamp)
-                metadata['manufacturer'] = 'FEI'
-                metadata['model'] = acquisition_metadata.get('System', {}).get('ProductName', 'Helios')
-            elif 'FibicsXML' in metadata:
-                acquisition_metadata = metadata.pop('FibicsXML')
-                if isinstance(acquisition_metadata, str) and '<?xml' in acquisition_metadata.lower():
-                    acquisition_metadata = metadata_to_dict(acquisition_metadata)
-                if 'Fibics' in acquisition_metadata:
-                    acquisition_metadata = acquisition_metadata['Fibics']
-                acquisition_metadata = {key: value for key, value in acquisition_metadata.items()
-                                        if not (isinstance(value, str) and '.xsd' in value.lower())}
-                metadata['Fibics'] = acquisition_metadata
-                application_version = acquisition_metadata.get('Application', {}).get('Version', '').split()
-                if len(application_version) >= 2:
-                    metadata['manufacturer'] = application_version[0]
-                    metadata['model'] = application_version[1]
-                fov_x = acquisition_metadata.get('Scan', {}).get('FOV_X')
-                fov_y = acquisition_metadata.get('Scan', {}).get('FOV_Y')
-                fov_x_um = convert_to_um(fov_x.get('value'), fov_x.get('units'))
-                fov_y_um = convert_to_um(fov_y.get('value'), fov_y.get('units'))
-                pixel_size = {'x': fov_x_um / self.shape[x_index], 'y': fov_y_um / self.shape[y_index]}
-                stage = acquisition_metadata.get('Stage', {})
-                x = stage.get('X')
-                y = stage.get('Y')
-                z = stage.get('Z')
-                position = {'x': convert_to_um(x['value'], x['units']),
-                            'y': convert_to_um(y['value'], y['units']),
-                            'z': convert_to_um(z['value'], z['units'])}
-                rotation = stage.get('Rot')
-                if 'units' in rotation:
-                    if rotation['units'].startswith('rad'):
-                        rotation = np.rad2deg(rotation['value'])
-                    else:
-                        rotation = rotation['value']
-            elif 'OlympusSIS' in metadata:
-                acquisition_metadata = metadata['OlympusSIS']
-                acquisition_datetime = acquisition_metadata['datetime']
-                if 'x' not in pixel_size:
-                    pixel_size['x'] = convert_to_um(acquisition_metadata['pixelsizex'], 'm')
-                    pixel_size['y'] = convert_to_um(acquisition_metadata['pixelsizey'], 'm')
-            else:
-                if 'Make' in metadata:
-                    acquisition_metadata['Make'] = metadata['Make']
-                if 'Model' in metadata:
-                    acquisition_metadata['Model'] = metadata['Model']
+            # vendor metadata in generic form, with the pixel size and position found in it
+            acquisition_metadata = get_extra_metadata(self.tiff)
+            shape = dict(zip(self.dim_order, self.shape))
+            for dim, size in get_pixel_size_um(self.tiff, acquisition_metadata, shape).items():
+                pixel_size.setdefault(dim, size)
+            position = get_position_um(acquisition_metadata)
 
             self.metadata = metadata
             name = self.tiff.filename
             if not acquisition_datetime:
                 if 'DateTime' in self.metadata:
-                    acquisition_datetime = dateutil.parser.parse(self.metadata['DateTime'])
+                    acquisition_datetime = parse_tiff_datetime(self.metadata['DateTime'])
                 else:
                     acquisition_datetime = datetime.fromtimestamp(self.tiff.fstat.st_ctime)
             dtype = page.dtype
             bits_per_pixel = dtype.itemsize * 8
-            res_unit = self.metadata.get('ResolutionUnit', '').lower()
-            if res_unit == 'none':
-                res_unit = ''
-            if 'x' not in pixel_size:
-                res0 = convert_rational_value(self.metadata.get('XResolution'))
-                if res0 is not None and res0 != 0:
-                    pixel_size['x'] = convert_to_um(1 / res0, res_unit)
-            if 'y' not in pixel_size:
-                res0 = convert_rational_value(self.metadata.get('YResolution'))
-                if res0 is not None and res0 != 0:
-                    pixel_size['y'] = convert_to_um(1 / res0, res_unit)
 
         if not name:
             name = get_filetitle(self.uri)
@@ -353,19 +261,18 @@ def tags_to_dict(tags):
     return tag_dict
 
 
-def convert_rational_value(value):
+def parse_tiff_datetime(value):
     """
-    Converts a rational value tuple to a float.
+    Parses a TIFF DateTime tag value.
 
     Args:
-        value (tuple or None): Rational value.
+        value (str): 'YYYY:MM:DD HH:MM:SS' as the TIFF spec defines, or another format some writers use.
 
     Returns:
-        float or None: Converted value.
+        datetime: Parsed datetime.
     """
-    if value is not None and isinstance(value, tuple):
-        if value[0] == value[1]:
-            value = value[0]
-        else:
-            value = value[0] / value[1]
-    return value
+    try:
+        return datetime.strptime(value.strip(), '%Y:%m:%d %H:%M:%S')
+    except ValueError:
+        # dateutil reads the TIFF format as a time of today, so only use it for other formats
+        return dateutil.parser.parse(value)

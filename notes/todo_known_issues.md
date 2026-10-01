@@ -12,10 +12,10 @@ Only simulated locally; not yet confirmed on the reporter's `L:` share.
 
 ### Leica
 
-- Tile scans with negative overlap (gaps between tiles, e.g. `NegOverlapTilescan-2t-3pos`) are stitched
-  edge to edge with a warning. ConvertLeica returns a single-image `.lif` for these instead.
-- Confocal channel names stay generic (`Ch0`, ...): their names/dyes are spread over sequential scan
-  settings. Widefield channels get names and emission from `WideFieldChannelInfo`.
+- Tile scans with gaps between their tiles (negative overlap, e.g. `NegOverlapTilescan-2t-3pos`,
+  `TestTileScan16bit`) are separate positions, not stitched: one is selected by `position` index (`--position`),
+  else a ValueError lists them. Its stage position is the image position (OME-Zarr translation). ConvertLeica returns
+  a single-image `.lif` for these instead. `FieldX`/`FieldY` can be a running index (all `FieldY` 0) rather than a grid.
 - Unsupported dimensions (wavelength, rotation, loop, ...) use only their first index.
 - Tile flip/swap (`FlipX`/`FlipY`/`SwapXY`) follows ConvertLeica, but has not been compared against a
   LAS X merged image of the same tile scan.
@@ -30,8 +30,16 @@ Only simulated locally; not yet confirmed on the reporter's `L:` share.
 - Multi-frame frames are time points only if `FrameIncrementPointer` names FrameTime(Vector), else slices; the
   frame time is not written as a t scale. Without PixelSpacing (e.g. ultrasound) the pixel size defaults to 1 mm.
 
+### Acquisition metadata
+
+Mapping onto the imaging metadata model is done (and tracked) in imaging-metadata-converter.
+
+- TIFF vendor metadata comes from `src/tiff_metadata.py`, a copy of napari-meta-tiff `_metadata.py`: keep in sync.
+- Zeiss Fibics (800 MB) round-trip not checked after the change (ran out of memory).
+
 ### Conversion
 
+- The OME-TIFF writer writes positions only for plate fields (WellSample), no Plane positions for single images.
 - `convert()` retries every exception `RETRY_ATTEMPTS` times, also deterministic ones, and its error
   message reports `RETRY_ATTEMPTS` instead of the `max_attempts` used.
 - MIRAX conversion is very slow (single-threaded `read_region` via dask): `sample4.mrxs` took 40+ min for
@@ -45,8 +53,6 @@ Only simulated locally; not yet confirmed on the reporter's `L:` share.
 - `EM04573_01small.ome.tif` from the default test list is missing locally.
 - tifffile < 2026.9.20 reports squeezed shape/axes for 'shaped' series (our OME-TIFF output) but returns
   unsqueezed data, so reading back our OME-TIFF gave a wrong shape; fixed by tifffile 2026.9.20 (pinned as minimum).
-- Leica: old LAS AF files (e.g. SP5) have `HardwareSettingList` with flat `ScannerSetting`/`FilterSetting`
-  record lists instead of `HardwareSetting`; not included in acquisition metadata yet.
 
 ## In progress
 
@@ -56,5 +62,4 @@ Only simulated locally; not yet confirmed on the reporter's `L:` share.
 
 - Report the SMB `PermissionError` case upstream to zarr-python (`set_if_not_exists`).
 - Don't retry deterministic errors in `convert()`; fix the retry count in its message.
-- Leica: confocal channel names / excitation / emission; option for negative overlap tile scans.
 - Compare pixel data in `test_convert`, and check all outputs of multi-image files.

@@ -22,25 +22,66 @@ LUT_COLORS = {
     'grey': [1, 1, 1, 1],
 }
 
-IMMERSIONS = {
-    'oil': 'Oil',
-    'water': 'Water',
-    'water dipping': 'WaterDipping',
-    'air': 'Air',
-    'dry': 'Air',
-    'multi': 'Multi',
-    'glycerol': 'Glycerol',
-    'glyc': 'Glycerol',
-}
+
+
+def sequential_channel_names(xml_element, nchannels):
+    """The channel names of a sequential confocal scan, or None where it is none.
+
+    Channel k is the k-th active detector, taken sequence by sequence, and its
+    name the dye of that detector's spectral band. The bands are numbered by
+    detector and stated once, not per sequence, so liffile, which names the
+    channels after the bands in band order, misnames them wherever the
+    sequences do not run in detector order (TileScan.lof: detectors 4, 5, 1).
+    """
+    hardware_setting = xml_element.find('./Data/Image/Attachment[@Name="HardwareSetting"]')
+    settings = hardware_setting.find('ATLConfocalSettingDefinition') if hardware_setting is not None else None
+    if settings is None:
+        return None
+    dyes = {band.attrib.get('Channel'): band.attrib.get('DyeName', '').removeprefix('Leica/')
+            for band in settings.iter('MultiBand')}
+    detectors = [detector.attrib.get('Channel') for sequences in hardware_setting.iter('LDM_Block_Sequential_List')
+                 for sequence in sequences for detector in sequence.iter('Detector')
+                 if detector.attrib.get('IsActive') == '1']
+    if len(detectors) != nchannels:
+        return None
+    return [dyes.get(detector) or f'Ch{index}' for index, detector in enumerate(detectors)]
+
+
+def key_setting_records(hardware_setting):
+    """LAS AF's hardware settings with each record keyed by its own name, so a value has a path of its own.
+
+    LAS AF lists its settings as records, a scanner setting named by its
+    Identifier (dblZoom) and a filter setting by its ObjectName and Attribute
+    (DM6000 Turret, NumericalAperture), the value in Variant. Each record is
+    kept whole under its name, without the fields that name it; the few
+    attributes an object repeats (an AOBS's intensity per line, a
+    spectrophotometer mirror's left and right wavelength) keep their records
+    as a list, as written.
+    """
+    keyed = {key: value for key, value in hardware_setting.items()
+             if key not in ('ScannerSetting', 'FilterSetting', 'Name')}
+    scanner = (hardware_setting.get('ScannerSetting') or {}).get('ScannerSettingRecord', [])
+    keyed['ScannerSetting'] = {record['Identifier']: {key: value for key, value in record.items() if key != 'Identifier'}
+                               for record in (scanner if isinstance(scanner, list) else [scanner])}
+    filters = (hardware_setting.get('FilterSetting') or {}).get('FilterSettingRecord', [])
+    keyed['FilterSetting'] = {}
+    for record in filters if isinstance(filters, list) else [filters]:
+        attributes = keyed['FilterSetting'].setdefault(record['ObjectName'], {})
+        entry = {key: value for key, value in record.items() if key not in ('ObjectName', 'Attribute')}
+        written = attributes.get(record['Attribute'])
+        attributes[record['Attribute']] = entry if written is None else \
+            (written + [entry] if isinstance(written, list) else [written, entry])
+    return keyed
 
 
 class LeicaSource(ImageSource):
     """
     Loads image and metadata from Leica LIF, LOF or XLEF files.
     A file can contain multiple images; a single image is selected by UUID or index (default: first image).
-    Tile scans (mosaic) are stitched using the tile field positions.
+    Tile scans (mosaic) are stitched using the tile field positions; a tile scan with gaps between its tiles holds
+    separate positions instead, one selected by position index.
     """
-    def __init__(self, uri, metadata={}, image_uuid=None, image_index=None, **kwargs):
+    def __init__(self, uri, metadata={}, image_uuid=None, image_index=None, position=None, **kwargs):
         """
         Initialize LeicaSource.
 
@@ -49,8 +90,10 @@ class LeicaSource(ImageSource):
             metadata (dict): Optional metadata dictionary.
             image_uuid (str, optional): UUID of the image to read.
             image_index (int, optional): Index of the image to read (e.g. for older files without UUIDs).
+            position (int, optional): Index of the position to read, for a tile scan with gaps between its tiles.
         """
         super().__init__(uri, metadata)
+        self.position_index = int(position) if position is not None else None
         self.lif = LifFile(uri)
         if image_uuid:
             images = [image for image in self.lif.images if image.uuid == image_uuid]
@@ -94,6 +137,8 @@ class LeicaSource(ImageSource):
         self.dim_order = 'tczyx'
         self.tile_size = sizes['Y'], sizes['X']
         self.tile_flip = False, False, False
+        self.tile_index = 0
+        self.tile_position = None
         self.tile_grid = self._get_tile_grid(sizes.get('M', 1))
         if self.tile_grid is not None:
             ny, nx = len(self.tile_grid), len(self.tile_grid[0])
@@ -116,6 +161,8 @@ class LeicaSource(ImageSource):
                 self.position[dim] = float(coord[0]) * 1e6
                 if len(coord) > 1:
                     self.pixel_size[dim] = abs(float(coord[1] - coord[0])) * 1e6
+        if self.tile_position is not None:
+            self.position = self.tile_position
 
         channel_elements = sorted(
             image.xml_element.findall('./Data/Image/ImageDescription/Channels/ChannelDescription'),
@@ -127,7 +174,8 @@ class LeicaSource(ImageSource):
             for label, color in zip(['Red', 'Green', 'Blue'], [[1, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 1]]):
                 self.channels.append({'label': label, 'color': color})
         else:
-            labels = coords.get('C', [f'Ch{index}' for index in range(nchannels)])
+            labels = (sequential_channel_names(image.xml_element, nchannels)
+                      or coords.get('C', [f'Ch{index}' for index in range(nchannels)]))
             # widefield channel names & emission, if matching channels
             widefield_infos = list(image.xml_element.iter('WideFieldChannelInfo'))
             if len(widefield_infos) != len(channel_elements):
@@ -156,6 +204,10 @@ class LeicaSource(ImageSource):
         filetitle = get_filetitle(self.uri)
         image_name = image.path.replace('/', '_')
         self.name = filetitle if image_name == filetitle else f'{filetitle}_{image_name}'
+        if self.tile_position is not None:
+            self.name += f'_pos{self.tile_index}'
+        elif self.position_index is not None:
+            logging.warning(f'Leica image {image.name}: not a tile scan with separate positions, position ignored')
         return self.metadata
 
     def _get_tile_grid(self, ntiles):
@@ -198,8 +250,9 @@ class LeicaSource(ImageSource):
             if deltas and pixel_size_m[axis] > 0:
                 step[axis] = int(round(min(deltas) / pixel_size_m[axis]))
         if step[0] > self.tile_size[0] or step[1] > self.tile_size[1]:
-            logging.warning(f'Leica image {self.image.name}: tile scan has negative overlap (gaps), '
-                            f'stitching tiles without gaps')
+            # gaps between the tiles (negative overlap): separate positions, one selected by index
+            self._select_position(tiles)
+            return None
         self.tile_step = [min(max(step[axis], 1), self.tile_size[axis]) for axis in range(2)]
 
         grid = [[None] * nx for _ in range(ny)]
@@ -212,24 +265,47 @@ class LeicaSource(ImageSource):
         hardware_setting = self.metadata.get('HardwareSetting', {})
         if not isinstance(hardware_setting, dict):
             hardware_setting = {}
-        # keep hierarchy, without (repeated per sequence) Block settings and without ATL prefix
-        hardware_setting = remove_key_prefix({key: value for key, value in hardware_setting.items()
-                                              if key != 'Name' and 'Block' not in key}, 'ATL')
-        settings = next((value for key, value in hardware_setting.items()
-                         if key.endswith('SettingDefinition') and isinstance(value, dict)), {})
-        if 'MicroscopeModel' in settings:
-            acquisition_metadata['model'] = settings['MicroscopeModel']
-        if 'Magnification' in settings:
-            acquisition_metadata['magnification'] = float(settings['Magnification'])
-        if 'NumericalAperture' in settings:
-            acquisition_metadata['lens_na'] = float(settings['NumericalAperture'])
-        if 'Immersion' in settings:
-            acquisition_metadata['immersion'] = IMMERSIONS.get(str(settings['Immersion']).lower(), 'Other')
-        if 'RefractionIndex' in settings:
-            acquisition_metadata['refractive_index'] = float(settings['RefractionIndex'])
+        # keep hierarchy, without ATL prefix, and of the Block settings only the sequences of a sequential scan,
+        # each holding what differs for one of them (its active detectors and laser lines); the others, such as
+        # the sequential master, mostly repeat the main settings
+        sequences = hardware_setting.get('LDM_Block_Sequential', {})
+        sequences = sequences.get('LDM_Block_Sequential_List') if isinstance(sequences, dict) else None
+        hardware_setting = {key: value for key, value in hardware_setting.items()
+                            if key != 'Name' and 'Block' not in key}
+        if sequences:
+            hardware_setting['LDM_Block_Sequential'] = {'LDM_Block_Sequential_List': sequences}
+        hardware_setting = remove_key_prefix(hardware_setting, 'ATL')
+        # the microscope and objective are read from these settings by the imaging metadata converter
         if hardware_setting:
             acquisition_metadata['HardwareSetting'] = hardware_setting
+        # LAS AF (as on an SP5) writes its settings as lists of records instead
+        setting_list = self.metadata.get('HardwareSettingList', {})
+        records = setting_list.get('HardwareSetting') if isinstance(setting_list, dict) else None
+        if isinstance(records, dict) and records:
+            acquisition_metadata['HardwareSettingList'] = {
+                **key_setting_records(records),
+                **{key: value for key, value in setting_list.items() if key not in ('HardwareSetting', 'Name')}}
+        # the acquisition software, its user and the acquisition time, where it writes them (LMD7)
+        custom_data = self.metadata.get('CustomData')
+        if isinstance(custom_data, dict):
+            custom_data = {key: value for key, value in custom_data.items() if key != 'Name'}
+            if any(isinstance(value, dict) for value in custom_data.values()):
+                acquisition_metadata['CustomData'] = custom_data
         return acquisition_metadata
+
+    def _select_position(self, tiles):
+        positions = [{dim: float(tile[f'pos_{dim}']) * 1e6 for dim in 'xyz' if f'pos_{dim}' in tile.dtype.names}
+                     for tile in tiles]
+        if self.position_index is None:
+            listing = '; '.join(f'{index}: ' + ', '.join(f'{dim}={value / 1e3:.3f} mm' for dim, value in position.items())
+                                for index, position in enumerate(positions))
+            raise ValueError(f'Leica image {self.image.name}: tile scan with gaps between its tiles holds '
+                             f'{len(positions)} separate positions, select one by position index ({listing})')
+        if not 0 <= self.position_index < len(positions):
+            raise ValueError(f'Leica image {self.image.name}: position {self.position_index} out of range '
+                             f'(0-{len(positions) - 1})')
+        self.tile_index = self.position_index
+        self.tile_position = positions[self.position_index]
 
     def _get_source_data(self, as_dask=False):
         """
@@ -263,10 +339,9 @@ class LeicaSource(ImageSource):
         """
         Stitch mosaic tiles (first axis) along the last two (yx) axes.
         """
-        if self.tile_grid is None:
-            return data[0]
         lib = da if as_dask else np
-        flip_y, flip_x, swap_xy = self.tile_flip
+        if self.tile_grid is None:
+            return self._transform_tile(data[self.tile_index], lib)
         ny, nx = len(self.tile_grid), len(self.tile_grid[0])
         rows = []
         for y, grid_row in enumerate(self.tile_grid):
@@ -276,19 +351,23 @@ class LeicaSource(ImageSource):
                 height = self.tile_step[0] if y < ny - 1 else self.tile_size[0]
                 width = self.tile_step[1] if x < nx - 1 else self.tile_size[1]
                 if m_index is not None:
-                    tile = data[m_index]
-                    if flip_y:
-                        tile = tile[..., ::-1, :]
-                    if flip_x:
-                        tile = tile[..., ::-1]
-                    if swap_xy:
-                        tile = lib.swapaxes(tile, -1, -2)
-                    tile = tile[..., :height, :width]
+                    tile = self._transform_tile(data[m_index], lib)[..., :height, :width]
                 else:
                     tile = lib.zeros(data.shape[1:-2] + (height, width), dtype=data.dtype)
                 row.append(tile)
             rows.append(row)
         return lib.block(rows)
+
+    def _transform_tile(self, tile, lib):
+        # tiles are flipped / transposed as placed in the tile scan
+        flip_y, flip_x, swap_xy = self.tile_flip
+        if flip_y:
+            tile = tile[..., ::-1, :]
+        if flip_x:
+            tile = tile[..., ::-1]
+        if swap_xy:
+            tile = lib.swapaxes(tile, -1, -2)
+        return tile
 
     def is_screen(self):
         return False
