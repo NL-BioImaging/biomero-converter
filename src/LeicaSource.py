@@ -47,6 +47,33 @@ def sequential_channel_names(xml_element, nchannels):
     return [dyes.get(detector) or f'Ch{index}' for index, detector in enumerate(detectors)]
 
 
+def key_setting_records(hardware_setting):
+    """LAS AF's hardware settings with each record keyed by its own name, so a value has a path of its own.
+
+    LAS AF lists its settings as records, a scanner setting named by its
+    Identifier (dblZoom) and a filter setting by its ObjectName and Attribute
+    (DM6000 Turret, NumericalAperture), the value in Variant. Each record is
+    kept whole under its name, without the fields that name it; the few
+    attributes an object repeats (an AOBS's intensity per line, a
+    spectrophotometer mirror's left and right wavelength) keep their records
+    as a list, as written.
+    """
+    keyed = {key: value for key, value in hardware_setting.items()
+             if key not in ('ScannerSetting', 'FilterSetting', 'Name')}
+    scanner = (hardware_setting.get('ScannerSetting') or {}).get('ScannerSettingRecord', [])
+    keyed['ScannerSetting'] = {record['Identifier']: {key: value for key, value in record.items() if key != 'Identifier'}
+                               for record in (scanner if isinstance(scanner, list) else [scanner])}
+    filters = (hardware_setting.get('FilterSetting') or {}).get('FilterSettingRecord', [])
+    keyed['FilterSetting'] = {}
+    for record in filters if isinstance(filters, list) else [filters]:
+        attributes = keyed['FilterSetting'].setdefault(record['ObjectName'], {})
+        entry = {key: value for key, value in record.items() if key not in ('ObjectName', 'Attribute')}
+        written = attributes.get(record['Attribute'])
+        attributes[record['Attribute']] = entry if written is None else \
+            (written + [entry] if isinstance(written, list) else [written, entry])
+    return keyed
+
+
 class LeicaSource(ImageSource):
     """
     Loads image and metadata from Leica LIF, LOF or XLEF files.
@@ -239,6 +266,13 @@ class LeicaSource(ImageSource):
         # the microscope and objective are read from these settings by the imaging metadata converter
         if hardware_setting:
             acquisition_metadata['HardwareSetting'] = hardware_setting
+        # LAS AF (as on an SP5) writes its settings as lists of records instead
+        setting_list = self.metadata.get('HardwareSettingList', {})
+        records = setting_list.get('HardwareSetting') if isinstance(setting_list, dict) else None
+        if isinstance(records, dict) and records:
+            acquisition_metadata['HardwareSettingList'] = {
+                **key_setting_records(records),
+                **{key: value for key, value in setting_list.items() if key not in ('HardwareSetting', 'Name')}}
         return acquisition_metadata
 
     def _get_source_data(self, as_dask=False):
