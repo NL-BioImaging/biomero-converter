@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import datetime, time
 import numpy as np
 import os.path
 import pydicom.config
 pydicom.config.convert_wrong_length_to_UN = True
 from pydicom import dcmread
+from pydicom.valuerep import DA, TM
 
 from src.ImageSource import ImageSource
 from src.util import get_filetitle, redimension_data, dicom_to_dict
@@ -54,12 +55,14 @@ class DicomSource(ImageSource):
             self.position = {dim: size for dim, size in zip('xyz', metadata['ImagePositionPatient'])}
         else:
             self.position = None
-        date_time = metadata.get('AcquisitionDate', '') + metadata.get('AcquisitionTime', '')
-        if not date_time:
-            date_time = metadata.get('SeriesDate', '') + metadata.get('SeriesTime', '')
-        if not date_time:
-            date_time = metadata.get('StudyDate', '') + metadata.get('StudyTime', '')
-        self.acquisition_datetime = datetime.strptime(date_time, '%Y%m%d%H%M%S')
+        self.acquisition_datetime = None
+        for prefix in ['Acquisition', 'Series', 'Study']:
+            date = metadata.get(prefix + 'Date')
+            if date:
+                # DICOM DA (YYYYMMDD) and TM (HH[MM[SS[.FFFFFF]]]) values
+                time_value = metadata.get(prefix + 'Time')
+                self.acquisition_datetime = datetime.combine(DA(date), TM(time_value) if time_value else time())
+                break
         self.bits_per_pixel = self.metadata.get('BitsStored', self.dtype.itemsize * 8)
 
         name = self.metadata.get('SeriesDescription')
