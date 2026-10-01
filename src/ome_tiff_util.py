@@ -64,7 +64,7 @@ def read_ome_xml_metadata(metadata):
                     sample_id_parts = sample['ID'].split(':')
                     field_id = sample_id_parts[-1]
                     fields.add(int(field_id))
-                    image_refs[label][field_id] = sample['ImageRef']['ID']
+                    image_refs[label][int(field_id)] = sample['ImageRef']['ID']
             if 'Rows' in plate:
                 rows = [create_row_col_label(row, row_naming_convention) for row in range(plate['Rows'])]
             else:
@@ -89,7 +89,7 @@ def read_ome_xml_metadata(metadata):
         pixel_size['y'] = convert_to_um(float(pixels.get('PhysicalSizeY')), pixels.get('PhysicalSizeYUnit'))
     if 'PhysicalSizeZ' in pixels:
         pixel_size['z'] = convert_to_um(float(pixels.get('PhysicalSizeZ')), pixels.get('PhysicalSizeZUnit'))
-    plane = pixels.get('Plane')
+    plane = ensure_list(pixels.get('Plane', []))[0] if pixels.get('Plane') else None
     if plane:
         if 'PositionX' in plane:
             position['x'] = convert_to_um(float(plane.get('PositionX')), plane.get('PositionXUnit'))
@@ -255,7 +255,7 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
         ome.images = [
             create_image_metadata(source, source.get_name(), dim_order, ome.uuid, image_filename0,
                                   instrument_id=instrument_id, objective_id=objective_id,
-                                  metadata_only=metadata_only)
+                                  metadata_only=metadata_only, position=source.get_position_um())
         ]
 
     map_dict = {}
@@ -282,7 +282,7 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
 
 
 def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None, image_filename=None,
-                          instrument_id=None, objective_id=None, metadata_only=False):
+                          instrument_id=None, objective_id=None, metadata_only=False, position=None):
     t, c, z, y, x = [source.get_shape()[source.dim_order.index(dim)] if dim in source.get_dim_order() else 1
                      for dim in 'tczyx']
     pixel_size = source.get_pixel_size_um()
@@ -349,6 +349,8 @@ def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None
     significant_bits = source.get_significant_bits()
     if significant_bits:
         pixels.significant_bits = significant_bits
+    if position:
+        pixels.planes = create_planes(position, pixel_size, t, 1 if source.is_rgb() else c, z)
 
     image = Image(name=image_name, pixels=pixels)
     acquisition_datetime = source.get_acquisition_datetime()
@@ -368,6 +370,26 @@ def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None
             objective_settings.refractive_index = refractive_index
         image.objective_settings = objective_settings
     return image
+
+
+def create_planes(position_um, pixel_size_um, nt, nc, nz):
+    # a plane per t, c, z at the image position, z planes stepping by the z pixel size
+    planes = []
+    for t in range(nt):
+        for c in range(nc):
+            for z in range(nz):
+                plane = Plane(the_t=t, the_c=c, the_z=z)
+                if 'x' in position_um:
+                    plane.position_x = position_um['x']
+                    plane.position_x_unit = UnitsLength.MICROMETER
+                if 'y' in position_um:
+                    plane.position_y = position_um['y']
+                    plane.position_y_unit = UnitsLength.MICROMETER
+                if 'z' in position_um:
+                    plane.position_z = position_um['z'] + z * pixel_size_um.get('z', 0)
+                    plane.position_z_unit = UnitsLength.MICROMETER
+                planes.append(plane)
+    return planes
 
 
 def create_binaryonly_metadata(metadata_filename, companion_uuid):

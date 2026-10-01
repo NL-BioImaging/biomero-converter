@@ -39,7 +39,6 @@ Mapping onto the imaging metadata model is done (and tracked) in imaging-metadat
 
 ### Conversion
 
-- The OME-TIFF writer writes positions only for plate fields (WellSample), no Plane positions for single images.
 - `convert()` retries every exception `RETRY_ATTEMPTS` times, also deterministic ones, and its error
   message reports `RETRY_ATTEMPTS` instead of the `max_attempts` used.
 - MIRAX conversion is very slow (single-threaded `read_region` via dask): `sample4.mrxs` took 40+ min for
@@ -48,18 +47,19 @@ Mapping onto the imaging metadata model is done (and tracked) in imaging-metadat
 
 ### Tests
 
-- `test_convert` compares only pixel size (exact float equality) and wells, not pixel data, and only the
-  first output of multi-image (e.g. Leica) files.
+- `test_convert` checks every output (each Leica image / Incucyte plate) against its source image: pixel size
+  (exact float equality), pixel data (level 0; per well and field for screens), wells, and position (single images).
 - `EM04573_01small.ome.tif` from the default test list is missing locally.
 - tifffile < 2026.9.20 reports squeezed shape/axes for 'shaped' series (our OME-TIFF output) but returns
   unsqueezed data, so reading back our OME-TIFF gave a wrong shape; fixed by tifffile 2026.9.20 (pinned as minimum).
 
 ## In progress
 
-(none)
+test_convert pixel data and all outputs, OME-TIFF Plane positions for single images, OME-TIFF plate image refs keyed
+by integer field id, also in OmeZarrSource (2026-10-01). Small varied files, DB/CellsSmall (all formats) and the
+Incucyte archive (OME-TIFF) pass; Incucyte / DB OME-Zarr re-run after the OmeZarrSource field fix pending.
 
 ## TODO
 
 - Report the SMB `PermissionError` case upstream to zarr-python (`set_if_not_exists`).
 - Don't retry deterministic errors in `convert()`; fix the retry count in its message.
-- Compare pixel data in `test_convert`, and check all outputs of multi-image files.

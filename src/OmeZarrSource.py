@@ -122,7 +122,7 @@ class OmeZarrSource(ImageSource):
         if well_id is None and field_id is None:
             data = self.data[level]
         else:
-            _, nodes = self._get_reader(self.paths[well_id][field_id])
+            _, nodes = self._get_reader(self.paths[well_id][int(field_id)])
             data = nodes[0].data[level]
         return redimension_data(data, self.dim_order, dim_order)
 
@@ -149,7 +149,7 @@ class OmeZarrSource(ImageSource):
         if well_id is None and field_id is None:
             metadata = self.metadata
         else:
-            metadata = self._get_metadata(self.paths[well_id][field_id])
+            metadata = self._get_metadata(self.paths[well_id][int(field_id)])
         window = np.transpose(metadata.get('contrast_limits', ([], [])))
         return window
 

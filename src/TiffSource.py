@@ -152,7 +152,7 @@ class TiffSource(ImageSource):
 
     def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
         if well_id is not None:
-            image_id = self.image_refs[well_id][field_id]
+            image_id = self.image_refs[well_id][int(field_id)]
             tiff = TiffFile(self.image_filenames[image_id])
         else:
             tiff = self.tiff
