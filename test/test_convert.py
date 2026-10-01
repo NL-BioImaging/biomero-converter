@@ -26,10 +26,17 @@ class TestConvert:
 
     output_formats = ['omezarr3', 'omezarr2', 'ometiff']
 
+    # source parameters per input file (by end of path)
+    source_kwargs = {'Leica/lif/TestTileScan16bit.lif': {'position': 0}}   # tile scan with gaps: separate positions
+
+    def get_source_kwargs(self, input_filename):
+        return next((kwargs for end, kwargs in self.source_kwargs.items()
+                     if input_filename.replace('\\', '/').endswith(end)), {})
+
     @pytest.mark.parametrize("input_filename", input_filenames)
     def test_source(self, input_filename, verbose=False, **kwargs):
         init_logging('log/biomero_converter.log', verbose=True)
-        source = create_source(input_filename)
+        source = create_source(input_filename, **self.get_source_kwargs(input_filename))
         metadata = source.init_metadata()
         if verbose:
             print('SOURCE METADATA')
@@ -45,11 +52,12 @@ class TestConvert:
     @pytest.mark.parametrize("output_format", output_formats)
     def test_convert(self, tmp_path, input_filename, output_format, alt_output_folder=None, show_progess=False, verbose=False, **kwargs):
         init_logging('log/biomero_converter.log', verbose=True)
+        kwargs = {**self.get_source_kwargs(input_filename), **kwargs}
         with Timer(f'convert {input_filename} to {output_format}'):
             output = _convert(input_filename, tmp_path, alt_output_folder=alt_output_folder, output_format=output_format,
                              show_progress=show_progess, verbose=verbose, **kwargs)
 
-        source = create_source(input_filename)
+        source = create_source(input_filename, **kwargs)
         metadata = source.init_metadata()
         if verbose:
             print('SOURCE METADATA')

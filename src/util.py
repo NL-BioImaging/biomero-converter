@@ -3,6 +3,7 @@ import numpy as np
 import os.path
 from collections.abc import Sequence
 from decimal import Decimal
+from enum import Enum
 import re
 
 
@@ -221,6 +222,26 @@ def dicom_to_dict(obj):
         return str(obj)
     if isinstance(obj, Sequence):
         return [dicom_to_dict(item) for item in obj]
+    return str(obj)
+
+
+def to_plain_types(obj):
+    # Recursively convert metadata to plain python types (e.g. for yaml): tuple -> list, numpy -> python,
+    # bytes -> str, Enum -> name; datetime is kept, anything else unknown becomes str
+    if isinstance(obj, dict):
+        return {str(key): to_plain_types(value) for key, value in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [to_plain_types(item) for item in obj]
+    if isinstance(obj, np.ndarray):
+        return to_plain_types(obj.tolist())
+    if isinstance(obj, np.generic):
+        return obj.item()
+    if isinstance(obj, bytes):
+        return obj.decode('utf-8', errors='replace')
+    if isinstance(obj, Enum):
+        return obj.name
+    if obj is None or isinstance(obj, (bool, int, float, str, datetime)):
+        return obj
     return str(obj)
 
 

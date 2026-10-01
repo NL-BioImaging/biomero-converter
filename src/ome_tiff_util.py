@@ -3,6 +3,7 @@ from ome_types._mixins._ids import ID_COUNTER
 from ome_types.model import *
 from ome_types import to_xml
 from tifffile import xml2dict
+import re
 import uuid
 
 from src.color_conversion import rgba_to_int, int_to_rgba
@@ -10,11 +11,19 @@ from src.parameters import VERSION
 from src.util import *
 
 
+INVALID_XML_CHARS = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')
+
+
 def metadata_to_dict(xml_metadata):
     metadata = xml2dict(xml_metadata)
     if 'OME' in metadata:
         metadata = metadata['OME']
     return metadata
+
+
+def remove_invalid_xml_chars(value):
+    # control characters (e.g. a \x01 user name in Ciqtek metadata) are not allowed in XML 1.0
+    return INVALID_XML_CHARS.sub('', str(value))
 
 
 def create_uuid():
@@ -132,16 +141,19 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
     ome.creator = f'nl.biomero.OmeTiffWriter {VERSION}'
 
     acquisition_metadata = source.get_acquisition_metadata().copy()
+    model_metadata = source.get_model_metadata()
+    model_instrument = model_metadata.get('Instrument', {})
+    model_objective = model_metadata.get('Objective', {})
     instrument_id = None
     objective_id = None
     if acquisition_metadata:
         microscope = Microscope()
         has_microscope = False
-        manufacturer = acquisition_metadata.pop('manufacturer', None)
+        manufacturer = acquisition_metadata.pop('manufacturer', model_instrument.get('Manufacturer'))
         if manufacturer is not None:
             microscope.manufacturer = manufacturer
             has_microscope = True
-        model = acquisition_metadata.pop('model', None)
+        model = acquisition_metadata.pop('model', model_instrument.get('Model', model_instrument.get('Name')))
         if model is not None:
             microscope.model = model
             has_microscope = True
@@ -154,11 +166,12 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
         has_objective = False
         magnification = acquisition_metadata.pop('magnification',
                                             acquisition_metadata.pop('nominal_magnification',
-                                                                acquisition_metadata.pop('NominalMagnification', None)))
+                                                                acquisition_metadata.pop('NominalMagnification',
+                                                                                         model_objective.get('Magnification'))))
         if magnification is not None:
             objective.nominal_magnification = magnification
             has_objective = True
-        lens_na = acquisition_metadata.pop('n_a', acquisition_metadata.pop('lens_na', None))
+        lens_na = acquisition_metadata.pop('n_a', acquisition_metadata.pop('lens_na', model_objective.get('LensNA')))
         if lens_na is not None:
             objective.lens_na = lens_na
             has_objective = True
@@ -167,8 +180,9 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
             objective.working_distance = working_distance
             objective.working_distance_unit = acquisition_metadata.pop('working_distance_unit', UnitsLength.MICROMETER)
             has_objective = True
-        immersion = acquisition_metadata.pop('immersion', None)
-        if immersion:
+        immersion = acquisition_metadata.pop('immersion', model_objective.get('ImmersionType'))
+        # the model's immersions include LiMi's, such as Mineral Oil, that OME's enumeration does not
+        if immersion in {member.value for member in Objective_Immersion}:
             ome_immersion = Objective_Immersion(immersion)
             objective.immersion = ome_immersion
 
@@ -260,7 +274,8 @@ def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, imag
             map_dict[acq_key] = acq_value
 
     if map_dict:
-        annotation = MapAnnotation(value=Map(ms=[Map.M(k=key, value=str(value)) for key, value in map_dict.items()]))
+        annotation = MapAnnotation(value=Map(ms=[Map.M(k=remove_invalid_xml_chars(key), value=remove_invalid_xml_chars(value))
+                                                 for key, value in map_dict.items()]))
         ome.structured_annotations.append(annotation)
 
     return to_xml(ome)
@@ -347,7 +362,8 @@ def create_image_metadata(source, image_name, dim_order='tczyx', image_uuid=None
     if objective_id is not None:
         objective_settings = ObjectiveSettings(id=objective_id)
         info = source.get_acquisition_metadata()
-        refractive_index = info.get('refractive_index')
+        refractive_index = info.get('refractive_index',
+                                    source.get_model_metadata().get('ImmersionLiquid', {}).get('RefractiveIndex'))
         if refractive_index is not None:
             objective_settings.refractive_index = refractive_index
         image.objective_settings = objective_settings

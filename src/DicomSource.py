@@ -272,6 +272,10 @@ class DicomSource(ImageSource):
     def get_significant_bits(self):
         return self.bits_per_pixel
 
+    def get_acquisition_metadata(self):
+        # all DICOM attributes as they are (patient details included), for mapping onto the imaging metadata model
+        return self.metadata
+
     def get_time_points(self):
         if 't' in self.dim_order:
             return list(range(self.shape[self.dim_order.index('t')]))

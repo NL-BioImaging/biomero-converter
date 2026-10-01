@@ -15,6 +15,7 @@ parser.add_argument('--verbose', action='store_true')
 parser.add_argument('--plateid', help='Incucyte plate ID (optional)')
 parser.add_argument('--image_uuid', help='Leica image UUID (optional, default: all images) '
                                            'or DICOM SeriesInstanceUID (optional, default: the first series)')
+parser.add_argument('--position', type=int, help='Leica position index, for a tile scan with gaps between its tiles')
 args = parser.parse_args()
 
 init_logging('db_to_zarr.log', verbose=args.verbose)
@@ -25,6 +26,8 @@ if hasattr(args, 'plateid') and args.plateid:
     source_kwargs['plate_id'] = args.plateid
 if args.image_uuid:
     source_kwargs['image_uuid'] = args.image_uuid
+if args.position is not None:
+    source_kwargs['position'] = args.position
 
 result = convert(
     args.inputfile,
