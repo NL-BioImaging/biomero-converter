@@ -29,9 +29,8 @@ def create_ro_crate(source, dest_path={}):
     #properties["license"] = source.get_license()
     dataset_entity = crate.add_dataset(dest_path='.', properties=properties)
 
-    # acquisition metadata on the common imaging metadata model, written in full (with the map of where each field
-    # came from) to a yaml file the crate points to
-    model_metadata = source.get_model_metadata()
+    # acquisition metadata on the common imaging metadata model, written to a yaml file the crate points to
+    model_metadata = {key: value for key, value in source.get_model_metadata().items() if key != SOURCE_MAP_KEY}
     with open(os.path.join(dest_path, ACQUISITION_METADATA_FILENAME), 'w', encoding='utf-8') as file:
         yaml.safe_dump(to_plain_types(model_metadata), file, sort_keys=False, allow_unicode=True)
     acquisition_metadata_entity = crate.add_file(dest_path=ACQUISITION_METADATA_FILENAME, properties={
@@ -44,7 +43,6 @@ def create_ro_crate(source, dest_path={}):
     # the dataset entity replaced the crate's root dataset, so link the file to it explicitly
     dataset_entity.append_to('hasPart', acquisition_metadata_entity)
 
-    model_metadata = {key: value for key, value in model_metadata.items() if key != SOURCE_MAP_KEY}
     model_instrument = model_metadata.get('Instrument', {})
 
     additional_properties = []
