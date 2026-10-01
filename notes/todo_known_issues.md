@@ -55,9 +55,7 @@ Mapping onto the imaging metadata model is done (and tracked) in imaging-metadat
 
 ## In progress
 
-test_convert pixel data and all outputs, OME-TIFF Plane positions for single images, OME-TIFF plate image refs keyed
-by integer field id, also in OmeZarrSource (2026-10-01). Small varied files, DB/CellsSmall (all formats) and the
-Incucyte archive (OME-TIFF) pass; Incucyte / DB OME-Zarr re-run after the OmeZarrSource field fix pending.
+(none)
 
 ## TODO
 
