@@ -24,6 +24,29 @@ LUT_COLORS = {
 
 
 
+def sequential_channel_names(xml_element, nchannels):
+    """The channel names of a sequential confocal scan, or None where it is none.
+
+    Channel k is the k-th active detector, taken sequence by sequence, and its
+    name the dye of that detector's spectral band. The bands are numbered by
+    detector and stated once, not per sequence, so liffile, which names the
+    channels after the bands in band order, misnames them wherever the
+    sequences do not run in detector order (TileScan.lof: detectors 4, 5, 1).
+    """
+    hardware_setting = xml_element.find('./Data/Image/Attachment[@Name="HardwareSetting"]')
+    settings = hardware_setting.find('ATLConfocalSettingDefinition') if hardware_setting is not None else None
+    if settings is None:
+        return None
+    dyes = {band.attrib.get('Channel'): band.attrib.get('DyeName', '').removeprefix('Leica/')
+            for band in settings.iter('MultiBand')}
+    detectors = [detector.attrib.get('Channel') for sequences in hardware_setting.iter('LDM_Block_Sequential_List')
+                 for sequence in sequences for detector in sequence.iter('Detector')
+                 if detector.attrib.get('IsActive') == '1']
+    if len(detectors) != nchannels:
+        return None
+    return [dyes.get(detector) or f'Ch{index}' for index, detector in enumerate(detectors)]
+
+
 class LeicaSource(ImageSource):
     """
     Loads image and metadata from Leica LIF, LOF or XLEF files.
@@ -117,7 +140,8 @@ class LeicaSource(ImageSource):
             for label, color in zip(['Red', 'Green', 'Blue'], [[1, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 1]]):
                 self.channels.append({'label': label, 'color': color})
         else:
-            labels = coords.get('C', [f'Ch{index}' for index in range(nchannels)])
+            labels = (sequential_channel_names(image.xml_element, nchannels)
+                      or coords.get('C', [f'Ch{index}' for index in range(nchannels)]))
             # widefield channel names & emission, if matching channels
             widefield_infos = list(image.xml_element.iter('WideFieldChannelInfo'))
             if len(widefield_infos) != len(channel_elements):
@@ -202,9 +226,16 @@ class LeicaSource(ImageSource):
         hardware_setting = self.metadata.get('HardwareSetting', {})
         if not isinstance(hardware_setting, dict):
             hardware_setting = {}
-        # keep hierarchy, without (repeated per sequence) Block settings and without ATL prefix
-        hardware_setting = remove_key_prefix({key: value for key, value in hardware_setting.items()
-                                              if key != 'Name' and 'Block' not in key}, 'ATL')
+        # keep hierarchy, without ATL prefix, and of the Block settings only the sequences of a sequential scan,
+        # each holding what differs for one of them (its active detectors and laser lines); the others, such as
+        # the sequential master, mostly repeat the main settings
+        sequences = hardware_setting.get('LDM_Block_Sequential', {})
+        sequences = sequences.get('LDM_Block_Sequential_List') if isinstance(sequences, dict) else None
+        hardware_setting = {key: value for key, value in hardware_setting.items()
+                            if key != 'Name' and 'Block' not in key}
+        if sequences:
+            hardware_setting['LDM_Block_Sequential'] = {'LDM_Block_Sequential_List': sequences}
+        hardware_setting = remove_key_prefix(hardware_setting, 'ATL')
         # the microscope and objective are read from these settings by the imaging metadata converter
         if hardware_setting:
             acquisition_metadata['HardwareSetting'] = hardware_setting
