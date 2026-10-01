@@ -273,6 +273,12 @@ class LeicaSource(ImageSource):
             acquisition_metadata['HardwareSettingList'] = {
                 **key_setting_records(records),
                 **{key: value for key, value in setting_list.items() if key not in ('HardwareSetting', 'Name')}}
+        # the acquisition software, its user and the acquisition time, where it writes them (LMD7)
+        custom_data = self.metadata.get('CustomData')
+        if isinstance(custom_data, dict):
+            custom_data = {key: value for key, value in custom_data.items() if key != 'Name'}
+            if any(isinstance(value, dict) for value in custom_data.values()):
+                acquisition_metadata['CustomData'] = custom_data
         return acquisition_metadata
 
     def _get_source_data(self, as_dask=False):
