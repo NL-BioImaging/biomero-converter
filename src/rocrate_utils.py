@@ -45,22 +45,6 @@ def create_ro_crate(source, dest_path={}):
 
     model_instrument = model_metadata.get('Instrument', {})
 
-    additional_properties = []
-    for index, (key, value) in enumerate(flatten_dict(model_metadata).items()):
-        if isinstance(value, datetime):
-            value = str(value)
-        additional_properties.append({
-            '@id': f'#acq:{index:03d}',
-            '@type': 'PropertyValue',
-            'name': key,
-            'value': value
-        })
-
-    properties_entities = []
-    for additional_property in additional_properties:
-        properties_entity = ContextEntity(crate, identifier=additional_property['@id'], properties=additional_property)
-        properties_entities.append(crate.add(properties_entity))
-
     instrument_properties = {
         '@id': '#microscope-001',
         '@type': 'IndividualProduct',
@@ -101,7 +85,6 @@ def create_ro_crate(source, dest_path={}):
         instrument_properties['serialNumber'] = serial
 
     instrument_entity = ContextEntity(crate, identifier=instrument_properties['@id'], properties=instrument_properties)
-    instrument_entity['additionalProperty'] = properties_entities
     create_entity = crate.add_action(instrument_entity, identifier='#data-capture-001')
     create_entity['instrument'] = instrument_entity
     create_entity['result'] = dataset_entity
