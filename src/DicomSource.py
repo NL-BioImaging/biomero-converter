@@ -4,6 +4,8 @@ import os.path
 import pydicom.config
 pydicom.config.convert_wrong_length_to_UN = True
 from pydicom import dcmread
+from pydicom.datadict import keyword_for_tag
+from pydicom.multival import MultiValue
 from pydicom.valuerep import DA, TM
 
 from src.ImageSource import ImageSource
@@ -33,18 +35,24 @@ class DicomSource(ImageSource):
         dim_order = 'yx'
         nchannels = 1
         if self.is_rgb_type:
-            if shape[-1] < shape[0]:
-                nchannels = shape[-1]
-                dim_order = dim_order + 'c'
-            else:
-                nchannels = shape[0]
-                dim_order = 'c' + dim_order
+            # pydicom gives the samples last
+            nchannels = shape[-1]
+            dim_order = dim_order + 'c'
         self.dtype = pixel_array.dtype
         self.pixel_size = {dim:value for dim, value in zip('xy', metadata.get('PixelSpacing', (1, 1)))}
-        nz = len(self.filenames)
-        if nz > 1:
-            dim_order = 'z' + dim_order
-            shape = [nz] + shape
+        if int(metadata.get('NumberOfFrames') or 1) > 1:
+            # multi-frame: frames are time points if they increment by frame time (e.g. cine, ultrasound), else slices
+            dim_order = ('t' if self._frames_are_time() else 'z') + dim_order
+        nfiles = len(self.filenames)
+        if nfiles > 1:
+            # files are slices
+            if 'z' in dim_order:
+                shape[0] *= nfiles
+            else:
+                z_index = 1 if 't' in dim_order else 0
+                dim_order = dim_order[:z_index] + 'z' + dim_order[z_index:]
+                shape.insert(z_index, nfiles)
+        if 'z' in dim_order:
             self.pixel_size['z'] = metadata.get('SliceThickness', 1)
         self.shape = shape
         self.nchannels = nchannels
@@ -73,6 +81,13 @@ class DicomSource(ImageSource):
         self.name = name
 
         return self.metadata
+
+    def _frames_are_time(self):
+        frame_increment_pointer = self.dicom.get('FrameIncrementPointer')
+        if frame_increment_pointer is None:
+            return False
+        tags = frame_increment_pointer if isinstance(frame_increment_pointer, MultiValue) else [frame_increment_pointer]
+        return any(keyword_for_tag(tag) in ['FrameTime', 'FrameTimeVector'] for tag in tags)
 
     def is_screen(self):
         # DICOM files are not multi-well screens
@@ -126,6 +141,8 @@ class DicomSource(ImageSource):
         return self.bits_per_pixel
 
     def get_time_points(self):
+        if 't' in self.dim_order:
+            return list(range(self.shape[self.dim_order.index('t')]))
         return []
 
     def get_rows(self):
@@ -145,10 +162,12 @@ class DicomSource(ImageSource):
 
     def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
         # https://pydicom.github.io/pydicom/stable/auto_examples/image_processing/reslice.html#sphx-glr-auto-examples-image-processing-reslice-py
-        if 'z' in self.dim_order:
-            data = np.zeros(self.shape)
-            for index, filename in enumerate(self.filenames):
-                data[index] = dcmread(filename).pixel_array
+        if len(self.filenames) > 1:
+            arrays = [dcmread(filename).pixel_array for filename in self.filenames]
+            if int(self.metadata.get('NumberOfFrames') or 1) > 1 and self.dim_order[0] == 'z':
+                data = np.concatenate(arrays)
+            else:
+                data = np.stack(arrays, axis=self.dim_order.index('z'))
         else:
             data = self.dicom.pixel_array
         return redimension_data(data, self.dim_order, dim_order)
