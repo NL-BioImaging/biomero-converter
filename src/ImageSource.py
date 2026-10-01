@@ -2,7 +2,7 @@ from abc import ABC
 from imaging_metadata_converter import convert_metadata
 import numpy as np
 
-from src.util import pad_leading_zero
+from src.util import pad_leading_zero, to_plain_types
 
 
 class ImageSource(ABC):
@@ -281,15 +281,26 @@ class ImageSource(ABC):
         """
         return {}
 
+    def get_source_metadata(self):
+        """
+        Get all of the source's metadata, but what only lays out or encodes the pixel data, for the imaging
+        metadata converter: by default the acquisition metadata.
+        """
+        return self.get_acquisition_metadata()
+
     def get_model_metadata(self):
         """
-        Get the acquisition metadata mapped onto the common imaging metadata model
+        Get the source metadata mapped onto the common imaging metadata model
         (https://github.com/NL-BioImaging/imaging-metadata-converter). Unmapped fields keep their original path.
 
         Returns:
             dict: Nested model metadata, e.g. {'Instrument': {'Manufacturer': ..., 'Model': ...}, ...}.
         """
-        return convert_metadata(self.get_acquisition_metadata())
+        # converted once, as the OME writer and the RO-Crate both ask for it; as plain data (bytes as text, numpy
+        # values as numbers), as the converter's JSON examples hold it
+        if getattr(self, '_model_metadata', None) is None:
+            self._model_metadata = convert_metadata(to_plain_types(self.get_source_metadata()))
+        return self._model_metadata
 
     def get_total_data_size(self):
         """

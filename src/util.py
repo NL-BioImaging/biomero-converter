@@ -245,6 +245,15 @@ def to_plain_types(obj):
     return str(obj)
 
 
+def without_keys(value, keys):
+    # recursively drop the entries named by keys
+    if isinstance(value, dict):
+        return {key: without_keys(item, keys) for key, item in value.items() if key not in keys}
+    if isinstance(value, (list, tuple)):
+        return [without_keys(item, keys) for item in value]
+    return value
+
+
 def remove_key_prefix(obj, prefix):
     # recursively remove prefix from dict keys
     if isinstance(obj, dict):

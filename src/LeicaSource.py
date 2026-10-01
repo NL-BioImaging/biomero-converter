@@ -4,11 +4,13 @@
 import dask.array as da
 import logging
 from liffile import LifFile
+from tifffile import xml2dict
+from xml.etree import ElementTree
 import numpy as np
 
 from src.ImageSource import ImageSource
 from src.parameters import TILE_SIZE
-from src.util import get_filetitle, redimension_data, remove_key_prefix
+from src.util import get_filetitle, redimension_data, remove_key_prefix, without_keys
 
 
 LUT_COLORS = {
@@ -45,6 +47,10 @@ def sequential_channel_names(xml_element, nchannels):
     if len(detectors) != nchannels:
         return None
     return [dyes.get(detector) or f'Ch{index}' for index, detector in enumerate(detectors)]
+
+
+# where a channel's or dimension's values lie in the file's pixel data, meaningless once the pixels are converted
+LAYOUT_KEYS = ('BytesInc', 'BitInc')
 
 
 def key_setting_records(hardware_setting):
@@ -292,6 +298,32 @@ class LeicaSource(ImageSource):
             if any(isinstance(value, dict) for value in custom_data.values()):
                 acquisition_metadata['CustomData'] = custom_data
         return acquisition_metadata
+
+    def get_source_metadata(self):
+        """
+        All of the image's metadata, for the imaging metadata converter, but its path on this disk and what
+        only lays out the pixel data in the file (a channel's or dimension's byte and bit increments): its
+        attachments whole (the hardware settings without their ATL prefix, LAS AF's records keyed by their
+        names), the channel and dimension descriptions, and the time stamps of its frames.
+        """
+        metadata = {'manufacturer': 'Leica Microsystems'}
+        metadata |= {key: value for key, value in self.metadata.items() if key != 'filepath'}
+        if isinstance(metadata.get('HardwareSetting'), dict):
+            metadata['HardwareSetting'] = remove_key_prefix(metadata['HardwareSetting'], 'ATL')
+        setting_list = metadata.get('HardwareSettingList')
+        records = setting_list.get('HardwareSetting') if isinstance(setting_list, dict) else None
+        if isinstance(records, dict) and records:
+            metadata['HardwareSettingList'] = {
+                **key_setting_records(records),
+                **{key: value for key, value in setting_list.items() if key != 'HardwareSetting'}}
+        description = self.image.xml_element.find('./Data/Image/ImageDescription')
+        if description is not None:
+            metadata['ImageDescription'] = without_keys(
+                xml2dict(ElementTree.tostring(description, encoding='unicode'))['ImageDescription'], LAYOUT_KEYS)
+        timestamps = self.image.timestamps
+        if timestamps is not None and len(timestamps) > 0:
+            metadata['timestamps'] = [str(timestamp) for timestamp in timestamps]
+        return metadata
 
     def _select_position(self, tiles):
         positions = [{dim: float(tile[f'pos_{dim}']) * 1e6 for dim in 'xyz' if f'pos_{dim}' in tile.dtype.names}

@@ -9,8 +9,8 @@ from tifffile import TiffFile, imread, PHOTOMETRIC
 from src.ImageSource import ImageSource
 from src.ome_tiff_util import metadata_to_dict, read_ome_xml_metadata
 from src.parameters import TILE_SIZE
-from src.tiff_metadata import get_extra_metadata, get_pixel_size_um, get_position_um
-from src.util import convert_to_um, ensure_list, redimension_data, get_filetitle
+from src.tiff_metadata import PRIVATE_TAG_CODE, get_extra_metadata, get_pixel_size_um, get_position_um
+from src.util import convert_to_um, ensure_list, redimension_data, get_filetitle, without_keys
 
 
 class TiffSource(ImageSource):
@@ -86,9 +86,12 @@ class TiffSource(ImageSource):
             self.is_photometric_rgb = (self.tiff.pages.first.photometric == PHOTOMETRIC.RGB)
             self.nchannels = self.shape[self.dim_order.index('c')] if 'c' in self.dim_order else 1
 
+        source_metadata = {}
         if self.is_ome:
             if self.tiff:
                 metadata = metadata_to_dict(self.tiff.ome_metadata)
+                # the OME document whole, but where its pixel data lies and how it is written
+                source_metadata = without_keys(get_extra_metadata(self.tiff), OME_LAYOUT_KEYS)
             if metadata and not 'BinaryOnly' in metadata:
                 self.metadata = metadata
             (name, is_plate, pixel_size, position, dtype, bits_per_pixel, channels, acquisition_metadata, acquisition_datetime,
@@ -104,6 +107,11 @@ class TiffSource(ImageSource):
 
             # vendor metadata in generic form, with the pixel size and position found in it
             acquisition_metadata = get_extra_metadata(self.tiff)
+            # and beside it the baseline tags of the image, but those that only lay out or encode its pixels
+            source_metadata = dict(acquisition_metadata)
+            for tag in self.tiff.pages.first.tags.values():
+                if tag.code < PRIVATE_TAG_CODE and tag.name not in TIFF_LAYOUT_TAGS:
+                    source_metadata.setdefault(tag.name, plain_tag_value(tag.value))
             shape = dict(zip(self.dim_order, self.shape))
             for dim, size in get_pixel_size_um(self.tiff, acquisition_metadata, shape).items():
                 pixel_size.setdefault(dim, size)
@@ -136,6 +144,7 @@ class TiffSource(ImageSource):
         self.dtype = dtype
         self.bits_per_pixel = bits_per_pixel
         self.acquisition_metadata = acquisition_metadata
+        self.source_metadata = source_metadata
         return self.metadata
 
     def is_screen(self):
@@ -225,6 +234,9 @@ class TiffSource(ImageSource):
     def get_acquisition_metadata(self):
         return self.acquisition_metadata
 
+    def get_source_metadata(self):
+        return self.source_metadata
+
     def close(self):
         self.tiff.close()
 
@@ -240,6 +252,28 @@ def get_fiji_pixelsize(metadata):
     if 'spacing' in metadata:
         pixel_size['z'] = convert_to_um(metadata['spacing'], pixel_size_unit)
     return pixel_size
+
+
+# baseline TIFF tags that only lay out or encode the pixel data, meaningless once the pixels are converted
+TIFF_LAYOUT_TAGS = {
+    'NewSubfileType', 'SubfileType', 'Compression', 'Predictor', 'PlanarConfiguration', 'FillOrder',
+    'StripOffsets', 'StripByteCounts', 'RowsPerStrip', 'TileWidth', 'TileLength', 'TileDepth', 'TileOffsets',
+    'TileByteCounts', 'SubIFDs', 'JPEGTables', 'JPEGProc', 'JPEGInterchangeFormat', 'JPEGInterchangeFormatLength',
+    'JPEGRestartInterval', 'JPEGLosslessPredictors', 'JPEGPointTransforms', 'JPEGQTables', 'JPEGDCTables',
+    'JPEGACTables', 'YCbCrCoefficients', 'YCbCrSubSampling', 'YCbCrPositioning', 'ReferenceBlackWhite',
+    'ExtraSamples', 'ColorMap'}
+
+# OME's description of where and how its pixel data is written
+OME_LAYOUT_KEYS = ('TiffData', 'BinData', 'BigEndian', 'Interleaved')
+
+
+def plain_tag_value(value):
+    """A tag's value as plain data: an enumeration by its name, text read as text."""
+    if isinstance(value, Enum):
+        return value.name
+    if isinstance(value, bytes):
+        return value.decode('utf-8', errors='replace')
+    return value
 
 
 def tags_to_dict(tags):

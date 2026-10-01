@@ -276,6 +276,10 @@ class DicomSource(ImageSource):
         # all DICOM attributes as they are (patient details included), for mapping onto the imaging metadata model
         return self.metadata
 
+    def get_source_metadata(self):
+        # the attributes but the padding that fills out the file (zeros), meaningless once the pixels are converted
+        return {key: value for key, value in self.metadata.items() if key != 'DataSetTrailingPadding'}
+
     def get_time_points(self):
         if 't' in self.dim_order:
             return list(range(self.shape[self.dim_order.index('t')]))

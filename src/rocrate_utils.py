@@ -31,7 +31,9 @@ def create_ro_crate(source, dest_path={}):
     # acquisition metadata on the common imaging metadata model, written to a yaml file the crate points to
     model_metadata = {key: value for key, value in source.get_model_metadata().items() if key != SOURCE_MAP_KEY}
     # given as the file's source, so the crate writes the file itself
-    yaml_text = yaml.safe_dump(to_plain_types(model_metadata), sort_keys=False, allow_unicode=True)
+    # libyaml's dumper where installed: a Leica tile scan's metadata is tens of thousands of values
+    yaml_text = yaml.dump(to_plain_types(model_metadata), Dumper=getattr(yaml, 'CSafeDumper', yaml.SafeDumper),
+                          sort_keys=False, allow_unicode=True)
     acquisition_metadata_entity = crate.add_file(
         source=BytesIO(yaml_text.encode('utf-8')), dest_path=ACQUISITION_METADATA_FILENAME, properties={
         'name': 'Acquisition metadata',
