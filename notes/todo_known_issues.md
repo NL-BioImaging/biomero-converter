@@ -12,8 +12,10 @@ Only simulated locally; not yet confirmed on the reporter's `L:` share.
 
 ### Leica
 
-- Tile scans with negative overlap (gaps between tiles, e.g. `NegOverlapTilescan-2t-3pos`) are stitched
-  edge to edge with a warning. ConvertLeica returns a single-image `.lif` for these instead.
+- Tile scans with gaps between their tiles (negative overlap, e.g. `NegOverlapTilescan-2t-3pos`,
+  `TestTileScan16bit`) are separate positions, not stitched: one is selected by `position` index (`--position`),
+  else a ValueError lists them. Its stage position is the image position (OME-Zarr translation). ConvertLeica returns
+  a single-image `.lif` for these instead. `FieldX`/`FieldY` can be a running index (all `FieldY` 0) rather than a grid.
 - Unsupported dimensions (wavelength, rotation, loop, ...) use only their first index.
 - Tile flip/swap (`FlipX`/`FlipY`/`SwapXY`) follows ConvertLeica, but has not been compared against a
   LAS X merged image of the same tile scan.
@@ -37,6 +39,7 @@ Mapping onto the imaging metadata model is done (and tracked) in imaging-metadat
 
 ### Conversion
 
+- The OME-TIFF writer writes positions only for plate fields (WellSample), no Plane positions for single images.
 - `convert()` retries every exception `RETRY_ATTEMPTS` times, also deterministic ones, and its error
   message reports `RETRY_ATTEMPTS` instead of the `max_attempts` used.
 - MIRAX conversion is very slow (single-threaded `read_region` via dask): `sample4.mrxs` took 40+ min for
@@ -59,5 +62,4 @@ Mapping onto the imaging metadata model is done (and tracked) in imaging-metadat
 
 - Report the SMB `PermissionError` case upstream to zarr-python (`set_if_not_exists`).
 - Don't retry deterministic errors in `convert()`; fix the retry count in its message.
-- Leica: option for negative overlap tile scans.
 - Compare pixel data in `test_convert`, and check all outputs of multi-image files.

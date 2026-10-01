@@ -78,9 +78,10 @@ class LeicaSource(ImageSource):
     """
     Loads image and metadata from Leica LIF, LOF or XLEF files.
     A file can contain multiple images; a single image is selected by UUID or index (default: first image).
-    Tile scans (mosaic) are stitched using the tile field positions.
+    Tile scans (mosaic) are stitched using the tile field positions; a tile scan with gaps between its tiles holds
+    separate positions instead, one selected by position index.
     """
-    def __init__(self, uri, metadata={}, image_uuid=None, image_index=None, **kwargs):
+    def __init__(self, uri, metadata={}, image_uuid=None, image_index=None, position=None, **kwargs):
         """
         Initialize LeicaSource.
 
@@ -89,8 +90,10 @@ class LeicaSource(ImageSource):
             metadata (dict): Optional metadata dictionary.
             image_uuid (str, optional): UUID of the image to read.
             image_index (int, optional): Index of the image to read (e.g. for older files without UUIDs).
+            position (int, optional): Index of the position to read, for a tile scan with gaps between its tiles.
         """
         super().__init__(uri, metadata)
+        self.position_index = int(position) if position is not None else None
         self.lif = LifFile(uri)
         if image_uuid:
             images = [image for image in self.lif.images if image.uuid == image_uuid]
@@ -134,6 +137,8 @@ class LeicaSource(ImageSource):
         self.dim_order = 'tczyx'
         self.tile_size = sizes['Y'], sizes['X']
         self.tile_flip = False, False, False
+        self.tile_index = 0
+        self.tile_position = None
         self.tile_grid = self._get_tile_grid(sizes.get('M', 1))
         if self.tile_grid is not None:
             ny, nx = len(self.tile_grid), len(self.tile_grid[0])
@@ -156,6 +161,8 @@ class LeicaSource(ImageSource):
                 self.position[dim] = float(coord[0]) * 1e6
                 if len(coord) > 1:
                     self.pixel_size[dim] = abs(float(coord[1] - coord[0])) * 1e6
+        if self.tile_position is not None:
+            self.position = self.tile_position
 
         channel_elements = sorted(
             image.xml_element.findall('./Data/Image/ImageDescription/Channels/ChannelDescription'),
@@ -197,6 +204,10 @@ class LeicaSource(ImageSource):
         filetitle = get_filetitle(self.uri)
         image_name = image.path.replace('/', '_')
         self.name = filetitle if image_name == filetitle else f'{filetitle}_{image_name}'
+        if self.tile_position is not None:
+            self.name += f'_pos{self.tile_index}'
+        elif self.position_index is not None:
+            logging.warning(f'Leica image {image.name}: not a tile scan with separate positions, position ignored')
         return self.metadata
 
     def _get_tile_grid(self, ntiles):
@@ -239,8 +250,9 @@ class LeicaSource(ImageSource):
             if deltas and pixel_size_m[axis] > 0:
                 step[axis] = int(round(min(deltas) / pixel_size_m[axis]))
         if step[0] > self.tile_size[0] or step[1] > self.tile_size[1]:
-            logging.warning(f'Leica image {self.image.name}: tile scan has negative overlap (gaps), '
-                            f'stitching tiles without gaps')
+            # gaps between the tiles (negative overlap): separate positions, one selected by index
+            self._select_position(tiles)
+            return None
         self.tile_step = [min(max(step[axis], 1), self.tile_size[axis]) for axis in range(2)]
 
         grid = [[None] * nx for _ in range(ny)]
@@ -281,6 +293,20 @@ class LeicaSource(ImageSource):
                 acquisition_metadata['CustomData'] = custom_data
         return acquisition_metadata
 
+    def _select_position(self, tiles):
+        positions = [{dim: float(tile[f'pos_{dim}']) * 1e6 for dim in 'xyz' if f'pos_{dim}' in tile.dtype.names}
+                     for tile in tiles]
+        if self.position_index is None:
+            listing = '; '.join(f'{index}: ' + ', '.join(f'{dim}={value / 1e3:.3f} mm' for dim, value in position.items())
+                                for index, position in enumerate(positions))
+            raise ValueError(f'Leica image {self.image.name}: tile scan with gaps between its tiles holds '
+                             f'{len(positions)} separate positions, select one by position index ({listing})')
+        if not 0 <= self.position_index < len(positions):
+            raise ValueError(f'Leica image {self.image.name}: position {self.position_index} out of range '
+                             f'(0-{len(positions) - 1})')
+        self.tile_index = self.position_index
+        self.tile_position = positions[self.position_index]
+
     def _get_source_data(self, as_dask=False):
         """
         Get image data in tczyx order (with mosaic tiles stitched).
@@ -313,10 +339,9 @@ class LeicaSource(ImageSource):
         """
         Stitch mosaic tiles (first axis) along the last two (yx) axes.
         """
-        if self.tile_grid is None:
-            return data[0]
         lib = da if as_dask else np
-        flip_y, flip_x, swap_xy = self.tile_flip
+        if self.tile_grid is None:
+            return self._transform_tile(data[self.tile_index], lib)
         ny, nx = len(self.tile_grid), len(self.tile_grid[0])
         rows = []
         for y, grid_row in enumerate(self.tile_grid):
@@ -326,19 +351,23 @@ class LeicaSource(ImageSource):
                 height = self.tile_step[0] if y < ny - 1 else self.tile_size[0]
                 width = self.tile_step[1] if x < nx - 1 else self.tile_size[1]
                 if m_index is not None:
-                    tile = data[m_index]
-                    if flip_y:
-                        tile = tile[..., ::-1, :]
-                    if flip_x:
-                        tile = tile[..., ::-1]
-                    if swap_xy:
-                        tile = lib.swapaxes(tile, -1, -2)
-                    tile = tile[..., :height, :width]
+                    tile = self._transform_tile(data[m_index], lib)[..., :height, :width]
                 else:
                     tile = lib.zeros(data.shape[1:-2] + (height, width), dtype=data.dtype)
                 row.append(tile)
             rows.append(row)
         return lib.block(rows)
+
+    def _transform_tile(self, tile, lib):
+        # tiles are flipped / transposed as placed in the tile scan
+        flip_y, flip_x, swap_xy = self.tile_flip
+        if flip_y:
+            tile = tile[..., ::-1, :]
+        if flip_x:
+            tile = tile[..., ::-1]
+        if swap_xy:
+            tile = lib.swapaxes(tile, -1, -2)
+        return tile
 
     def is_screen(self):
         return False
