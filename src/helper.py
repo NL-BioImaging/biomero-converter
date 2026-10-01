@@ -49,25 +49,35 @@ def create_source(filename, **kwargs):
     elif input_ext == '.mrxs':
         from src.MiraxSource import MiraxSource
         source = MiraxSource(filename, **kwargs)
-    elif input_ext in ['.dcm', '.dicom']:
-        from src.DicomSource import DicomSource
-        source = DicomSource(filename, **kwargs)
     elif '.zar' in input_ext:
         from src.OmeZarrSource import OmeZarrSource
         source = OmeZarrSource(filename, **kwargs)
     elif '.tif' in input_ext or input_ext in ('.ome', '.xml'):
         from src.TiffSource import TiffSource
         source = TiffSource(filename, **kwargs)
+    elif is_dicom(filename):
+        from src.DicomSource import DicomSource
+        source = DicomSource(filename, **kwargs)
     else:
         from src.GenericSource import GenericSource
-        error = ''
         source = GenericSource(filename, **kwargs)
-        if source.format == 'dicom':
-            from src.DicomSource import DicomSource
-            source = DicomSource(filename, **kwargs)
-        if error:
-            raise ValueError(f'Unsupported input file format: {input_ext}\n{error}')
     return source
+
+
+def is_dicom(filename):
+    """
+    Check if the input is a DICOM file (by extension or content), a DICOMDIR or a folder holding DICOM files.
+    """
+    if os.path.splitext(filename)[1].lower() in ['.dcm', '.dicom']:
+        return True
+    from pydicom.misc import is_dicom as is_dicom_file
+    if os.path.isdir(filename):
+        for root, _, filenames in os.walk(filename):
+            for name in filenames:
+                if is_dicom_file(os.path.join(root, name)):
+                    return True
+        return False
+    return os.path.isfile(filename) and is_dicom_file(filename)
 
 
 def get_incucyte_plates(filename):

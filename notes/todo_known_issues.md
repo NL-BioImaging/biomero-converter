@@ -18,6 +18,16 @@ Only simulated locally; not yet confirmed on the reporter's `L:` share.
 - Tile flip/swap (`FlipX`/`FlipY`/`SwapXY`) follows ConvertLeica, but has not been compared against a
   LAS X merged image of the same tile scan.
 
+### DICOM
+
+- A folder or DICOMDIR is searched recursively; each series is an image, selected by its SeriesInstanceUID
+  (`image_uuid`, default the first series). A series with slices of several orientations (e.g. a reformat with its
+  reference image) keeps only its largest group of one orientation and size, with a warning.
+- Compressed pixel data pydicom has no plugin for (no gdcm / pylibjpeg installed) is decoded with imagecodecs
+  (JPEG Lossless, JPEG-LS, JPEG 2000); other compressions still fail.
+- Multi-frame frames are time points only if `FrameIncrementPointer` names FrameTime(Vector), else slices; the
+  frame time is not written as a t scale. Without PixelSpacing (e.g. ultrasound) the pixel size defaults to 1 mm.
+
 ### Acquisition metadata
 
 Mapping onto the imaging metadata model is done (and tracked) in imaging-metadata-converter.
