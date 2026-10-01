@@ -2,13 +2,12 @@
 # https://github.com/ome/ome2024-ngff-challenge/tree/main/src/ome2024_ngff_challenge/zarr_crate
 # https://github.com/clbarnes/rembi-mifa-py/blob/main/examples/rembi.py
 
-from datetime import datetime
-import os
+from io import BytesIO
 import yaml
 from imaging_metadata_converter import SOURCE_MAP_KEY
 from rocrate.model import ContextEntity
 
-from src.util import flatten_dict, to_plain_types
+from src.util import to_plain_types
 from src.zarr_extension import ZarrCrate
 
 
@@ -31,9 +30,10 @@ def create_ro_crate(source, dest_path={}):
 
     # acquisition metadata on the common imaging metadata model, written to a yaml file the crate points to
     model_metadata = {key: value for key, value in source.get_model_metadata().items() if key != SOURCE_MAP_KEY}
-    with open(os.path.join(dest_path, ACQUISITION_METADATA_FILENAME), 'w', encoding='utf-8') as file:
-        yaml.safe_dump(to_plain_types(model_metadata), file, sort_keys=False, allow_unicode=True)
-    acquisition_metadata_entity = crate.add_file(dest_path=ACQUISITION_METADATA_FILENAME, properties={
+    # given as the file's source, so the crate writes the file itself
+    yaml_text = yaml.safe_dump(to_plain_types(model_metadata), sort_keys=False, allow_unicode=True)
+    acquisition_metadata_entity = crate.add_file(
+        source=BytesIO(yaml_text.encode('utf-8')), dest_path=ACQUISITION_METADATA_FILENAME, properties={
         'name': 'Acquisition metadata',
         'description': 'Image acquisition metadata converted to the imaging metadata model '
                        '(https://github.com/NL-BioImaging/imaging-metadata-converter)',
