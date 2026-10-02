@@ -1,0 +1,42 @@
+Instrument:
+  Manufacturer: EMSIS
+  Model: Xarosa
+ExifVersion: '0210'
+DateTimeDigitized: 2025:05:28 10:54:29
+MeteringMode: 1
+FlashpixVersion: '0100'
+ColorSpace: 1
+Pixels:
+  SizeX: 5120
+  SizeY: 3840
+  PhysicalSizeX: 1.652845302290227e-09
+  PhysicalSizeY: 1.652845302290227e-09
+  PhysicalSizeXUnit: m
+  PhysicalSizeYUnit: m
+ExposureMode: 1
+Image:
+  Name: ''
+  AcquisitionDate: '2025-05-28 10:54:00'
+  Type: ''
+Objective:
+  Magnification: 6000.0
+GenericDetector:
+  Name: ''
+ImageWidth: 5120
+ImageLength: 3840
+BitsPerSample:
+- 8
+- 8
+- 8
+PhotometricInterpretation: RGB
+Orientation: TOPLEFT
+Channel:
+  SamplesPerPixel: 3
+ResolutionUnit: INCH
+DateTime: 2025:05:28 10:54:28
+Artist: XAROSA
+Plane:
+  ExposureTime: 0.0082
+  ExposureTimeUnit: s
+XResolution: 72.0
+YResolution: 72.0

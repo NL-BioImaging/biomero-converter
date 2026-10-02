@@ -1,0 +1,139 @@
+FEI_TITAN:
+  FeiImage:
+    databarHeight: 0
+    databarFields: 699
+    databarLabel: null
+    displayWidth: 0
+Pixels:
+  PhysicalSizeXUnit: µm
+  PhysicalSizeX: 1.143158459049694
+  PhysicalSizeYUnit: µm
+  PhysicalSizeY: 1.143158459049694
+Image:
+  AcquisitionDate: '2024-02-06T13:21:05'
+  ScanSettings:
+    LineIntegrationCount: 1
+    scanHW: ZYNQ
+    acqHW: ZYNQ
+    spotPresetName: Image
+    Rotation:
+      Value: 0
+    LineInterlacing: 1
+    Detector: bsd-all
+    detectorMixFactors:
+      bsdA: 0
+      bsdB: 0
+      bsdC: 0
+      bsdD: 0
+      sed: 0
+      stem: 0
+    sourceTime:
+      unit: h
+      value: 7634
+    sourceId: 25
+    emissionCurrentPresetName: null
+    filamentPower:
+      unit: W
+      value: 0
+    scanCenter:
+      x: 0
+      y: 0
+    scanScale: 1
+  CropHint:
+    Left: 0
+    Top: 0
+    Right: 1920
+    Bottom: 1200
+  Corrections:
+    Contrast: 5.337209302325581
+    Brightness: 0.4808117799649042
+    Gamma: 1
+    BlackLevel: 0
+    WhiteLevel: 1
+  ElectronBeamSettings:
+    SpotSize: 1.3
+    Shift:
+      X: 0
+      Y: 0
+    SourceTilt:
+      X: -0.01264028954658525
+      Y: 0.04815130014055247
+    Stigmator:
+      X: -0.002342132828530364
+      Y: -0.00855233682146137
+    AccelerationVoltage:
+      Unit: kV
+      Value: -5
+    EmissionCurrent:
+      Unit: uA
+      Value: 135.9021671305527
+    WorkingDistance:
+      Unit: mm
+      Value: 3.334999999999997
+Experimenter:
+  UserName: null
+MechanicalStage:
+  Position:
+    X:
+      Value: 0
+    Y:
+      Value: 0
+  MultiStage:
+    SampleRadius:
+      Unit: m
+      Value: 0
+    SampleHeight:
+      Unit: m
+      Value: 0
+Instrument:
+  Vacuum: 21.03543261569751
+  Type: Phenom
+  CatalogNumber: MVE084613-20046-F
+  Model: Phenom Pharos G2
+Plane:
+  PixelDwellTimeUnit: ns
+  PixelDwellTime: 499.9999999999999
+GenericDetector:
+- mixFactor: 1
+  A: +
+  B: +
+  C: +
+  D: +
+  Gain: 45
+  Offset: -1.444569852509731
+  Name: QBSD
+- scintillatorVoltage: 0
+  mixFactor: 0
+  Gain: 0
+  Offset: 0
+  Name: SED
+- mixFactor: 0
+  segmentSelection:
+    bf1: true
+    bf2: true
+    bf3: true
+    bf4: true
+    df1: true
+    ha1: true
+    ha2: true
+    ha3: true
+    ha4: true
+    ha5: true
+    ha6: true
+  Name: STEM
+AcquisitionSoftware:
+  Version: 6.6.0.rel.d7a92301af.27465
+  ApplicationID: null
+  version: 2.1.0_release
+SampleHolder:
+  Type: 1
+  ID: 0147e8ac1a0000b2
+ImageWidth: 1920
+ImageLength: 1200
+BitsPerSample: 8
+PhotometricInterpretation: MINISBLACK
+Channel:
+  SamplesPerPixel: 1
+ResolutionUnit: INCH
+XResolution: 96.0
+YResolution: 96.0

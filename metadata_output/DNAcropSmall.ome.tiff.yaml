@@ -1,0 +1,206 @@
+Objective:
+  ID: Objective:0
+  ImmersionType: Oil
+  LensNA: 1.4
+  Magnification: 100.0
+Instrument:
+  ID: Instrument:0
+Image:
+  ObjectiveSettings:
+    ID: Objective:0
+  Pixels:
+    Channel:
+    - ID: Channel:0
+      AcquisitionMode: WideField
+      PinholeSize: 56.0
+      PinholeSizeUnit: µm
+      SamplesPerPixel: 1
+    - ID: Channel:1
+      AcquisitionMode: WideField
+      PinholeSize: 56.0
+      PinholeSizeUnit: µm
+      SamplesPerPixel: 1
+    ID: Pixels:0
+    DimensionOrder: XYZTC
+    SizeX: 167
+    SizeY: 172
+    SizeZ: 44
+    SizeC: 2
+    SizeT: 1
+    PhysicalSizeX: 0.064967
+    PhysicalSizeXUnit: µm
+    PhysicalSizeY: 0.064967
+    PhysicalSizeYUnit: µm
+    PhysicalSizeZ: 0.2128
+    PhysicalSizeZUnit: µm
+    TimeIncrement: 1.0
+    TimeIncrementUnit: s
+  AnnotationRef:
+    ID: Annotation:CustomAttributes:SVI:Image:0
+  ID: Image:0
+ImmersionLiquid:
+  Type: Oil
+  RefractiveIndex: 1.518
+Pixels:
+  Channel:
+  - Fluorophore:
+      ExcitationWavelength: 424
+      ExcitationWavelengthUnit: nm
+      EmissionWavelength: 461
+      EmissionWavelengthUnit: nm
+  - Fluorophore:
+      ExcitationWavelength: 488
+      ExcitationWavelengthUnit: nm
+      EmissionWavelength: 610
+      EmissionWavelengthUnit: nm
+  PixelType: uint16
+  PhysicalSizeX: 0.064967
+  PhysicalSizeY: 0.064967
+  PhysicalSizeZ: 0.2128
+  TimeIncrement: 1.0
+OME:
+  StructuredAnnotations:
+    XMLAnnotation:
+      Value:
+        Geometry:
+          SamplingSizes:
+            DeltaXState: Reported
+            DeltaYState: Reported
+            DeltaZState: Reported
+            DeltaTState: Reported
+          Offsets:
+            OffsetX: 61.523749
+            OffsetXState: Default
+            OffsetY: 50.609293
+            OffsetYState: Default
+            OffsetZ: 6.384
+            OffsetZState: Default
+            OffsetT: 0.0
+            OffsetTState: Default
+          Interface:
+            InterFacePrimary: -12.7684
+            InterFacePrimaryState: Estimated
+            InterFaceSecondary: 999993.616
+            InterFaceSecondaryState: Default
+        ChannelData:
+        - MicrParamData:
+            Mode: fluorescence
+            ModeState: Estimated
+            ImagingDirection: upward
+            ImagingDirectionState: Default
+            NumAperture: 1.4
+            NumApertureState: Reported
+            PinholeRadius: 280.0
+            PinholeRadiusState: Default
+            IllPinholeRadius: 0.0
+            IllPinholeRadiusState: Default
+            DetectorMagnif: 100.0
+            DetectorMagnifState: Estimated
+          DetectorData:
+            PPU: 1.0
+            PPUState: Default
+            Baseline: 0.0
+            BaselineState: Default
+            LineAvgCnt: 1.0
+            LineAvgCntState: Default
+            NoiseGain: 1.0
+            NoiseGainState: Default
+          ScatterData:
+            Model: none
+            ModelState: Default
+            FreePath: 1000.0
+            FreePathState: Default
+            RelContrib: 0.0
+            RelContribState: Default
+            Blurring: 0.0
+            BlurringState: Default
+          ChannelID: Channel:0
+          MicroscopeSpec: Widefield
+          MicroscopeSpecState: Reported
+          ExPhotonCnt: 1
+          ExPhotonCntState: Default
+          RefrIndexMediumState: Estimated
+          RefrIndexLensMedium: 1.518
+          RefrIndexLensMediumState: Reported
+          PinholeSpacing: 2.53
+          PinholeSpacingState: Default
+          ObjectiveQuality: 80
+          ObjectiveQualityState: Default
+          ExcitationBeamFill: 2.0
+          ExcitationBeamFillState: Default
+          LambdaEm: 461.0
+          LambdaEmState: Estimated
+          LambdaEx: 424.119995
+          LambdaExState: Estimated
+          ScalingFactor: 1.0
+        - MicrParamData:
+            Mode: fluorescence
+            ModeState: Estimated
+            ImagingDirection: upward
+            ImagingDirectionState: Default
+            NumAperture: 1.4
+            NumApertureState: Reported
+            PinholeRadius: 280.0
+            PinholeRadiusState: Default
+            IllPinholeRadius: 0.0
+            IllPinholeRadiusState: Default
+            DetectorMagnif: 100.0
+            DetectorMagnifState: Estimated
+          DetectorData:
+            PPU: 1.0
+            PPUState: Default
+            Baseline: 0.0
+            BaselineState: Default
+            LineAvgCnt: 1.0
+            LineAvgCntState: Default
+            NoiseGain: 1.0
+            NoiseGainState: Default
+          ScatterData:
+            Model: none
+            ModelState: Default
+            FreePath: 1000.0
+            FreePathState: Default
+            RelContrib: 0.0
+            RelContribState: Default
+            Blurring: 0.0
+            BlurringState: Default
+          ChannelID: Channel:1
+          MicroscopeSpec: Widefield
+          MicroscopeSpecState: Reported
+          ExPhotonCnt: 1
+          ExPhotonCntState: Default
+          RefrIndexMedium: 1.458
+          RefrIndexMediumState: Estimated
+          RefrIndexLensMedium: 1.518
+          RefrIndexLensMediumState: Reported
+          PinholeSpacing: 2.53
+          PinholeSpacingState: Default
+          ObjectiveQuality: 80
+          ObjectiveQualityState: Default
+          ExcitationBeamFill: 2.0
+          ExcitationBeamFillState: Default
+          LambdaEm: 610.0
+          LambdaEmState: Estimated
+          LambdaEx: 488.0
+          LambdaExState: Default
+          ScalingFactor: 1.0
+        PDimConfig:
+          Type: generic
+          Size: 1
+        FeatureHistory:
+          FeatureDescription:
+          - String: none;
+          - String: base;
+          - String: Parameter states and STED, SPIM and pdim parameters;
+          - String: Scaling factors;
+          - String: Array detector STED;
+          FeatureCnt: 5
+      ID: Annotation:CustomAttributes:SVI:Image:0
+  Creator: Scientific Volume Imaging B.V., The Huygens System, V24.10.0p6
+  UUID: urn:uuid:69658110-5216-4e10-95c3-b1bdca2a1e52
+MountingMedium:
+  RefractiveIndex: 1.458
+SoftwareModule:
+  Version: 24.10.0p6
+AcquisitionSoftware:
+  Version: 1.3p0

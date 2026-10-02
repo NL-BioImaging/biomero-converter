@@ -1,0 +1,109 @@
+AcquisitionSoftware:
+  Name: Fibics ATLAS Export
+  Version: ZEISS Atlas 5 Client v5.3.2
+  Date: '1899-12-30T00:00:00.000+01:00'
+  SupportsTransparency: true
+  TransparentPixelValue: 0
+Pixels:
+  SizeX: 50595
+  SizeY: 49533
+Image:
+  CropHint:
+    Left: 0
+    Right: 50595
+    Top: 0
+    Bottom: 49533
+  InvertedSignal: false
+  ScanSettings:
+    LineAvg: 1
+    FieldOfView:
+      X:
+        Unit: um
+        Value: 129.044885430288
+      Y:
+        Unit: um
+        Value: 126.336205356625
+    Rotation:
+      Unit: deg
+      Value: 0
+    Ux: 0.00255054620872196
+    Uy: 0
+    Vx: 0
+    Vy: -0.00255054620872196
+    AppliedScaleCorrection: 1
+  ElectronBeamSettings:
+    Focus: 0
+    Stigmator:
+      X: 0
+      Y: 0
+    Shift:
+      X: 0
+      Y: 0
+  Corrections:
+    Invert: false
+    Brightness: 0
+    Contrast: 1
+    XBrightSlope: 0
+    YBrightSlope: 0
+    RBrightSlope: 0
+GenericDetector:
+  Contrast: 0
+  Brightness: 0
+MechanicalStage:
+  Bias:
+    BiasType: null
+    Mode: null
+    Volts: 0
+  Position:
+    X:
+      Unit: um
+      Value: 0
+    Y:
+      Unit: um
+      Value: 0
+    Z:
+      Unit: um
+      Value: 0
+    M:
+      Unit: mm
+      Value: 0
+  Tilt:
+    Unit: deg
+    Value: 0
+  Rotation:
+    Unit: deg
+    Value: 0
+  RawPosition:
+    X:
+      Unit: um
+      Value: 0
+    Y:
+      Unit: um
+      Value: 0
+    Z:
+      Unit: um
+      Value: 0
+    Tilt:
+      Unit: deg
+      Value: 0
+    Rot:
+      Unit: deg
+      Value: 0
+    M:
+      Unit: mm
+      Value: 0
+Instrument:
+  Vacuum:
+    SystemVacuum: 0
+FibicsXML:
+  Fibics:
+    version: 1.2
+ImageWidth: 50595
+ImageLength: 49533
+BitsPerSample: 8
+PhotometricInterpretation: MINISBLACK
+Orientation: TOPLEFT
+Channel:
+  SamplesPerPixel: 1
+ResolutionUnit: NONE
+SampleFormat: UINT

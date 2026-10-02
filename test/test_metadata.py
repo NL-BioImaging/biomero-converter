@@ -2,11 +2,16 @@
 
 For each local example: the source metadata passed to the imaging metadata converter (all of it, but what only
 lays out the pixel data), the model metadata it becomes, the OME-XML of the output and the RO-Crate's YAML.
+
+Also converts the tiff examples to OME-Zarr v3 with its RO-Crate, and copies each acquisition metadata YAML
+into metadata_output/ in this repo, to compare and review.
 """
 
+import glob
 import json
 import os
 import re
+import shutil
 import sys
 
 from imaging_metadata_converter import convert_metadata
@@ -15,6 +20,7 @@ import yaml
 
 sys.path.append(os.getcwd())
 
+from converter import _convert
 from src.DicomSource import DicomSource
 from src.helper import create_source
 from src.ome_tiff_util import create_metadata
@@ -23,6 +29,9 @@ from src.util import to_plain_types
 
 
 SLIDES = 'C:/Project/slides/'
+METADATA_OUTPUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'metadata_output')
+# smallest first; the OME-XML examples have no pixel data to convert
+CONVERT_FILENAMES = sorted(glob.glob(SLIDES + 'tiff/*.tif*'), key=os.path.getsize)
 
 # what only lays out or encodes the pixel data, and the path on this disk: never in the source metadata
 LAYOUT_KEYS = {'filepath', 'BytesInc', 'BitInc', 'StripOffsets', 'StripByteCounts', 'TileOffsets', 'TileByteCounts',
@@ -124,3 +133,16 @@ def test_metadata(tmp_path, name):
     assert 'SourceMap' not in crate_metadata
     for model_path, value in expected.items():
         assert value_at(crate_metadata, model_path) == value, model_path
+
+
+@pytest.mark.parametrize('input_filename', CONVERT_FILENAMES, ids=os.path.basename)
+def test_converted_metadata(tmp_path, input_filename):
+    output = json.loads(_convert(input_filename, str(tmp_path), output_format='omezarr3'))
+    yaml_filename = os.path.join(output[0]['full_path'], ACQUISITION_METADATA_FILENAME)
+    with open(yaml_filename, encoding='utf-8') as file:
+        crate_metadata = yaml.load(file, Loader=getattr(yaml, 'CSafeLoader', yaml.SafeLoader))
+    assert crate_metadata
+    assert 'SourceMap' not in crate_metadata
+
+    os.makedirs(METADATA_OUTPUT, exist_ok=True)
+    shutil.copy2(yaml_filename, os.path.join(METADATA_OUTPUT, os.path.basename(input_filename) + '.yaml'))

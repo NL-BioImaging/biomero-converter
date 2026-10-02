@@ -1,0 +1,16 @@
+Instrument:
+  Manufacturer: Delmic B.V.
+  Model: Fast EM
+AcquisitionSoftware:
+  Name: asm_service 1.2.3
+ImageWidth: 6400
+ImageLength: 6400
+BitsPerSample: 16
+PhotometricInterpretation: MINISBLACK
+Channel:
+  SamplesPerPixel: 1
+ResolutionUnit: CENTIMETER
+DateTime: '2023-11-07 12:24:09'
+SampleFormat: UINT
+XResolution: 1.0
+YResolution: 1.0

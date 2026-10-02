@@ -1,0 +1,126 @@
+Image:
+  ElectronBeamSettings:
+    Stigmator:
+      X: -0.01
+      Y: 0.0
+    BeamDownX: 0
+    BeamDownY: 0
+    Mode: 1-20um
+    Type: 1
+    BeamUpX: 0
+    BeamUpY: 0
+    ElectricMoveX: 0.01
+    ElectricMoveY: -0.2
+    ElectricRotate: 0.0
+    Focus: 51662.0
+    ImagingMode: 0
+    Current:
+      Value: 11.36
+    Shift:
+      X: 0.0
+      Y: 0.0
+    TiltX: 0.0
+    TiltY: 0.0
+    VisibleMultiple: 1800
+    WorkingDistance:
+      Value: 3.88
+      Unit: mm
+    HighVoltage:
+      BV: 6000.24
+      Bia: 0.0
+      CV: 200.0
+      ExtCurrent: 141.86
+      ExtVoltage: 3600.62
+      FV: 0.0
+      FcCurrent: 2.28
+      FcVoltage: 1.49
+      HighEmissionMode: false
+      HvCurrent: 2.28
+      HvMode: 0
+      HvVoltage: 3000.0
+      Mid10kvVoltage: 0.0
+      SV: 10001.24
+      SchCurrent: 3.51
+      SchVoltage: 300.68
+  ElectronOpticsSettings:
+    Condenser1: 1374
+    Condenser2: 1103
+  ScanSettings:
+    Drift: true
+    FramAdd: 1
+    LineInterlacing: Disable
+    LineAdd: 1
+    FrameTime:
+      Value: 149
+      Unit: s
+    FieldOfView:
+      X:
+        Value: 71.17
+        Unit: µm
+  AcquisitionDate: '2026-07-21T14:49:21+00:00'
+GenericDetector:
+  Brightness: 50.0
+  Channel: 1
+  ConsumerBrightness: 50.0
+  ConsumerContrast: 50.0
+  Contrast: 0.0
+  Name: ETD-SE
+  Gain: 100
+  PMT: 0.37
+FEI_HELIOS:
+  Other:
+    BottomInfoVacuum: 1.1e-07Pa
+  TiltCorrect:
+    CorrectAngle: 0.0
+    IonWorkTilt: 54.0
+    IsTiltCorrent: false
+    PreTiltAngle: 0.0
+    TiltCompensateMode: 0
+Plane:
+  PixelDwellTime: 5.0
+  PixelDwellTimeUnit: µs
+Pixels:
+  SizeX: 6144
+  SizeY: 4096
+MechanicalStage:
+  NavCoordinate: 1
+  Rotation:
+    Value: 11.7
+    Unit: deg
+  Tilt:
+    Value: 0.0
+    Unit: deg
+  Position:
+    X:
+      Value: 12.3745
+      Unit: mm
+    Y:
+      Value: 9.0143
+      Unit: mm
+    Z:
+      Value: 58.0
+      Unit: mm
+  StageType: TMCM-GYLZ-4000X-FIVE-110x110x69
+Instrument:
+  Name: SEM4000X
+  Version: 2.6
+  Vacuum:
+    BufferVacuum: 123.0
+    GunVacuum: 1.14e-07
+    SampleVacuum: 0.000203
+AcquisitionSoftware:
+  Version: 3.2.3.300
+Experimenter:
+  BottomInfoShowEnable: 2038
+  DateTimeFmt: yyyy/MM/dd HH:mm:ss
+  MagType: 1
+  RulerText: SEM4000X
+  UserName: "\x01"
+  VacuumType: 0
+ImageWidth: 6144
+ImageLength: 4096
+BitsPerSample: 16
+PhotometricInterpretation: MINISBLACK
+Channel:
+  SamplesPerPixel: 1
+ResolutionUnit: INCH
