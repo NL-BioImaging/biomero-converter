@@ -144,7 +144,8 @@ def create_writer(output_format, verbose=False):
     Create a writer object and output extension based on the output format.
 
     Args:
-        output_format (str): Output format string.
+        output_format (str): Output format string: 'omezarr04', 'omezarr05', 'omezarr06' (OME-Zarr version) or 'ometiff'.
+            The legacy names 'omezarr2' and 'omezarr3' (Zarr version) are still accepted.
         verbose (bool): If True, enables verbose output.
 
     Returns:
@@ -154,7 +155,15 @@ def create_writer(output_format, verbose=False):
         ValueError: If the output format is unsupported.
     """
     if 'zar' in output_format:
-        ome_version = '0.5' if '3' in output_format else '0.4'
+        version = ''.join(c for c in output_format if c.isdigit())
+        if version in ('04', '4', '2'):
+            ome_version = '0.4'
+        elif version in ('05', '5', '3'):
+            ome_version = '0.5'
+        elif version in ('06', '6'):
+            ome_version = '0.6'
+        else:
+            raise ValueError(f'Unsupported output format: {output_format}')
         from src.OmeZarrWriter import OmeZarrWriter
         writer = OmeZarrWriter(ome_version=ome_version, verbose=verbose)
         ext = '.ome.zarr'

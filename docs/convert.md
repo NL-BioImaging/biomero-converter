@@ -15,7 +15,7 @@ result_json = convert(
     input_filename,
     output_folder,
     alt_output_folder,
-    output_format="omezarr2",
+    output_format="omezarr04",
     show_progress=False,
     verbose=False
 )
@@ -28,7 +28,7 @@ print(result_json)
 - `input_filename` (str): Path to the input file.
 - `output_folder` (str): Output folder path.
 - `alt_output_folder` (str, optional): Alternative output folder path.
-- `output_format` (str): Output format string (default: `'omezarr2'`).
+- `output_format` (str): Output format: `'omezarr04'`, `'omezarr05'`, `'omezarr06'` (OME-Zarr version) or `'ometiff'` (default: `'omezarr04'`).
 - `show_progress` (bool): If `True`, prints progress.
 - `verbose` (bool): If `True`, enables verbose logging.
 - `**kwargs`: Source specific parameters, e.g.:

@@ -25,7 +25,7 @@ class TestConvert:
 
     input_filenames = ['C:/Project/slides/' + filename for filename in filenames]
 
-    output_formats = ['omezarr3', 'omezarr2', 'ometiff']
+    output_formats = ['omezarr06', 'omezarr05', 'omezarr04', 'ometiff']
 
     # source parameters per input file (by end of path)
     source_kwargs = {'Leica/lif/TestTileScan16bit.lif': {'position': 0}}   # tile scan with gaps: separate positions

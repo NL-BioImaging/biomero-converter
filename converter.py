@@ -131,7 +131,7 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
         input_filename (str): Path to the input file.
         output_folder (str): Output folder path.
         alt_output_folder (str, optional): Alternative output folder path.
-        output_format (str, optional): Output format string (default: omezarr2).
+        output_format (str, optional): Output format string (default: omezarr04).
         show_progress (bool): If True, print progress.
         verbose (bool): If True, enable verbose logging.
         **kwargs: Source-specific parameters (e.g., plate_id for Incucyte).
@@ -146,7 +146,7 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
         if 'zar' in input_ext:
             output_format = 'ometiff'
         else:
-            output_format = 'omezarr2'
+            output_format = 'omezarr04'
 
     logging.info(f'Importing {input_filename}')
     source = create_source(input_filename, **kwargs)

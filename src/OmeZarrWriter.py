@@ -40,8 +40,7 @@ class OmeZarrWriter(OmeWriter):
         Initialize the OmeZarrWriter.
 
         Args:
-            zarr_version (int): Zarr format version (2 or 3).
-            ome_version (str): OME-Zarr metadata version ('0.4' or '0.5').
+            ome_version (str): OME-Zarr metadata version ('0.4', '0.5' or '0.6').
             verbose (bool): If True, print additional information.
         """
         super().__init__()
@@ -50,7 +49,8 @@ class OmeZarrWriter(OmeWriter):
             from ome_zarr.format import FormatV04
             self.zarr_format = 2
             self.ome_format = FormatV04()
-        elif ome_version == '0.5':
+        elif ome_version in ('0.5', '0.6'):
+            # ome-zarr-py does not support 0.6 (yet): write 0.5, then convert the metadata to 0.6
             self.zarr_format = 3
             from ome_zarr.format import FormatV05
             self.ome_format = FormatV05()
@@ -76,6 +76,8 @@ class OmeZarrWriter(OmeWriter):
         else:
             zarr_root, total_size = self._write_image(filepath, source, **kwargs)
 
+        if self.ome_version == '0.6':
+            self._convert_to_v06(zarr_root)
         zarr_root.attrs['_creator'] = {'name': 'nl.biomero.OmeZarrWriter', 'version': VERSION}
 
         if write_xml:
@@ -283,6 +285,23 @@ class OmeZarrWriter(OmeWriter):
                                                factor, translation))
             factor *= scaler.downscale
         return pixel_size_scales, scaler
+
+    def _convert_to_v06(self, group):
+        """
+        Convert the OME-Zarr 0.5 metadata of a group and its sub-groups to 0.6.
+
+        Args:
+            group: Zarr group to convert.
+        """
+        ome = group.attrs.get('ome')
+        if ome is not None:
+            ome = dict(ome)
+            ome['version'] = self.ome_version
+            if 'multiscales' in ome:
+                ome['multiscales'] = convert_multiscales_to_v06(ome['multiscales'])
+            group.attrs['ome'] = ome
+        for _, subgroup in group.groups():
+            self._convert_to_v06(subgroup)
 
     def _write_ome_xml(self, filepath, source, wells=None, **kwargs):
         """

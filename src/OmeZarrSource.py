@@ -28,8 +28,18 @@ class OmeZarrSource(ImageSource):
         metadata = {}
         _, nodes = self._get_reader(add_path)
         if len(nodes) > 0:
-            metadata = nodes[0].metadata
+            metadata = self._convert_metadata_from_v06(nodes[0].metadata, nodes[0].zarr.root_attrs)
         return metadata
+
+    def _convert_metadata_from_v06(self, metadata, attrs):
+        # ome-zarr-py does not support 0.6 (RFC-5) yet: get axes and transformations from the image attributes
+        multiscales = attrs.get('multiscales')
+        if not multiscales or 'coordinateSystems' not in multiscales[0]:
+            return metadata
+        multiscale = convert_multiscales_from_v06(multiscales)[0]
+        return {**metadata, 'axes': multiscale['axes'],
+                'coordinateTransformations': [dataset['coordinateTransformations']
+                                              for dataset in multiscale['datasets']]}
 
     def init_metadata(self):
         reader, nodes = self._get_reader()
@@ -42,6 +52,15 @@ class OmeZarrSource(ImageSource):
         # first node will be the image pixel data
         image_node = nodes[0]
         self.metadata = image_node.metadata
+        plate = self.metadata.get('metadata', {}).get('plate')
+        image_attrs = image_node.zarr.root_attrs
+        if plate is not None and image_attrs.get('version') == '0.6':
+            # plate node metadata is taken from the first image of the first well
+            well_path = plate['wells'][0]['path']
+            well_attrs = self._get_reader(well_path)[0].zarr.root_attrs
+            image_path = well_path + '/' + well_attrs['well']['images'][0]['path']
+            image_attrs = self._get_reader(image_path)[0].zarr.root_attrs
+        self.metadata = self._convert_metadata_from_v06(self.metadata, image_attrs)
         # channel metadata from ome-zarr-py limited; get from root_attrs manually
         #self.root_metadata = reader.zarr.root_attrs
 

@@ -137,7 +137,7 @@ def test_metadata(tmp_path, name):
 
 @pytest.mark.parametrize('input_filename', CONVERT_FILENAMES, ids=os.path.basename)
 def test_converted_metadata(tmp_path, input_filename):
-    output = json.loads(_convert(input_filename, str(tmp_path), output_format='omezarr3'))
+    output = json.loads(_convert(input_filename, str(tmp_path), output_format='omezarr05'))
     yaml_filename = os.path.join(output[0]['full_path'], ACQUISITION_METADATA_FILENAME)
     with open(yaml_filename, encoding='utf-8') as file:
         crate_metadata = yaml.load(file, Loader=getattr(yaml, 'CSafeLoader', yaml.SafeLoader))
