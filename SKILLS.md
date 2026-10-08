@@ -3,11 +3,9 @@
 Distilled from recurring feedback across sessions. Follow these when making changes here.
 
 ## Branches
-- `main` is the release branch; `dev-new-rocrate` holds the RO-Crate work on top of it.
-- Fixes to shared code go into both branches. Make the change on the checked-out branch, then
-  cherry-pick onto the other in a temporary `git worktree`, so the user's checkout and any
-  uncommitted changes stay untouched.
-- RO-Crate tests (`test/test_rocrate.py`) stay off `main`.
+- `main` is the release branch and the only working branch; the RO-Crate work (`dev-new-rocrate`) was
+  merged into it (PR #11) and that branch deleted.
+- Short-lived feature branches are fine, but merge them back into `main` and delete them when done.
 
 ## Releases
 - Release only from `main`, with the next `v0.1.x` tag (`gh release create --generate-notes`, plus a

@@ -467,16 +467,17 @@ class IncucyteSource(ImageSource):
                     # Get actual image dimensions from the file
                     with tifffile.TiffFile(str(tiff_file)) as tif:
                         page = tif.pages.first
-                        width = page.sizes["width"]
-                        height = page.sizes["height"]
+                        # page.sizes keys differ between tifffile versions (width/height vs X/Y)
+                        width = page.imagewidth
+                        height = page.imagelength
                         dtype = page.dtype
                         bits = dtype.itemsize * 8
                         if tif.series:
                             series_page = tif.series[0]
                             if hasattr(series_page, 'levels'):
                                 level_pages = series_page.levels
-                                widths = [level_page.sizes["width"] for level_page in level_pages]
-                                heights = [level_page.sizes["height"] for level_page in level_pages]
+                                widths = [level_page.shape[level_page.axes.index('X')] for level_page in level_pages]
+                                heights = [level_page.shape[level_page.axes.index('Y')] for level_page in level_pages]
 
                     # Use calibrated pixel size from Diag.log if available
                     if pixel_size_from_diag:

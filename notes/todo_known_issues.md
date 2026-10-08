@@ -45,6 +45,20 @@ Mapping onto the imaging metadata model is done (and tracked) in imaging-metadat
   one format. iSyntax takes ~9 min per OME-Zarr format.
 - NumPy 2.5 deprecates setting an array's shape, which tifffile still does when reading (DeprecationWarning).
 
+### ome-zarr-py >= 0.18 (pinned `<0.18` in environment.yml; Docker uses 0.13.0)
+
+ome-zarr-py 0.18 introduced a class-based API (`OMEZarrImage` / `OMEZarrMultiscale`, 0.6 from 0.19), and
+`write_image` / `write_multiscale` now go through it. Checked with 0.21.0, our writer then loses metadata for
+all OME-Zarr versions (pixel data is fine):
+- `coordinate_transformations` (deprecated) is ignored by `write_image`: pixel size written as 1, no units.
+- No translation per dataset any more: image / well positions are lost.
+- `metadata=` kwarg no longer reaches the omero metadata (it now reads `omero` from `**metadata`): no channels.
+- Dataset paths are `s0`, `s1`, ... instead of `0`, `1`, ...
+The class API writes 0.6 for single images, but builds the pyramid itself (we pass source pyramid levels to
+`write_multiscale`), has no per-level translation, and plate/well and `Reader` have no 0.6. Until then OME-Zarr
+0.6 is written as 0.5 and converted (`convert_multiscales_to_v06`), and read back via
+`convert_multiscales_from_v06` in `OmeZarrSource`.
+
 ### Tests
 
 - `test_convert` checks every output (each Leica image / Incucyte plate) against its source image: pixel size
@@ -61,3 +75,6 @@ Mapping onto the imaging metadata model is done (and tracked) in imaging-metadat
 
 - Report the SMB `PermissionError` case upstream to zarr-python (`set_if_not_exists`).
 - Don't retry deterministic errors in `convert()`; fix the retry count in its message.
+- Port `OmeZarrWriter` to ome-zarr-py >= 0.18 (pass `scale`, `axes_units`, `scale_factors`, `omero=`; find a
+  way to keep positions and source pyramid levels), then use its native 0.6 support and drop our 0.6 conversion
+  and the `<0.18` pin. Consider reporting upstream that `write_image` silently ignores `coordinate_transformations`.

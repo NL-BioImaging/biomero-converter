@@ -96,6 +96,81 @@ def create_transformation_metadata(dimension_order, pixel_size_um, factor, trans
     return metadata
 
 
+def convert_multiscales_to_v06(multiscales, coordinate_system='physical'):
+    """
+    Convert OME-Zarr 0.4/0.5 multiscales metadata to the 0.6 (RFC-5) layout.
+
+    The axes move into a named coordinate system, and the transformations of each dataset become
+    a single transformation (or a sequence of scale and translation) from the dataset path
+    to that coordinate system.
+
+    Args:
+        multiscales (list): Multiscales metadata.
+        coordinate_system (str): Name of the (physical) coordinate system.
+
+    Returns:
+        list: Multiscales metadata in the 0.6 layout.
+    """
+    converted = []
+    for multiscale in multiscales:
+        multiscale = dict(multiscale)
+        multiscale['coordinateSystems'] = [{'name': coordinate_system, 'axes': multiscale.pop('axes')}]
+        datasets = []
+        for dataset in multiscale['datasets']:
+            path = dataset['path']
+            transforms = dataset['coordinateTransformations']
+            if len(transforms) == 1:
+                transform = dict(transforms[0])
+            else:
+                transform = {'type': 'sequence', 'transformations': transforms}
+            transform['input'] = {'path': path}
+            transform['output'] = {'name': coordinate_system}
+            datasets.append({**dataset, 'coordinateTransformations': [transform]})
+        multiscale['datasets'] = datasets
+        converted.append(multiscale)
+    return converted
+
+
+def convert_multiscales_from_v06(multiscales):
+    """
+    Convert OME-Zarr 0.6 (RFC-5) multiscales metadata to the 0.4/0.5 layout (axes and a list of
+    scale / translation transformations per dataset), so it can be read like earlier versions.
+
+    Args:
+        multiscales (list): Multiscales metadata.
+
+    Returns:
+        list: Multiscales metadata in the 0.5 layout.
+    """
+    converted = []
+    for multiscale in multiscales:
+        multiscale = dict(multiscale)
+        coordinate_systems = multiscale.pop('coordinateSystems', None)
+        if coordinate_systems is None:
+            converted.append(multiscale)
+            continue
+        datasets = []
+        for dataset in multiscale['datasets']:
+            output = None
+            transforms = []
+            for transform in dataset['coordinateTransformations']:
+                output = transform.get('output', {}).get('name', output)
+                if transform['type'] == 'sequence':
+                    transforms += transform['transformations']
+                else:
+                    transforms.append(transform)
+            transforms = [{key: value for key, value in transform.items() if key not in ('input', 'output')}
+                          for transform in transforms]
+            datasets.append({**dataset, 'coordinateTransformations': transforms})
+        # use the axes of the coordinate system the datasets map to
+        names = [coordinate_system['name'] for coordinate_system in coordinate_systems]
+        index = names.index(output) if output in names else 0
+        multiscale['axes'] = coordinate_systems[index]['axes']
+        multiscale['datasets'] = datasets
+        converted.append(multiscale)
+    return converted
+
+
 def create_channel_metadata(dtype, channels, nchannels, is_rgb, window, ome_version):
     """
     Create channel metadata for OME-Zarr.
@@ -126,8 +201,8 @@ def create_channel_metadata(dtype, channels, nchannels, is_rgb, window, ome_vers
     for channeli, channel in enumerate(channels):
         omezarr_channel = {'label': channel.get('label', channel.get('Name', f'{channeli}')), 'active': True}
         color = channel.get('color', channel.get('Color'))
-        if color is not None:
-            omezarr_channel['color'] = rgba_to_hexrgb(color)
+        # color is required in the omero metadata; default to white
+        omezarr_channel['color'] = rgba_to_hexrgb(color) if color is not None else 'FFFFFF'
         if np.dtype(dtype).kind == 'f':
             min, max = 0, 1
         else:
