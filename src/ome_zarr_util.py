@@ -201,8 +201,8 @@ def create_channel_metadata(dtype, channels, nchannels, is_rgb, window, ome_vers
     for channeli, channel in enumerate(channels):
         omezarr_channel = {'label': channel.get('label', channel.get('Name', f'{channeli}')), 'active': True}
         color = channel.get('color', channel.get('Color'))
-        if color is not None:
-            omezarr_channel['color'] = rgba_to_hexrgb(color)
+        # color is required in the omero metadata; default to white
+        omezarr_channel['color'] = rgba_to_hexrgb(color) if color is not None else 'FFFFFF'
         if np.dtype(dtype).kind == 'f':
             min, max = 0, 1
         else:
