@@ -48,28 +48,28 @@ def axial_ct_series():
 EXAMPLES = {
     'Leica/RGB.lif': ({}, {
         'Instrument.Model': 'MICA', 'Objective.Magnification': 10, 'Objective.ImmersionType': 'Air',
-        'Objective.LensNA': 0.32, 'GenericExcitationSource': [{'ID': 'LightSource:0', 'Role': ['Transmitted']}],
-        'Plane.ExposureTime': 0.04, 'Plane.ExposureTimeUnit': 's'},
+        'Objective.LensNA': 0.32, 'GenericExcitationSource': [{'ID': 'LightSource:0', 'Role': ['Transmitted']}]},
         ['Immersion="Air" LensNA="0.32" NominalMagnification="10.0"']),
     'Leica/TileScan.lof': ({}, {
-        'Instrument.Model': 'DMI6000B-CS', 'Objective.ImmersionType': 'Oil', 'Objective.LensNA': 1.3,
+        'Instrument.Model': 'TCS SP8', 'InvertedMicroscopeStand[0].Model': 'DMI6000B-CS',
+        'Objective.ImmersionType': 'Oil', 'Objective.LensNA': 1.3,
         'Pixels.Channel[0].Name': 'Leica/ALEXA 488', 'Pixels.Channel[1].Name': 'Leica/mCherry',
         'Pixels.Channel[2].Name': 'Leica/Cerulean', 'Pixels.Channel[0].Fluorophore.ExcitationWavelength': 488,
         'Laser[3].Role': ['Fluorescence']},
         ['Name="ALEXA 488"', 'Name="mCherry"', 'Name="Cerulean"', 'Immersion="Oil" LensNA="1.3"']),
     'Leica/SP5-3D-Confocal_Timeseries.lif': ({}, {
-        'Instrument.Name': 'TCS SP5', 'Objective.Magnification': 63.0, 'Objective.ImmersionType': 'Water',
+        'Instrument.Model': 'TCS SP5', 'Objective.Magnification': 63.0, 'Objective.ImmersionType': 'Water',
         'Objective.LensNA': 0.9, 'Pixels.SizeZ': 32, 'Pixels.SizeT': 61, 'Pixels.PhysicalSizeZ': 2.964e-07},
         ['Immersion="Water" LensNA="0.9" NominalMagnification="63.0"']),
     'Leica/LMD7-Test.lif': ({}, {
         'Laser.Model': 'Explorer', 'Laser.Role': ['Microdissection'], 'Plane.ExposureTime': 0.083,
         'AcquisitionSoftware.Version': '8.5.9136', 'Image.AcquisitionDate': '2025-07-10T14:07:11.516173'}, []),
     'tiff/EMSIS Xarosa.tif': ({}, {
-        'Instrument.Manufacturer': 'EMSIS', 'Plane.ExposureTime': 0.0082, 'Plane.ExposureTimeUnit': 's',
+        'GenericDetector.Manufacturer': 'EMSIS', 'Plane.ExposureTime': 0.0082, 'Plane.ExposureTimeUnit': 's',
         'Image.AcquisitionDate': '2025-05-28 10:54:00', 'XResolution': 72.0}, []),
     'tiff/Cikteq SEM4000x Normal.tiff': ({}, {
-        'Plane.PixelDwellTime': 5.0, 'Plane.PixelDwellTimeUnit': 'µs', 'Image.ScanSettings.FrameTime.Value': 149,
-        'Image.ScanSettings.FrameTime.Unit': 's'}, []),
+        'Plane.PixelDwellTime': 5.0, 'Plane.PixelDwellTimeUnit': 'µs', 'Image.BeamScanSettings.FrameTime': 149,
+        'Image.BeamScanSettings.FrameTimeUnit': 's'}, []),
     'tiff/TFS Phenom Pharos.tiff': ({}, {
         'Instrument.Model': 'Phenom Pharos G2', 'Instrument.CatalogNumber': 'MVE084613-20046-F'}, []),
     'tiff/DNAcropSmall.ome.tiff': ({}, {

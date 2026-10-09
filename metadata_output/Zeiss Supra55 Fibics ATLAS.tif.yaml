@@ -14,8 +14,11 @@ Image:
     Top: 0
     Bottom: 49533
   InvertedSignal: false
-  ScanSettings:
-    LineAvg: 1
+  BeamScanSettings:
+    Integration:
+    - Unit: Line
+      Method: Average
+      Number: 1
     FieldOfView:
       X:
         Unit: um
@@ -23,9 +26,8 @@ Image:
       Y:
         Unit: um
         Value: 126.336205356625
-    Rotation:
-      Unit: deg
-      Value: 0
+    RotationUnit: deg
+    Rotation: 0
     Ux: 0.00255054620872196
     Uy: 0
     Vx: 0
@@ -39,6 +41,11 @@ Image:
     Shift:
       X: 0
       Y: 0
+  SamplePositioningSettings:
+    BiasType: null
+    BiasMode: null
+    Bias: 0
+    BiasUnit: V
   Corrections:
     Invert: false
     Brightness: 0
@@ -46,52 +53,36 @@ Image:
     XBrightSlope: 0
     YBrightSlope: 0
     RBrightSlope: 0
-GenericDetector:
-  Contrast: 0
-  Brightness: 0
-MechanicalStage:
-  Bias:
-    BiasType: null
-    Mode: null
-    Volts: 0
-  Position:
-    X:
-      Unit: um
-      Value: 0
-    Y:
-      Unit: um
-      Value: 0
-    Z:
-      Unit: um
-      Value: 0
-    M:
-      Unit: mm
-      Value: 0
-  Tilt:
-    Unit: deg
-    Value: 0
-  Rotation:
-    Unit: deg
-    Value: 0
-  RawPosition:
-    X:
-      Unit: um
-      Value: 0
-    Y:
-      Unit: um
-      Value: 0
-    Z:
-      Unit: um
-      Value: 0
-    Tilt:
-      Unit: deg
-      Value: 0
-    Rot:
-      Unit: deg
-      Value: 0
-    M:
-      Unit: mm
-      Value: 0
+LightPath:
+  GenericDetectorSettings:
+    Contrast: 0
+    Brightness: 0
+Plane:
+  PositionXUnit: µm
+  PositionX: 0
+  PositionYUnit: µm
+  PositionY: 0
+  PositionZUnit: µm
+  PositionZ: 0
+  TiltUnit: deg
+  Tilt: 0
+  RotationUnit: deg
+  Rotation: 0
+  PositionMUnit: mm
+  PositionM: 0
+  RawStage:
+    PositionXUnit: µm
+    PositionX: 0
+    PositionYUnit: µm
+    PositionY: 0
+    PositionZUnit: µm
+    PositionZ: 0
+    TiltUnit: deg
+    Tilt: 0
+    RotationUnit: deg
+    Rotation: 0
+    PositionMUnit: mm
+    PositionM: 0
 Instrument:
   Vacuum:
     SystemVacuum: 0

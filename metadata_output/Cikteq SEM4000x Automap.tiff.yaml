@@ -45,28 +45,36 @@ Image:
   ElectronOpticsSettings:
     Condenser1: 1456
     Condenser2: 839
-  ScanSettings:
+  BeamScanSettings:
     Drift: false
-    FramAdd: 1
+    Integration:
+    - Unit: Frame
+      Method: Sum
+      Number: 1
+    - Unit: Line
+      Method: Sum
+      Number: 1
     LineInterlacing: 0/1
-    LineAdd: 1
-    FrameTime:
-      Value: 172
-      Unit: s
+    FrameTime: 172
+    FrameTimeUnit: s
     FieldOfView:
       X:
         Value: 21.12
         Unit: µm
   AcquisitionDate: '2026-07-22T15:44:49+00:00'
+LightPath:
+  GenericDetectorSettings:
+    Brightness: 50.0
+    Contrast: 0.0
+    AnalogGain: 1
+    ID: Detector:0
 GenericDetector:
-  Brightness: 50.0
   Channel: 1
   ConsumerBrightness: 50.0
   ConsumerContrast: 50.0
-  Contrast: 0.0
   Name: STEM-USER
-  Gain: 1
   PMT: 0.33
+  ID: Detector:0
 FEI_HELIOS:
   Other:
     BottomInfoVacuum: 1.2e-07Pa
@@ -78,31 +86,25 @@ FEI_HELIOS:
     TiltCompensateMode: 0
 Plane:
   PixelDwellTime: 3.0
+  Rotation: -30.0
+  Tilt: 0.0
+  PositionX: 18.9417
+  PositionY: 11.1248
+  PositionZ: 55.0
   PixelDwellTimeUnit: µs
+  RotationUnit: deg
+  TiltUnit: deg
+  PositionXUnit: mm
+  PositionYUnit: mm
+  PositionZUnit: mm
 Pixels:
   SizeX: 8448
   SizeY: 5632
 MechanicalStage:
   NavCoordinate: 1
-  Rotation:
-    Value: -30.0
-    Unit: deg
-  Tilt:
-    Value: 0.0
-    Unit: deg
-  Position:
-    X:
-      Value: 18.9417
-      Unit: mm
-    Y:
-      Value: 11.1248
-      Unit: mm
-    Z:
-      Value: 55.0
-      Unit: mm
   StageType: TMCM-GYLZ-4000X-FIVE-110x110x69
 Instrument:
-  Name: SEM4000X
+  Model: SEM4000X
   Version: 2.6
   Vacuum:
     BufferVacuum: 130.0

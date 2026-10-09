@@ -1,6 +1,3 @@
-Instrument:
-  Manufacturer: EMSIS
-  Model: Xarosa
 ExifVersion: '0210'
 DateTimeDigitized: 2025:05:28 10:54:29
 MeteringMode: 1
@@ -21,7 +18,8 @@ Image:
 Objective:
   Magnification: 6000.0
 GenericDetector:
-  Name: ''
+  Manufacturer: EMSIS
+  Model: Xarosa
 ImageWidth: 5120
 ImageLength: 3840
 BitsPerSample:
@@ -35,6 +33,8 @@ Channel:
 ResolutionUnit: INCH
 DateTime: 2025:05:28 10:54:28
 Artist: XAROSA
+OlympusSIS:
+  cameraname: ''
 Plane:
   ExposureTime: 0.0082
   ExposureTimeUnit: s

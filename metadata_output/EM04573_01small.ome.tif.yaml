@@ -1,0 +1,40 @@
+Image:
+  Pixels:
+    Channel:
+    - LightPath: null
+      Color: -256
+      ID: Channel:0:0
+      Name: reflection WF
+      SamplesPerPixel: 1
+    - LightPath: null
+      Color: 16734976
+      ID: Channel:0:1
+      Name: EGFP
+      SamplesPerPixel: 1
+    DimensionOrder: XYCZT
+    ID: Pixels:0
+    PhysicalSizeX: 2.27
+    PhysicalSizeXUnit: µm
+    PhysicalSizeY: 2.27
+    PhysicalSizeYUnit: µm
+    SizeC: 2
+    SizeT: 1
+    SizeX: 9355
+    SizeY: 6366
+    SizeZ: 1
+  ID: Image:0
+Pixels:
+  PixelType: uint16
+OME:
+  StructuredAnnotations:
+    MapAnnotation:
+      Value:
+        M:
+        - K: 1
+          value: 2338 1591
+        - K: 2
+          value: 584 397
+      ID: Annotation:Resolution:0
+      Namespace: openmicroscopy.org/PyramidResolution
+  Creator: OME Bio-Formats 7.0.1
+  UUID: urn:uuid:826a11b6-4dab-43bf-ad95-266adf850fbd

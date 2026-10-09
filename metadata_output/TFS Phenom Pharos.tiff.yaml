@@ -4,22 +4,43 @@ FEI_TITAN:
     databarFields: 699
     databarLabel: null
     displayWidth: 0
+    integrations: 1
 Pixels:
   PhysicalSizeXUnit: µm
   PhysicalSizeX: 1.143158459049694
   PhysicalSizeYUnit: µm
   PhysicalSizeY: 1.143158459049694
+  Channel:
+  - LightPath:
+      GenericDetectorSettings:
+      - ID: Detector:0
+        AnalogGain: 45
+        Offset: -1.444569852509731
 Image:
   AcquisitionDate: '2024-02-06T13:21:05'
-  ScanSettings:
-    LineIntegrationCount: 1
+  CropHint:
+    Left: 0
+    Top: 0
+    Right: 1920
+    Bottom: 1200
+  SamplePositioningSettings:
+    SampleRadiusUnit: m
+    SampleRadius: 0
+    SampleHeightUnit: m
+    SampleHeight: 0
+  Corrections:
+    Contrast: 5.337209302325581
+    Brightness: 0.4808117799649042
+    Gamma: 1
+    BlackLevel: 0
+    WhiteLevel: 1
+  BeamScanSettings:
     scanHW: ZYNQ
     acqHW: ZYNQ
     spotPresetName: Image
-    Rotation:
-      Value: 0
+    Rotation: 0
     LineInterlacing: 1
-    Detector: bsd-all
+    detector: bsd-all
     detectorMixFactors:
       bsdA: 0
       bsdB: 0
@@ -39,17 +60,6 @@ Image:
       x: 0
       y: 0
     scanScale: 1
-  CropHint:
-    Left: 0
-    Top: 0
-    Right: 1920
-    Bottom: 1200
-  Corrections:
-    Contrast: 5.337209302325581
-    Brightness: 0.4808117799649042
-    Gamma: 1
-    BlackLevel: 0
-    WhiteLevel: 1
   ElectronBeamSettings:
     SpotSize: 1.3
     Shift:
@@ -72,40 +82,29 @@ Image:
       Value: 3.334999999999997
 Experimenter:
   UserName: null
-MechanicalStage:
-  Position:
-    X:
-      Value: 0
-    Y:
-      Value: 0
-  MultiStage:
-    SampleRadius:
-      Unit: m
-      Value: 0
-    SampleHeight:
-      Unit: m
-      Value: 0
-Instrument:
-  Vacuum: 21.03543261569751
-  Type: Phenom
-  CatalogNumber: MVE084613-20046-F
-  Model: Phenom Pharos G2
 Plane:
+  PositionX: 0
+  PositionY: 0
   PixelDwellTimeUnit: ns
   PixelDwellTime: 499.9999999999999
+Instrument:
+  Vacuum: 21.03543261569751
+  type: Phenom
+  CatalogNumber: MVE084613-20046-F
+  Model: Phenom Pharos G2
 GenericDetector:
 - mixFactor: 1
   A: +
   B: +
   C: +
   D: +
-  Gain: 45
-  Offset: -1.444569852509731
   Name: QBSD
+  ID: Detector:0
 - scintillatorVoltage: 0
   mixFactor: 0
-  Gain: 0
-  Offset: 0
+  GenericDetectorSettings:
+    AnalogGain: 0
+    Offset: 0
   Name: SED
 - mixFactor: 0
   segmentSelection:
