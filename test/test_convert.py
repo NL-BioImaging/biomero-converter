@@ -19,7 +19,7 @@ class TestConvert:
     filenames = ['DB/CellsSmall/experiment.db',
                  'isyntax/small.isyntax',
                  '3DHistech/sample4.mrxs',
-                 'EM04573_01small.ome.tif',
+                 'tiff/EM04573_01small.ome.tif',
                  'incucyte/251125_morphology_XW_2/20251125_morphology_XW2.icarch',
                  'Leica/lif/3dtiny.lif']
 
