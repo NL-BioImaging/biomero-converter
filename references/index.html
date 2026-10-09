@@ -6940,6 +6940,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#src.rocrate_utils.normalise_key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        normalise_key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#src.rocrate_utils.search_metadata" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -14396,6 +14407,17 @@
     <span class="md-ellipsis">
       
         get_model_schema_version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#src.rocrate_utils.normalise_key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        normalise_key
       
     </span>
   </a>
@@ -48257,11 +48279,7 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/rocrate_utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">122</span>
-<span class="normal">123</span>
-<span class="normal">124</span>
-<span class="normal">125</span>
-<span class="normal">126</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">126</span>
 <span class="normal">127</span>
 <span class="normal">128</span>
 <span class="normal">129</span>
@@ -48299,7 +48317,14 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
 <span class="normal">161</span>
 <span class="normal">162</span>
 <span class="normal">163</span>
-<span class="normal">164</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">add_instrument</span><span class="p">(</span><span class="n">crate</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">model_instrument</span><span class="p">):</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">add_instrument</span><span class="p">(</span><span class="n">crate</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">model_instrument</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""The instrument named in the metadata, identified by what names it; None if the metadata does not."""</span>
     <span class="n">instrument_properties</span> <span class="o">=</span> <span class="p">{}</span>
 
@@ -48322,8 +48347,11 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
     <span class="k">elif</span> <span class="s1">'model'</span> <span class="ow">in</span> <span class="n">metadata</span> <span class="ow">and</span> <span class="n">metadata</span><span class="p">[</span><span class="s1">'model'</span><span class="p">]:</span>
         <span class="n">model</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s1">'model'</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># a name, product or identifier only names the instrument within its context</span>
         <span class="n">model</span> <span class="o">=</span> <span class="n">search_metadata_fully</span><span class="p">(</span><span class="n">searchable</span><span class="p">,</span> <span class="p">[</span><span class="s1">'model'</span><span class="p">,</span> <span class="s1">'name'</span><span class="p">,</span> <span class="s1">'product'</span><span class="p">,</span> <span class="s1">'productname'</span><span class="p">,</span> <span class="s1">'identifier'</span><span class="p">],</span>
-                                      <span class="n">contexts</span><span class="o">=</span><span class="p">[</span><span class="s1">'instrument'</span><span class="p">,</span> <span class="s1">'microscope'</span><span class="p">,</span> <span class="s1">'device'</span><span class="p">,</span> <span class="s1">'system'</span><span class="p">,</span> <span class="s1">''</span><span class="p">])</span>
+                                      <span class="n">contexts</span><span class="o">=</span><span class="p">[</span><span class="s1">'instrument'</span><span class="p">,</span> <span class="s1">'microscope'</span><span class="p">,</span> <span class="s1">'device'</span><span class="p">,</span> <span class="s1">'system'</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">search_metadata_fully</span><span class="p">(</span><span class="n">searchable</span><span class="p">,</span> <span class="p">[</span><span class="s1">'model'</span><span class="p">],</span> <span class="n">contexts</span><span class="o">=</span><span class="p">[</span><span class="s1">''</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">model</span><span class="p">:</span>
         <span class="n">instrument_properties</span><span class="p">[</span><span class="s1">'name'</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span>
 
@@ -48455,17 +48483,27 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
 <span class="normal">116</span>
 <span class="normal">117</span>
 <span class="normal">118</span>
-<span class="normal">119</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_ro_crate</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">dest_path</span><span class="o">=</span><span class="p">{}):</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_ro_crate</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">dest_path</span><span class="o">=</span><span class="p">{}):</span>
     <span class="n">crate</span> <span class="o">=</span> <span class="n">ZarrCrate</span><span class="p">()</span>
     <span class="c1"># Alternative use github German-BioImaging idr_study_crates GraphBuilder class to low-level build instead?</span>
 
+    <span class="c1"># converted datasets are kept apart from their sources: the source is known by its name, not a path</span>
+    <span class="n">source_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">uri</span><span class="p">))</span>
+    <span class="c1"># the crate is published as the conversion ends</span>
+    <span class="n">conversion_time</span> <span class="o">=</span> <span class="n">to_iso_datetime</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span>
+
     <span class="n">properties</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">properties</span><span class="p">[</span><span class="s1">'name'</span><span class="p">]</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">get_name</span><span class="p">()</span>  <span class="c1"># use output path(s) instead</span>
+    <span class="n">properties</span><span class="p">[</span><span class="s1">'description'</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">'OME-Zarr image converted by biomero-converter from </span><span class="si">{</span><span class="n">source_name</span><span class="si">}</span><span class="s1">'</span>
+    <span class="n">properties</span><span class="p">[</span><span class="s1">'datePublished'</span><span class="p">]</span> <span class="o">=</span> <span class="n">conversion_time</span>
     <span class="n">properties</span><span class="p">[</span><span class="s1">'encodingFormat'</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
         <span class="s1">'application/vnd.zarr'</span><span class="p">,</span>
         <span class="p">{</span><span class="s1">'@id'</span><span class="p">:</span> <span class="s1">'https://openminds.docs.om-i.org/en/v3.0/instance_libraries/contentTypes.html#application-vnd-zarr'</span><span class="p">}</span>
     <span class="p">]</span>
-    <span class="c1">#properties["description"] = source.get_description()</span>
     <span class="c1">#properties["license"] = source.get_license()</span>
     <span class="n">dataset_entity</span> <span class="o">=</span> <span class="n">crate</span><span class="o">.</span><span class="n">add_dataset</span><span class="p">(</span><span class="n">dest_path</span><span class="o">=</span><span class="s1">'.'</span><span class="p">,</span> <span class="n">properties</span><span class="o">=</span><span class="n">properties</span><span class="p">)</span>
 
@@ -48485,8 +48523,6 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
     <span class="c1"># the dataset entity replaced the crate's root dataset, so link the file to it explicitly</span>
     <span class="n">dataset_entity</span><span class="o">.</span><span class="n">append_to</span><span class="p">(</span><span class="s1">'hasPart'</span><span class="p">,</span> <span class="n">acquisition_metadata_entity</span><span class="p">)</span>
 
-    <span class="c1"># converted datasets are kept apart from their sources: the source is known by its name, not a path</span>
-    <span class="n">source_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">uri</span><span class="p">))</span>
     <span class="n">source_entity</span> <span class="o">=</span> <span class="n">crate</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ContextEntity</span><span class="p">(</span><span class="n">crate</span><span class="p">,</span> <span class="n">identifier</span><span class="o">=</span><span class="s1">'#source-'</span> <span class="o">+</span> <span class="n">quote</span><span class="p">(</span><span class="n">source_name</span><span class="p">),</span> <span class="n">properties</span><span class="o">=</span><span class="p">{</span>
         <span class="s1">'@type'</span><span class="p">:</span> <span class="s1">'Dataset'</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">uri</span><span class="p">)</span> <span class="k">else</span> <span class="s1">'File'</span><span class="p">,</span>
         <span class="s1">'name'</span><span class="p">:</span> <span class="n">source_name</span><span class="p">,</span>
@@ -48523,7 +48559,7 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
     <span class="n">conversion_entity</span> <span class="o">=</span> <span class="n">crate</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ContextEntity</span><span class="p">(</span><span class="n">crate</span><span class="p">,</span> <span class="n">identifier</span><span class="o">=</span><span class="s1">'#conversion-001'</span><span class="p">,</span> <span class="n">properties</span><span class="o">=</span><span class="p">{</span>
         <span class="s1">'@type'</span><span class="p">:</span> <span class="s1">'CreateAction'</span><span class="p">,</span>
         <span class="s1">'name'</span><span class="p">:</span> <span class="s1">'Conversion to OME-Zarr'</span><span class="p">,</span>
-        <span class="s1">'endTime'</span><span class="p">:</span> <span class="n">to_iso_datetime</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()),</span>
+        <span class="s1">'endTime'</span><span class="p">:</span> <span class="n">conversion_time</span><span class="p">,</span>
     <span class="p">}))</span>
     <span class="n">conversion_entity</span><span class="p">[</span><span class="s1">'instrument'</span><span class="p">]</span> <span class="o">=</span> <span class="n">converter_entity</span>
     <span class="n">conversion_entity</span><span class="p">[</span><span class="s1">'object'</span><span class="p">]</span> <span class="o">=</span> <span class="n">source_entity</span>
@@ -48569,14 +48605,14 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/rocrate_utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">173</span>
-<span class="normal">174</span>
-<span class="normal">175</span>
-<span class="normal">176</span>
-<span class="normal">177</span>
-<span class="normal">178</span>
-<span class="normal">179</span>
-<span class="normal">180</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_model_schema_version</span><span class="p">():</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_model_schema_version</span><span class="p">():</span>
     <span class="c1"># the version is in the schema's header: read up to it rather than loading the whole (large) schema</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">DEFAULT_MODEL_FILE</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">'utf-8'</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">file</span><span class="p">:</span>
@@ -48593,8 +48629,8 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="src.rocrate_utils.search_metadata" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">search_metadata</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span></code>
+<h3 id="src.rocrate_utils.normalise_key" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">normalise_key</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></code>
 
 </h3>
 
@@ -48604,11 +48640,33 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/rocrate_utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">195</span>
-<span class="normal">196</span>
-<span class="normal">197</span>
-<span class="normal">198</span>
-<span class="normal">199</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">216</span>
+<span class="normal">217</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">normalise_key</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">'[^a-z0-9]'</span><span class="p">,</span> <span class="s1">''</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="src.rocrate_utils.search_metadata" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">search_metadata</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="s1">''</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="p">())</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>The first value whose key contains the label, below or at a key containing the context; without a context,
+whose key is the label (EXIF Make, Model).</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/rocrate_utils.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">199</span>
 <span class="normal">200</span>
 <span class="normal">201</span>
 <span class="normal">202</span>
@@ -48616,18 +48674,26 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
 <span class="normal">204</span>
 <span class="normal">205</span>
 <span class="normal">206</span>
-<span class="normal">207</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">search_metadata</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">search_metadata</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="s1">''</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="p">()):</span>
+<span class="w">    </span><span class="sd">"""The first value whose key contains the label, below or at a key containing the context; without a context,</span>
+<span class="sd">    whose key is the label (EXIF Make, Model)."""</span>
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">metadata</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">key1</span> <span class="o">=</span> <span class="n">normalise_key</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-            <span class="n">match</span> <span class="o">=</span> <span class="n">search_metadata</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">search_metadata</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">path</span> <span class="o">+</span> <span class="p">(</span><span class="n">key1</span><span class="p">,))</span>
             <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">match</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">key1</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-            <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">:</span>
-                <span class="n">label1</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">label1</span> <span class="ow">in</span> <span class="n">key1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-                    <span class="k">return</span> <span class="n">value</span>
+        <span class="k">elif</span> <span class="n">context</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">key1</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span><span class="n">context</span> <span class="ow">in</span> <span class="n">part</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">path</span> <span class="o">+</span> <span class="p">(</span><span class="n">key1</span><span class="p">,)):</span>
+                <span class="k">return</span> <span class="n">value</span>
+        <span class="k">elif</span> <span class="n">key1</span> <span class="o">==</span> <span class="n">label</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span>
     <span class="k">return</span> <span class="kc">None</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -48649,22 +48715,16 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/rocrate_utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">183</span>
-<span class="normal">184</span>
-<span class="normal">185</span>
-<span class="normal">186</span>
-<span class="normal">187</span>
-<span class="normal">188</span>
-<span class="normal">189</span>
-<span class="normal">190</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">190</span>
 <span class="normal">191</span>
-<span class="normal">192</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">search_metadata_fully</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">contexts</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">search_metadata_fully</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">contexts</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">context</span> <span class="ow">in</span> <span class="n">contexts</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">:</span>
-            <span class="n">search_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">label</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">context</span><span class="p">:</span>
-                <span class="n">search_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
-            <span class="n">value</span> <span class="o">=</span> <span class="n">search_metadata</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">search_labels</span><span class="p">)</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">search_metadata</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">value</span>
     <span class="k">return</span> <span class="kc">None</span>
@@ -48688,10 +48748,10 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/rocrate_utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">167</span>
-<span class="normal">168</span>
-<span class="normal">169</span>
-<span class="normal">170</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">to_iso_datetime</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">to_iso_datetime</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s1">'isoformat'</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">value</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
     <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
