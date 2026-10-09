@@ -2,7 +2,7 @@ from abc import ABC
 from imaging_metadata_converter import convert_metadata
 import numpy as np
 
-from src.util import pad_leading_zero, to_plain_types
+from src.util import ensure_list, pad_leading_zero, parse_datetime, to_plain_types
 
 
 class ImageSource(ABC):
@@ -310,6 +310,18 @@ class ImageSource(ABC):
         if getattr(self, '_model_metadata', None) is None:
             self._model_metadata = convert_metadata(to_plain_types(self.get_source_metadata()))
         return self._model_metadata
+
+    def get_model_acquisition_datetime(self):
+        """
+        Get the acquisition datetime the model metadata gives (Image.AcquisitionDate), from the vendor metadata.
+
+        Returns:
+            datetime: Acquisition datetime, or None if the metadata does not give it.
+        """
+        images = ensure_list(self.get_model_metadata().get('Image') or [])
+        if images and isinstance(images[0], dict):
+            return parse_datetime(images[0].get('AcquisitionDate'))
+        return None
 
     def get_total_data_size(self):
         """

@@ -8,7 +8,7 @@ from src.ImageSource import ImageSource
 from src.ome_tiff_util import metadata_to_dict, read_ome_xml_metadata
 from src.ome_zarr_util import *
 from src.parameters import *
-from src.util import convert_to_um, get_level_from_scale, redimension_data, get_filetitle, get_numpy_data
+from src.util import convert_to_um, get_level_from_scale, redimension_data, get_filetitle, get_numpy_data, parse_datetime
 
 
 class OmeZarrSource(ImageSource):
@@ -89,7 +89,8 @@ class OmeZarrSource(ImageSource):
             self.data = None    # data will be read per plate well
         else:
             self.name = self.metadata.get('name', '')
-            self.acquisition_datetime = datetime.fromtimestamp(os.path.getctime(self.uri))
+            # from the OME-XML below if it has one; not the file's time, which changes as the file is copied
+            self.acquisition_datetime = None
             self.data = image_node.data
         if not self.name:
             self.name = get_filetitle(self.uri)
@@ -122,6 +123,8 @@ class OmeZarrSource(ImageSource):
                     if key not in channel:
                         channel[key] = value
             self.microscope_info = microscope_info
+            if self.acquisition_datetime is None:
+                self.acquisition_datetime = parse_datetime(acquisition_datetime)
 
         return self.metadata
 

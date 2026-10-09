@@ -121,11 +121,9 @@ class TiffSource(ImageSource):
 
             self.metadata = metadata
             name = self.tiff.filename
-            if not acquisition_datetime:
-                if 'DateTime' in self.metadata:
-                    acquisition_datetime = parse_tiff_datetime(self.metadata['DateTime'])
-                else:
-                    acquisition_datetime = datetime.fromtimestamp(self.tiff.fstat.st_ctime)
+            # not the file's time: that changes as the file is copied
+            if not acquisition_datetime and 'DateTime' in self.metadata:
+                acquisition_datetime = parse_tiff_datetime(self.metadata['DateTime'])
             dtype = page.dtype
             bits_per_pixel = dtype.itemsize * 8
 
@@ -229,7 +227,10 @@ class TiffSource(ImageSource):
         return []
 
     def get_acquisition_datetime(self):
-        return self.acquisition_datetime
+        if self.is_ome:
+            return self.acquisition_datetime
+        # the vendor's acquisition date before the DateTime tag, which is when the file was written
+        return self.get_model_acquisition_datetime() or self.acquisition_datetime
 
     def get_acquisition_end_datetime(self):
         return self.acquisition_end_datetime

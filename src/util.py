@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import dateutil.parser
 import numpy as np
 import os.path
 from collections.abc import Sequence
@@ -156,6 +157,19 @@ def get_rows_cols_plate(nwells):
     rows = [chr(ord('A') + i) for i in range(nrows)]
     cols = [str(i + 1) for i in range(ncols)]
     return rows, cols
+
+
+def parse_datetime(value):
+    """A datetime from an ISO 8601 or other common date text, or None if it is none."""
+    if not value or isinstance(value, datetime):
+        return value or None
+    try:
+        return datetime.fromisoformat(str(value))
+    except ValueError:
+        try:
+            return dateutil.parser.parse(str(value))
+        except (ValueError, OverflowError):
+            return None
 
 
 def convert_dotnet_ticks_to_datetime(net_ticks):

@@ -7,6 +7,7 @@ Also converts the tiff examples to OME-Zarr v3 with its RO-Crate, and copies eac
 into metadata_output/ in this repo, to compare and review.
 """
 
+from datetime import datetime
 import glob
 import json
 import os
@@ -221,3 +222,19 @@ def test_ro_crate_instrument_only_from_instrument_keys(tmp_path):
     create_ro_crate(StubSource({'Instrument': {'Name': 'Helios'}}), str(tmp_path))
     graph = read_crate_graph(tmp_path)
     assert graph['#data-capture-001']['instrument'] == {'@id': '#instrument-helios'}
+
+
+def test_tiff_acquisition_datetime():
+    # the vendor's acquisition date, not the file's time; none if the metadata has none
+    path = SLIDES + 'tiff/TFS Phenom Pharos.tiff'
+    if not os.path.exists(path):
+        pytest.skip(f'{path} is not here')
+    source = create_source(path)
+    source.init_metadata()
+    assert source.get_acquisition_datetime() == datetime(2024, 2, 6, 13, 21, 5)
+
+    path = SLIDES + 'tiff/Zeiss Supra55 Fibics ATLAS.tif'
+    if os.path.exists(path):
+        source = create_source(path)
+        source.init_metadata()
+        assert source.get_acquisition_datetime() is None
