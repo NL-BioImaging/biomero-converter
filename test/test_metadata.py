@@ -199,6 +199,7 @@ def test_ro_crate_provenance(tmp_path):
     assert conversion['instrument'] == {'@id': 'https://github.com/NL-BioImaging/biomero-converter'}
     assert conversion['object'] == source
     assert conversion['result'] == {'@id': './'}
+    assert conversion['description'] == 'Image tile 1 converted from tile 1.tif'
 
 
 def test_ro_crate_without_instrument_metadata(tmp_path):

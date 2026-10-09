@@ -95,6 +95,8 @@ def create_ro_crate(source, dest_path={}):
     conversion_entity = crate.add(ContextEntity(crate, identifier='#conversion-001', properties={
         '@type': 'CreateAction',
         'name': 'Conversion to OME-Zarr',
+        # which image of the source was converted (a Leica file holds several)
+        'description': f'Image {source.get_name()} converted from {source_name}',
         'endTime': conversion_time,
     }))
     conversion_entity['instrument'] = converter_entity
