@@ -257,6 +257,15 @@ class ImageSource(ABC):
         """
         raise NotImplementedError("The 'get_acquisition_datetime' method must be implemented by subclasses.")
 
+    def get_acquisition_end_datetime(self):
+        """
+        Get the datetime the acquisition ended, when its last image was collected.
+
+        Returns:
+            datetime: End datetime, or None if the metadata does not give it.
+        """
+        return None
+
     def get_significant_bits(self):
         """
         Get the number of significant bits in the image data.

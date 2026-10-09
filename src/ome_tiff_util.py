@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import numpy as np
 from ome_types._mixins._ids import ID_COUNTER
 from ome_types.model import *
@@ -130,6 +131,20 @@ def read_ome_xml_metadata(metadata):
 
     return (name, is_plate, pixel_size, position, dtype, bits_per_pixel, channels, acquisition_metadata, acquisition_datetime,
             wells, list(rows), list(columns), list(fields), image_refs)
+
+
+def read_ome_acquisition_end_datetime(metadata):
+    # the acquisition date plus the time of its last plane
+    image0 = ensure_list(metadata.get('Image', []))[0]
+    acquisition_datetime = image0.get('AcquisitionDate')
+    planes = ensure_list(image0.get('Pixels', {}).get('Plane', []))
+    delta_ts = [convert_to_s(float(plane['DeltaT']), plane.get('DeltaTUnit', 's'))
+                for plane in planes if plane.get('DeltaT') is not None]
+    if not acquisition_datetime or not delta_ts:
+        return None
+    if isinstance(acquisition_datetime, str):
+        acquisition_datetime = datetime.fromisoformat(acquisition_datetime)
+    return acquisition_datetime + timedelta(seconds=max(delta_ts))
 
 
 def create_metadata(source, dim_order='tczyx', uuid=None, image_uuids=None, image_filenames=None, wells=None,

@@ -7,7 +7,7 @@ import os.path
 from tifffile import TiffFile, imread, PHOTOMETRIC
 
 from src.ImageSource import ImageSource
-from src.ome_tiff_util import metadata_to_dict, read_ome_xml_metadata
+from src.ome_tiff_util import metadata_to_dict, read_ome_xml_metadata, read_ome_acquisition_end_datetime
 from src.parameters import TILE_SIZE
 from src.tiff_metadata import PRIVATE_TAG_CODE, get_extra_metadata, get_pixel_size_um, get_position_um
 from src.util import convert_to_um, ensure_list, redimension_data, get_filetitle, without_keys
@@ -55,6 +55,7 @@ class TiffSource(ImageSource):
 
     def init_metadata(self):
         acquisition_datetime = None
+        acquisition_end_datetime = None
         pixel_size = {}
         position = {}
         rotation = None
@@ -96,6 +97,7 @@ class TiffSource(ImageSource):
                 self.metadata = metadata
             (name, is_plate, pixel_size, position, dtype, bits_per_pixel, channels, acquisition_metadata, acquisition_datetime,
              wells, rows, columns, fields, image_refs) = read_ome_xml_metadata(self.metadata)
+            acquisition_end_datetime = read_ome_acquisition_end_datetime(self.metadata)
         else:
             is_plate = False
             if self.is_imagej:
@@ -131,6 +133,7 @@ class TiffSource(ImageSource):
             name = get_filetitle(self.uri)
         self.name = os.path.splitext(str(name))[0].rstrip('.ome')
         self.acquisition_datetime = acquisition_datetime
+        self.acquisition_end_datetime = acquisition_end_datetime
         self.is_plate = is_plate
         self.wells = wells
         self.rows = rows
@@ -227,6 +230,9 @@ class TiffSource(ImageSource):
 
     def get_acquisition_datetime(self):
         return self.acquisition_datetime
+
+    def get_acquisition_end_datetime(self):
+        return self.acquisition_end_datetime
 
     def get_significant_bits(self):
         return self.bits_per_pixel

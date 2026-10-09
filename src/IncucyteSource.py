@@ -743,6 +743,12 @@ class IncucyteSource(ImageSource):
             return timepoints[0]["datetime"]
         return None
 
+    def get_acquisition_end_datetime(self):
+        timepoints = self.metadata.get("timepoints", [])
+        if timepoints and timepoints[-1]["datetime"]:
+            return timepoints[-1]["datetime"]
+        return None
+
     def get_significant_bits(self):
         return self.metadata.get("bits_per_pixel")
 

@@ -203,8 +203,10 @@ class LeicaSource(ImageSource):
         timestamps = image.timestamps
         if timestamps is not None and len(timestamps) > 0:
             self.acquisition_datetime = timestamps[0].astype('datetime64[us]').item()
+            self.acquisition_end_datetime = timestamps[-1].astype('datetime64[us]').item()
         else:
             self.acquisition_datetime = None
+            self.acquisition_end_datetime = None
 
         self.acquisition_metadata = self._get_acquisition_metadata()
         filetitle = get_filetitle(self.uri)
@@ -468,6 +470,9 @@ class LeicaSource(ImageSource):
 
     def get_acquisition_datetime(self):
         return self.acquisition_datetime
+
+    def get_acquisition_end_datetime(self):
+        return self.acquisition_end_datetime
 
     def get_significant_bits(self):
         return self.bits_per_pixel

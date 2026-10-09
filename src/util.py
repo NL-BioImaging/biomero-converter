@@ -302,6 +302,14 @@ def convert_to_um(value, unit):
     return value * conversions.get(unit, 1)
 
 
+def convert_to_s(value, unit):
+    conversions = {
+        'ns': 1e-9, 'µs': 1e-6, 'us': 1e-6, 'ms': 1e-3,
+        's': 1, 'min': 60, 'h': 3600, 'd': 86400
+    }
+    return value * conversions.get(unit, 1)
+
+
 def print_dict(value, tab=0, max_len=250, bullet=False):
     s = ''
     if isinstance(value, dict):
