@@ -184,6 +184,8 @@ def test_ro_crate_provenance(tmp_path):
 
     source = {'@id': '#source-tile%201.tif'}
     root = graph['./']
+    assert root['description'] == 'OME-Zarr image converted by biomero-converter from tile 1.tif'
+    assert root['datePublished'] == graph['#conversion-001']['endTime']
     assert root['isBasedOn'] == source
     assert root['mentions'] == [{'@id': '#data-capture-001'}, {'@id': '#conversion-001'}]
     assert graph[source['@id']] == {**source, '@type': 'File', 'name': 'tile 1.tif'}
@@ -205,3 +207,16 @@ def test_ro_crate_without_instrument_metadata(tmp_path):
 
     assert 'instrument' not in graph['#data-capture-001']
     assert not [entity for entity in graph.values() if entity.get('@type') == 'IndividualProduct']
+
+
+def test_ro_crate_instrument_only_from_instrument_keys(tmp_path):
+    # a name, or a key only containing a label, does not name the instrument (OME annotation namespace, TIFF page name)
+    create_ro_crate(StubSource({'StructuredAnnotations': {'Namespace': 'openmicroscopy.org/PyramidResolution'},
+                                'PageName': '000_000_0.tiff', 'MakerNote': 'x'}), str(tmp_path))
+    graph = read_crate_graph(tmp_path)
+    assert 'instrument' not in graph['#data-capture-001']
+
+    # but a name under the instrument does
+    create_ro_crate(StubSource({'Instrument': {'Name': 'Helios'}}), str(tmp_path))
+    graph = read_crate_graph(tmp_path)
+    assert graph['#data-capture-001']['instrument'] == {'@id': '#instrument-helios'}

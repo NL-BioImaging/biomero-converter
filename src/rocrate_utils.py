@@ -27,13 +27,19 @@ def create_ro_crate(source, dest_path={}):
     crate = ZarrCrate()
     # Alternative use github German-BioImaging idr_study_crates GraphBuilder class to low-level build instead?
 
+    # converted datasets are kept apart from their sources: the source is known by its name, not a path
+    source_name = os.path.basename(os.path.normpath(source.uri))
+    # the crate is published as the conversion ends
+    conversion_time = to_iso_datetime(datetime.now())
+
     properties = {}
     properties['name'] = source.get_name()  # use output path(s) instead
+    properties['description'] = f'OME-Zarr image converted by biomero-converter from {source_name}'
+    properties['datePublished'] = conversion_time
     properties['encodingFormat'] = [
         'application/vnd.zarr',
         {'@id': 'https://openminds.docs.om-i.org/en/v3.0/instance_libraries/contentTypes.html#application-vnd-zarr'}
     ]
-    #properties["description"] = source.get_description()
     #properties["license"] = source.get_license()
     dataset_entity = crate.add_dataset(dest_path='.', properties=properties)
 
@@ -53,8 +59,6 @@ def create_ro_crate(source, dest_path={}):
     # the dataset entity replaced the crate's root dataset, so link the file to it explicitly
     dataset_entity.append_to('hasPart', acquisition_metadata_entity)
 
-    # converted datasets are kept apart from their sources: the source is known by its name, not a path
-    source_name = os.path.basename(os.path.normpath(source.uri))
     source_entity = crate.add(ContextEntity(crate, identifier='#source-' + quote(source_name), properties={
         '@type': 'Dataset' if os.path.isdir(source.uri) else 'File',
         'name': source_name,
@@ -91,7 +95,7 @@ def create_ro_crate(source, dest_path={}):
     conversion_entity = crate.add(ContextEntity(crate, identifier='#conversion-001', properties={
         '@type': 'CreateAction',
         'name': 'Conversion to OME-Zarr',
-        'endTime': to_iso_datetime(datetime.now()),
+        'endTime': conversion_time,
     }))
     conversion_entity['instrument'] = converter_entity
     conversion_entity['object'] = source_entity
@@ -142,8 +146,11 @@ def add_instrument(crate, source, model_instrument):
     elif 'model' in metadata and metadata['model']:
         model = metadata['model']
     else:
+        # a name, product or identifier only names the instrument within its context
         model = search_metadata_fully(searchable, ['model', 'name', 'product', 'productname', 'identifier'],
-                                      contexts=['instrument', 'microscope', 'device', 'system', ''])
+                                      contexts=['instrument', 'microscope', 'device', 'system'])
+        if model is None:
+            model = search_metadata_fully(searchable, ['model'], contexts=[''])
     if model:
         instrument_properties['name'] = model
 
@@ -183,25 +190,28 @@ def get_model_schema_version():
 def search_metadata_fully(metadata, labels, contexts=None):
     for context in contexts:
         for label in labels:
-            search_labels = [label]
-            if context:
-                search_labels.append(context)
-            value = search_metadata(metadata, search_labels)
+            value = search_metadata(metadata, label, context)
             if value is not None:
                 return value
     return None
 
 
-def search_metadata(metadata, labels):
+def search_metadata(metadata, label, context='', path=()):
+    """The first value whose key contains the label, below or at a key containing the context; without a context,
+    whose key is the label (EXIF Make, Model)."""
     for key, value in metadata.items():
+        key1 = normalise_key(key)
         if isinstance(value, dict):
-            match = search_metadata(value, labels)
+            match = search_metadata(value, label, context, path + (key1,))
             if match is not None:
                 return match
-        else:
-            key1 = key.lower()
-            for label in labels:
-                label1 = label.lower()
-                if label1 in key1 and not isinstance(value, dict):
-                    return value
+        elif context:
+            if label in key1 and any(context in part for part in path + (key1,)):
+                return value
+        elif key1 == label:
+            return value
     return None
+
+
+def normalise_key(key):
+    return re.sub(r'[^a-z0-9]', '', str(key).lower())
