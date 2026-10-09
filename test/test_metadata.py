@@ -146,3 +146,62 @@ def test_converted_metadata(tmp_path, input_filename):
 
     os.makedirs(METADATA_OUTPUT, exist_ok=True)
     shutil.copy2(yaml_filename, os.path.join(METADATA_OUTPUT, os.path.basename(input_filename) + '.yaml'))
+
+
+class StubSource:
+    uri = 'C:/data/tile 1.tif'
+
+    def __init__(self, metadata):
+        self.metadata = metadata
+
+    def get_name(self):
+        return 'tile 1'
+
+    def get_model_metadata(self):
+        return {}
+
+    def get_metadata(self):
+        return self.metadata
+
+    def get_acquisition_metadata(self):
+        return {}
+
+    def get_acquisition_datetime(self):
+        return '2026-01-02T03:04:05'
+
+    def get_acquisition_end_datetime(self):
+        return None
+
+
+def read_crate_graph(crate_dir):
+    with open(os.path.join(crate_dir, 'ro-crate-metadata.json'), encoding='utf-8') as file:
+        return {entity['@id']: entity for entity in json.load(file)['@graph']}
+
+
+def test_ro_crate_provenance(tmp_path):
+    create_ro_crate(StubSource({'Make': 'FEI', 'Model': 'Helios', 'SerialNumber': 12}), str(tmp_path))
+    graph = read_crate_graph(tmp_path)
+
+    source = {'@id': '#source-tile%201.tif'}
+    root = graph['./']
+    assert root['isBasedOn'] == source
+    assert root['mentions'] == [{'@id': '#data-capture-001'}, {'@id': '#conversion-001'}]
+    assert graph[source['@id']] == {**source, '@type': 'File', 'name': 'tile 1.tif'}
+    capture = graph['#data-capture-001']
+    assert capture['instrument'] == {'@id': '#instrument-fei-helios-12'}
+    assert capture['result'] == source
+    assert capture['startTime'] == '2026-01-02T03:04:05'
+    assert graph['#instrument-fei-helios-12'] == {'@id': '#instrument-fei-helios-12', '@type': 'IndividualProduct',
+                                                  'manufacturer': 'FEI', 'name': 'Helios', 'serialNumber': '12'}
+    conversion = graph['#conversion-001']
+    assert conversion['instrument'] == {'@id': 'https://github.com/NL-BioImaging/biomero-converter'}
+    assert conversion['object'] == source
+    assert conversion['result'] == {'@id': './'}
+
+
+def test_ro_crate_without_instrument_metadata(tmp_path):
+    create_ro_crate(StubSource({}), str(tmp_path))
+    graph = read_crate_graph(tmp_path)
+
+    assert 'instrument' not in graph['#data-capture-001']
+    assert not [entity for entity in graph.values() if entity.get('@type') == 'IndividualProduct']

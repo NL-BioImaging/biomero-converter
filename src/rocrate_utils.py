@@ -2,21 +2,25 @@
 # https://github.com/ome/ome2024-ngff-challenge/tree/main/src/ome2024_ngff_challenge/zarr_crate
 # https://github.com/clbarnes/rembi-mifa-py/blob/main/examples/rembi.py
 
+from datetime import datetime
 from io import StringIO
 import os.path
 import re
+from urllib.parse import quote
 import yaml
 from imaging_metadata_converter import SOURCE_MAP_KEY
 from imaging_metadata_converter.ModelPaths import DEFAULT_MODEL_FILE
 from rocrate.model import ContextEntity
 
 from src.util import to_plain_types
+from src.version import get_version
 from src.zarr_extension import ZarrCrate
 
 
 ACQUISITION_METADATA_FILENAME = 'acquisition_metadata.yaml'
 MODEL_SCHEMA_URL = ('https://github.com/NL-BioImaging/imaging-metadata-converter/blob/{release}/src/'
                     'imaging_metadata_converter/models/' + os.path.basename(DEFAULT_MODEL_FILE))
+CONVERTER_URL = 'https://github.com/NL-BioImaging/biomero-converter'
 
 
 def create_ro_crate(source, dest_path={}):
@@ -49,12 +53,75 @@ def create_ro_crate(source, dest_path={}):
     # the dataset entity replaced the crate's root dataset, so link the file to it explicitly
     dataset_entity.append_to('hasPart', acquisition_metadata_entity)
 
-    model_instrument = model_metadata.get('Instrument', {})
+    # converted datasets are kept apart from their sources: the source is known by its name, not a path
+    source_name = os.path.basename(os.path.normpath(source.uri))
+    source_entity = crate.add(ContextEntity(crate, identifier='#source-' + quote(source_name), properties={
+        '@type': 'Dataset' if os.path.isdir(source.uri) else 'File',
+        'name': source_name,
+    }))
+    dataset_entity['isBasedOn'] = source_entity
 
-    instrument_properties = {
-        '@id': '#microscope-001',
-        '@type': 'IndividualProduct',
+    # the microscope made the source, the converter the zarr from it
+    create_entity = crate.add(ContextEntity(crate, identifier='#data-capture-001', properties={
+        '@type': 'CreateAction',
+        'name': 'Image acquisition',
+    }))
+    instrument_entity = add_instrument(crate, source, model_metadata.get('Instrument', {}))
+    if instrument_entity:
+        create_entity['instrument'] = instrument_entity
+    create_entity['result'] = source_entity
+    try:
+        start_time = source.get_acquisition_datetime()
+    except NotImplementedError:
+        start_time = None
+    if start_time:
+        create_entity['startTime'] = to_iso_datetime(start_time)
+    end_time = source.get_acquisition_end_datetime()
+    if end_time:
+        create_entity['endTime'] = to_iso_datetime(end_time)
+    # list the actions on the root, so they can be found from there
+    dataset_entity.append_to('mentions', create_entity)
+
+    converter_entity = crate.add(ContextEntity(crate, identifier=CONVERTER_URL, properties={
+        '@type': 'SoftwareApplication',
+        'name': 'biomero-converter',
+        'url': CONVERTER_URL,
+        'version': get_version(),
+    }))
+    conversion_entity = crate.add(ContextEntity(crate, identifier='#conversion-001', properties={
+        '@type': 'CreateAction',
+        'name': 'Conversion to OME-Zarr',
+        'endTime': to_iso_datetime(datetime.now()),
+    }))
+    conversion_entity['instrument'] = converter_entity
+    conversion_entity['object'] = source_entity
+    conversion_entity['result'] = dataset_entity
+    dataset_entity.append_to('mentions', conversion_entity)
+
+    # the metadata file describes the acquisition, on the model's LinkML schema
+    acquisition_metadata_entity['about'] = create_entity
+    schema_properties = {
+        '@type': ['CreativeWork', 'Profile'],
+        'name': 'Imaging metadata model (LinkML schema)',
+        'encodingFormat': 'application/yaml',
     }
+    schema_version = get_model_schema_version()
+    if schema_version:
+        schema_properties['version'] = schema_version
+    # the model's release is tagged with its version
+    schema_url = MODEL_SCHEMA_URL.format(release=f'v{schema_version}' if schema_version else 'main')
+    schema_entity = crate.add(ContextEntity(crate, identifier=schema_url, properties=schema_properties))
+    acquisition_metadata_entity['conformsTo'] = schema_entity
+
+    # TODO: Can add variableMeasured for output properties
+
+    crate.write(dest_path)
+    return crate
+
+
+def add_instrument(crate, source, model_instrument):
+    """The instrument named in the metadata, identified by what names it; None if the metadata does not."""
+    instrument_properties = {}
 
     metadata = source.get_metadata()
     # fallback: search the decoded acquisition metadata first, then the source metadata
@@ -89,43 +156,12 @@ def create_ro_crate(source, dest_path={}):
         # schema.org serialNumber is text
         instrument_properties['serialNumber'] = str(serial)
 
-    instrument_entity = ContextEntity(crate, identifier=instrument_properties['@id'], properties=instrument_properties)
-    create_entity = crate.add_action(instrument_entity, identifier='#data-capture-001')
-    create_entity['instrument'] = instrument_entity
-    create_entity['result'] = dataset_entity
-    try:
-        start_time = source.get_acquisition_datetime()
-    except NotImplementedError:
-        start_time = None
-    if start_time:
-        create_entity['startTime'] = to_iso_datetime(start_time)
-    end_time = source.get_acquisition_end_datetime()
-    if end_time:
-        create_entity['endTime'] = to_iso_datetime(end_time)
-    # list the action on the root, so it can be found from there
-    dataset_entity.append_to('mentions', create_entity)
-
-    crate.add(instrument_entity)
-
-    # the metadata file describes the acquisition, on the model's LinkML schema
-    acquisition_metadata_entity['about'] = create_entity
-    schema_properties = {
-        '@type': ['CreativeWork', 'Profile'],
-        'name': 'Imaging metadata model (LinkML schema)',
-        'encodingFormat': 'application/yaml',
-    }
-    schema_version = get_model_schema_version()
-    if schema_version:
-        schema_properties['version'] = schema_version
-    # the model's release is tagged with its version
-    schema_url = MODEL_SCHEMA_URL.format(release=f'v{schema_version}' if schema_version else 'main')
-    schema_entity = crate.add(ContextEntity(crate, identifier=schema_url, properties=schema_properties))
-    acquisition_metadata_entity['conformsTo'] = schema_entity
-
-    # TODO: Can add variableMeasured for output properties
-
-    crate.write(dest_path)
-    return crate
+    if not instrument_properties:
+        return None
+    # the same instrument gets the same id in every crate
+    label = re.sub(r'[^a-z0-9]+', '-', ' '.join(map(str, instrument_properties.values())).lower()).strip('-')
+    return crate.add(ContextEntity(crate, identifier=f'#instrument-{label}',
+                                   properties={'@type': 'IndividualProduct', **instrument_properties}))
 
 
 def to_iso_datetime(value):
