@@ -23,4 +23,4 @@ dependencies:
    - pydicom
    - chardet
    - pyyaml
-   - imaging-metadata-converter @ https://github.com/NL-BioImaging/imaging-metadata-converter/archive/refs/heads/main.zip
+   - imaging-metadata-converter @ https://github.com/NL-BioImaging/imaging-metadata-converter/archive/refs/tags/v2.0.0.zip
