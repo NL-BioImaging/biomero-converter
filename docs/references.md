@@ -1,2 +1,1 @@
-::: converter
-::: src
+::: biomero_converter

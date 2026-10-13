@@ -12,9 +12,9 @@ from imaging_metadata_converter import SOURCE_MAP_KEY
 from imaging_metadata_converter.ModelPaths import DEFAULT_MODEL_FILE
 from rocrate.model import ContextEntity
 
-from src.util import to_plain_types
-from src.version import get_version
-from src.zarr_extension import ZarrCrate
+from biomero_converter.util import to_plain_types
+from biomero_converter.version import get_version
+from biomero_converter.zarr_extension import ZarrCrate
 
 
 ACQUISITION_METADATA_FILENAME = 'acquisition-metadata.yaml'

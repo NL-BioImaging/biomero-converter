@@ -1,4 +1,4 @@
-from src.version import get_version
+from biomero_converter.version import get_version
 
 VERSION = get_version()
 

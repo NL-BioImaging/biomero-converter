@@ -8,9 +8,9 @@ from tifffile import xml2dict
 from xml.etree import ElementTree
 import numpy as np
 
-from src.ImageSource import ImageSource
-from src.parameters import TILE_SIZE
-from src.util import get_filetitle, redimension_data, remove_key_prefix, without_keys
+from biomero_converter.ImageSource import ImageSource
+from biomero_converter.parameters import TILE_SIZE
+from biomero_converter.util import get_filetitle, redimension_data, remove_key_prefix, without_keys
 
 
 LUT_COLORS = {

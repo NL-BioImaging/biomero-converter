@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.util import ensure_list
+from biomero_converter.util import ensure_list
 
 
 class WindowScanner:

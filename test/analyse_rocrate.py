@@ -1,7 +1,7 @@
 import json
 from pprint import pprint
 
-from src.TreeBuilder import TreeBuilder
+from biomero_converter.TreeBuilder import TreeBuilder
 
 
 def recreate_tree(data):

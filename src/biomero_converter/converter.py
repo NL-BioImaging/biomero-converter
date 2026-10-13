@@ -4,9 +4,9 @@ import numpy as np
 import os.path
 import shutil
 
-from src.helper import create_source, create_writer
-from src.parameters import RETRY_ATTEMPTS
-from src.util import validate_filename
+from biomero_converter.helper import create_source, create_writer
+from biomero_converter.parameters import RETRY_ATTEMPTS
+from biomero_converter.util import validate_filename
 
 
 def init_logging(log_filename, verbose=False):
@@ -65,7 +65,7 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
     # Check if input is an Incucyte archive and handle multiple plates
     input_ext = os.path.splitext(input_filename)[1].lower()
     if input_ext == '.icarch':
-        from src.helper import get_incucyte_plates
+        from biomero_converter.helper import get_incucyte_plates
 
         available_plates = get_incucyte_plates(input_filename)
 
@@ -90,10 +90,10 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
             return json.dumps(results)
 
     # Leica file: if image not specified, process all images
-    from src.helper import LEICA_EXTENSIONS
+    from biomero_converter.helper import LEICA_EXTENSIONS
     if (input_ext in LEICA_EXTENSIONS and not kwargs.get('image_uuid')
             and kwargs.get('image_index') is None):
-        from src.LeicaSource import LeicaSource
+        from biomero_converter.LeicaSource import LeicaSource
 
         image_count = LeicaSource.get_image_count(input_filename)
         logging.info(f'Processing {image_count} image(s)')

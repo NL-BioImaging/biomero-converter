@@ -13,20 +13,18 @@ import json
 import os
 import re
 import shutil
-import sys
 
 from imaging_metadata_converter import convert_metadata
 import pytest
 import yaml
 
-sys.path.append(os.getcwd())
 
-from converter import _convert
-from src.DicomSource import DicomSource
-from src.helper import create_source
-from src.ome_tiff_util import create_metadata
-from src.rocrate_utils import ACQUISITION_METADATA_FILENAME, create_ro_crate
-from src.util import to_plain_types
+from biomero_converter.converter import _convert
+from biomero_converter.DicomSource import DicomSource
+from biomero_converter.helper import create_source
+from biomero_converter.ome_tiff_util import create_metadata
+from biomero_converter.rocrate_utils import ACQUISITION_METADATA_FILENAME, create_ro_crate
+from biomero_converter.util import to_plain_types
 
 
 SLIDES = 'C:/Project/slides/'

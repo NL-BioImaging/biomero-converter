@@ -7,10 +7,10 @@ import numpy as np
 import openslide
 import skimage.transform as sk_transform
 
-from src.ImageSource import ImageSource
-from src.color_conversion import hexrgb_to_rgba
-from src.parameters import *
-from src.util import redimension_data, get_level_from_scale, get_filetitle, get_bits_type
+from biomero_converter.ImageSource import ImageSource
+from biomero_converter.color_conversion import hexrgb_to_rgba
+from biomero_converter.parameters import *
+from biomero_converter.util import redimension_data, get_level_from_scale, get_filetitle, get_bits_type
 
 
 class MiraxSource(ImageSource):

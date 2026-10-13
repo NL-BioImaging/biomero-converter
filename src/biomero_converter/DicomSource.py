@@ -11,8 +11,8 @@ from pydicom.errors import InvalidDicomError
 from pydicom.multival import MultiValue
 from pydicom.valuerep import DA, TM
 
-from src.ImageSource import ImageSource
-from src.util import get_filetitle, redimension_data, dicom_to_dict
+from biomero_converter.ImageSource import ImageSource
+from biomero_converter.util import get_filetitle, redimension_data, dicom_to_dict
 
 
 # compressed transfer syntaxes imagecodecs can decode, for when pydicom has no decoder plugin installed

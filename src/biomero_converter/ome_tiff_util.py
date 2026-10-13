@@ -7,9 +7,9 @@ from tifffile import xml2dict
 import re
 import uuid
 
-from src.color_conversion import rgba_to_int, int_to_rgba
-from src.parameters import VERSION
-from src.util import *
+from biomero_converter.color_conversion import rgba_to_int, int_to_rgba
+from biomero_converter.parameters import VERSION
+from biomero_converter.util import *
 
 
 INVALID_XML_CHARS = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')

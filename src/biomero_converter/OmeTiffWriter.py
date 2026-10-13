@@ -4,12 +4,12 @@ import os.path
 from skimage.transform import resize
 from tifffile import TiffWriter, FILETYPE
 
-from src.ome_tiff_util import create_metadata, create_binaryonly_metadata, create_resolution_metadata, create_uuid, \
+from biomero_converter.ome_tiff_util import create_metadata, create_binaryonly_metadata, create_resolution_metadata, create_uuid, \
     reset_ome_ids
-from src.OmeWriter import OmeWriter
-from src.parameters import *
-from src.util import *
-from src.WindowScanner import WindowScanner
+from biomero_converter.OmeWriter import OmeWriter
+from biomero_converter.parameters import *
+from biomero_converter.util import *
+from biomero_converter.WindowScanner import WindowScanner
 
 
 class OmeTiffWriter(OmeWriter):

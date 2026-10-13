@@ -7,12 +7,11 @@ import pytest
 import sys
 import tempfile
 
-sys.path.append(os.getcwd())
 
-from converter import init_logging, _convert
-from src.helper import LEICA_EXTENSIONS, create_source, get_incucyte_plates
-from src.Timer import Timer
-from src.util import print_dict, print_hbytes
+from biomero_converter.converter import init_logging, _convert
+from biomero_converter.helper import LEICA_EXTENSIONS, create_source, get_incucyte_plates
+from biomero_converter.Timer import Timer
+from biomero_converter.util import print_dict, print_hbytes
 
 
 class TestConvert:

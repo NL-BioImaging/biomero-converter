@@ -2,7 +2,7 @@ import imageio.v3 as iio
 import os.path
 import re
 
-from src.ImageSource import ImageSource
+from biomero_converter.ImageSource import ImageSource
 
 
 class GenericSource(ImageSource):

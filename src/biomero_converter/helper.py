@@ -21,10 +21,10 @@ def create_source(filename, **kwargs):
     input_ext = os.path.splitext(filename)[1].lower()
 
     if input_ext in LEICA_EXTENSIONS:
-        from src.LeicaSource import LeicaSource
+        from biomero_converter.LeicaSource import LeicaSource
         source = LeicaSource(filename, **kwargs)
     elif input_ext == '.db':
-        from src.ImageDbSource import ImageDbSource
+        from biomero_converter.ImageDbSource import ImageDbSource
         source = ImageDbSource(filename)
     elif input_ext == '.icarch':
         # Incucyte archive file - use parent folder for source
@@ -40,26 +40,26 @@ def create_source(filename, **kwargs):
                 f'EssenFiles folder not found in: {archive_folder}. '
                 f'Expected Incucyte archive structure.'
             )
-        from src.IncucyteSource import IncucyteSource
+        from biomero_converter.IncucyteSource import IncucyteSource
         # Pass kwargs to IncucyteSource (e.g., plate_id)
         source = IncucyteSource(archive_folder, **kwargs)
     elif input_ext == '.isyntax':
-        from src.ISyntaxSource import ISyntaxSource
+        from biomero_converter.ISyntaxSource import ISyntaxSource
         source = ISyntaxSource(filename, **kwargs)
     elif input_ext == '.mrxs':
-        from src.MiraxSource import MiraxSource
+        from biomero_converter.MiraxSource import MiraxSource
         source = MiraxSource(filename, **kwargs)
     elif '.zar' in input_ext:
-        from src.OmeZarrSource import OmeZarrSource
+        from biomero_converter.OmeZarrSource import OmeZarrSource
         source = OmeZarrSource(filename, **kwargs)
     elif '.tif' in input_ext or input_ext in ('.ome', '.xml'):
-        from src.TiffSource import TiffSource
+        from biomero_converter.TiffSource import TiffSource
         source = TiffSource(filename, **kwargs)
     elif is_dicom(filename):
-        from src.DicomSource import DicomSource
+        from biomero_converter.DicomSource import DicomSource
         source = DicomSource(filename, **kwargs)
     else:
-        from src.GenericSource import GenericSource
+        from biomero_converter.GenericSource import GenericSource
         source = GenericSource(filename, **kwargs)
     return source
 
@@ -104,7 +104,7 @@ def get_incucyte_plates(filename):
             f'file: {filename}'
         )
     
-    from src.IncucyteSource import IncucyteSource
+    from biomero_converter.IncucyteSource import IncucyteSource
     return IncucyteSource.get_available_plates(archive_folder)
 
 
@@ -135,7 +135,7 @@ def create_incucyte_source(filename, plate_id=None):
             f'file: {filename}'
         )
     
-    from src.IncucyteSource import IncucyteSource
+    from biomero_converter.IncucyteSource import IncucyteSource
     return IncucyteSource(archive_folder, plate_id=plate_id)
 
 
@@ -164,11 +164,11 @@ def create_writer(output_format, verbose=False):
             ome_version = '0.6'
         else:
             raise ValueError(f'Unsupported output format: {output_format}')
-        from src.OmeZarrWriter import OmeZarrWriter
+        from biomero_converter.OmeZarrWriter import OmeZarrWriter
         writer = OmeZarrWriter(ome_version=ome_version, verbose=verbose)
         ext = '.ome.zarr'
     elif 'tif' in output_format:
-        from src.OmeTiffWriter import OmeTiffWriter
+        from biomero_converter.OmeTiffWriter import OmeTiffWriter
         writer = OmeTiffWriter(verbose=verbose)
         ext = '.ome.tiff'
     else:

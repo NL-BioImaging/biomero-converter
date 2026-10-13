@@ -6,11 +6,11 @@ import numpy as np
 import os.path
 from tifffile import TiffFile, imread, PHOTOMETRIC
 
-from src.ImageSource import ImageSource
-from src.ome_tiff_util import metadata_to_dict, read_ome_xml_metadata, read_ome_acquisition_end_datetime
-from src.parameters import TILE_SIZE
-from src.tiff_metadata import PRIVATE_TAG_CODE, get_extra_metadata, get_pixel_size_um, get_position_um
-from src.util import convert_to_um, ensure_list, redimension_data, get_filetitle, without_keys
+from biomero_converter.ImageSource import ImageSource
+from biomero_converter.ome_tiff_util import metadata_to_dict, read_ome_xml_metadata, read_ome_acquisition_end_datetime
+from biomero_converter.parameters import TILE_SIZE
+from biomero_converter.tiff_metadata import PRIVATE_TAG_CODE, get_extra_metadata, get_pixel_size_um, get_position_um
+from biomero_converter.util import convert_to_um, ensure_list, redimension_data, get_filetitle, without_keys
 
 
 class TiffSource(ImageSource):

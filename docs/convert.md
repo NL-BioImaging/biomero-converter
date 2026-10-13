@@ -1,11 +1,11 @@
 # converter.convert() Usage
 
-The `convert()` function in `converter.py` is used to convert an input file to OME format and write the result to one or more output folders.
+The `convert()` function in `biomero_converter/converter.py` is used to convert an input file to OME format and write the result to one or more output folders.
 
 ## Example Usage
 
 ```python
-from converter import convert
+from biomero_converter.converter import convert
 
 input_filename = "path/to/input_file"
 output_folder = "path/to/output_folder"

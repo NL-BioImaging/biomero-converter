@@ -9,9 +9,9 @@ import numpy as np
 import skimage.transform as sk_transform
 from xml.etree import ElementTree
 
-from src.ImageSource import ImageSource
-from src.parameters import *
-from src.util import get_filetitle, xml_content_to_dict, redimension_data, get_level_from_scale, get_bits_type
+from biomero_converter.ImageSource import ImageSource
+from biomero_converter.parameters import *
+from biomero_converter.util import get_filetitle, xml_content_to_dict, redimension_data, get_level_from_scale, get_bits_type
 
 
 class ISyntaxSource(ImageSource):

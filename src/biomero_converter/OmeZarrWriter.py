@@ -17,13 +17,13 @@ import psutil
 from skimage.transform import resize
 import zarr
 
-from src.OmeWriter import OmeWriter
-from src.ome_tiff_util import create_metadata, reset_ome_ids
-from src.ome_zarr_util import *
-from src.parameters import *
-from src.rocrate_utils import create_ro_crate
-from src.util import split_well_name, print_hbytes, get_level_from_scale, get_pyramid_levels
-from src.WindowScanner import WindowScanner
+from biomero_converter.OmeWriter import OmeWriter
+from biomero_converter.ome_tiff_util import create_metadata, reset_ome_ids
+from biomero_converter.ome_zarr_util import *
+from biomero_converter.parameters import *
+from biomero_converter.rocrate_utils import create_ro_crate
+from biomero_converter.util import split_well_name, print_hbytes, get_level_from_scale, get_pyramid_levels
+from biomero_converter.WindowScanner import WindowScanner
 
 
 patch_zarr_windows_network_move()

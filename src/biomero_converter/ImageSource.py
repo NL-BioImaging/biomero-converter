@@ -2,7 +2,7 @@ from abc import ABC
 from imaging_metadata_converter import convert_metadata
 import numpy as np
 
-from src.util import ensure_list, pad_leading_zero, parse_datetime, to_plain_types
+from biomero_converter.util import ensure_list, pad_leading_zero, parse_datetime, to_plain_types
 
 
 class ImageSource(ABC):

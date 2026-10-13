@@ -7,10 +7,10 @@ import re
 import tifffile
 import zipfile
 
-from src.color_conversion import hexrgb_to_rgba
-from src.ImageSource import ImageSource
-from src.TiffSource import TiffSource
-from src.util import strip_leading_zeros, redimension_data, split_well_name, get_rows_cols_plate
+from biomero_converter.color_conversion import hexrgb_to_rgba
+from biomero_converter.ImageSource import ImageSource
+from biomero_converter.TiffSource import TiffSource
+from biomero_converter.util import strip_leading_zeros, redimension_data, split_well_name, get_rows_cols_plate
 
 
 class IncucyteSource(ImageSource):

@@ -4,11 +4,11 @@ from ome_zarr.reader import Reader
 import os.path
 import skimage.transform as sk_transform
 
-from src.ImageSource import ImageSource
-from src.ome_tiff_util import metadata_to_dict, read_ome_xml_metadata
-from src.ome_zarr_util import *
-from src.parameters import *
-from src.util import convert_to_um, get_level_from_scale, redimension_data, get_filetitle, get_numpy_data, parse_datetime
+from biomero_converter.ImageSource import ImageSource
+from biomero_converter.ome_tiff_util import metadata_to_dict, read_ome_xml_metadata
+from biomero_converter.ome_zarr_util import *
+from biomero_converter.parameters import *
+from biomero_converter.util import convert_to_um, get_level_from_scale, redimension_data, get_filetitle, get_numpy_data, parse_datetime
 
 
 class OmeZarrSource(ImageSource):

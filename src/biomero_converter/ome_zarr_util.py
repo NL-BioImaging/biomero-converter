@@ -2,7 +2,7 @@ import numpy as np
 import os
 import sys
 
-from src.color_conversion import rgba_to_hexrgb
+from biomero_converter.color_conversion import rgba_to_hexrgb
 
 
 def patch_zarr_windows_network_move():

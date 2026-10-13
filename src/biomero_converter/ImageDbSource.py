@@ -4,10 +4,10 @@
 
 import numpy as np
 
-from src.color_conversion import hexrgb_to_rgba
-from src.DbReader import DbReader
-from src.ImageSource import ImageSource
-from src.util import *
+from biomero_converter.color_conversion import hexrgb_to_rgba
+from biomero_converter.DbReader import DbReader
+from biomero_converter.ImageSource import ImageSource
+from biomero_converter.util import *
 
 
 class ImageDbSource(ImageSource):
