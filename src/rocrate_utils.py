@@ -17,7 +17,7 @@ from src.version import get_version
 from src.zarr_extension import ZarrCrate
 
 
-ACQUISITION_METADATA_FILENAME = 'acquisition_metadata.yaml'
+ACQUISITION_METADATA_FILENAME = 'acquisition-metadata.yaml'
 MODEL_SCHEMA_URL = ('https://github.com/NL-BioImaging/imaging-metadata-converter/blob/{release}/src/'
                     'imaging_metadata_converter/models/' + os.path.basename(DEFAULT_MODEL_FILE))
 CONVERTER_URL = 'https://github.com/NL-BioImaging/biomero-converter'
