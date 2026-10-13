@@ -34,20 +34,20 @@ Refer to the main script for all available arguments:
 - `--plateid`: Incucyte plate ID (optional, default: all plates)
 - `--image_uuid`: Leica image UUID (optional, default: all images in the file)
 
-## Alternatively Run the main script directly
+## Alternatively install the Python package
 
-1. Clone the repository and navigate to the project directory.
-2. Install the required dependencies using `pip install -r requirements.txt`.
-3. Run the main script with the required arguments.
+1. Install the package from PyPI using `pip install biomero-converter`
+   (or, from a clone of the repository, `pip install -e .`).
+2. Run the `biomero-converter` command with the required arguments.
 
 ```sh
-python main.py \
+biomero-converter \
     --inputfile /data/input/input_file.tiff \
     --outputfolder /data/output \
     --outputformat omezarr04 \
     --show_progress \
     --verbose
     
-usage: main.py [-h] --inputfile INPUTFILE --outputfolder OUTPUTFOLDER [--altoutputfolder ALTOUTPUTFOLDER] [--outputformat OUTPUTFORMAT] [--show_progress] [--verbose] [--plateid PLATEID] [--image_uuid IMAGE_UUID]
-main.py: error: the following arguments are required: --inputfile, --outputfolder
+usage: biomero-converter [-h] --inputfile INPUTFILE --outputfolder OUTPUTFOLDER [--altoutputfolder ALTOUTPUTFOLDER] [--outputformat OUTPUTFORMAT] [--show_progress] [--verbose] [--plateid PLATEID] [--image_uuid IMAGE_UUID]
+biomero-converter: error: the following arguments are required: --inputfile, --outputfolder
 ```

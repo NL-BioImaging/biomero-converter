@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "biomero-converter"
+# the version is taken from the release tag (setuptools-scm)
+dynamic = ["version"]
+description = "Convert source images to OME-TIFF or OME-Zarr, with RO-Crate metadata"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE.md"]
+requires-python = ">=3.12"
+authors = [
+    { name = "Joost de Folter", email = "folterj@gmail.com" },
+    { name = "Maarten Paul", email = "maarten.paul@gmail.com" },
+]
+keywords = ["OME-Zarr", "OME-TIFF", "RO-Crate", "microscopy", "bioimaging", "conversion"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Image Processing",
+]
+dependencies = [
+    "numpy",
+    # 0.18+ loses metadata in our writer, see notes/todo_known_issues.md
+    "ome-zarr>=0.16.0,<0.18",
+    "zarr>=3.2.0",
+    "tifffile>=2026.9.20",
+    "liffile",
+    "imagecodecs",
+    "imageio",
+    "scikit-image",
+    "dask[array]",
+    "ome-types>=0.6.2",
+    "rocrate>=0.15.0",
+    "psutil",
+    "pyisyntax",
+    "openslide-python",
+    "openslide-bin",
+    "pydicom",
+    "chardet",
+    "python-dateutil",
+    "pyyaml",
+    "imaging-metadata-converter>=2.0.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
+[project.scripts]
+biomero-converter = "biomero_converter.main:main"
+
+[project.urls]
+Homepage = "https://github.com/NL-BioImaging/biomero-converter"
+Repository = "https://github.com/NL-BioImaging/biomero-converter"
+Documentation = "https://nl-bioimaging.github.io/biomero-converter/"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools_scm]
+# PyPI does not accept local versions (+g<hash>) for builds between tags
+local_scheme = "no-local-version"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["test"]

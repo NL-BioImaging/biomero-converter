@@ -9,10 +9,12 @@ Distilled from recurring feedback across sessions. Follow these when making chan
 
 ## Releases
 - Release only from `main`, with the next `v0.1.x` tag (`gh release create --generate-notes`, plus a
-  short summary). Publishing the release builds the Docker image and the docs (`.github/workflows/docker-image.yml`).
+  short summary). Publishing the release builds the Docker image and the docs (`.github/workflows/docker-image.yml`),
+  and publishes the package to PyPI (`.github/workflows/publish.yml`; a manual run publishes to TestPyPI).
 - Only release when converter code changed. Test-only (or docs-only) changes need no release.
-- The version is taken from the release tag, not from the code: `src/version.py` uses the
-  `BIOMERO_CONVERTER_VERSION` env var (set in the Docker build from the tag) or `git describe --tags`.
+- The version is taken from the release tag, not from the code: `src/biomero_converter/version.py` uses the
+  `BIOMERO_CONVERTER_VERSION` env var (set in the Docker build from the tag) or `git describe --tags`, else the
+  installed package version (setuptools-scm, from the tag).
   Don't add a version number anywhere else.
 - After a release that fixes a GitHub issue, comment on the issue with the release link.
 
@@ -32,8 +34,8 @@ Distilled from recurring feedback across sessions. Follow these when making chan
 
 ## Sources
 - New sources derive from `ImageSource`; follow `TiffSource` for structure (`init_metadata()` fills the
-  attributes, getters return them). Register the extension in `src/helper.py`.
-- Leica (`src/LeicaSource.py`, via `liffile`): follow https://github.com/NL-BioImaging/ConvertLeica-Docker for
+  attributes, getters return them). Register the extension in `src/biomero_converter/helper.py`.
+- Leica (`src/biomero_converter/LeicaSource.py`, via `liffile`): follow https://github.com/NL-BioImaging/ConvertLeica-Docker for
   image selection (`image_uuid`) and tile scan stitching.
 
 ## Carrying work across sessions

@@ -6,7 +6,7 @@
 
 On some SMB shares, renaming onto an existing file raises `PermissionError [WinError 5]` instead of
 `FileExistsError`, which zarr's `LocalStore.set_if_not_exists` does not handle (still so in zarr 3.4.0).
-`patch_zarr_windows_network_move()` in `src/ome_zarr_util.py` replaces zarr's private
+`patch_zarr_windows_network_move()` in `src/biomero_converter/ome_zarr_util.py` replaces zarr's private
 `zarr.storage._local._safe_move` - a zarr update could silently stop it applying.
 Only simulated locally; not yet confirmed on the reporter's `L:` share.
 
@@ -34,7 +34,7 @@ Only simulated locally; not yet confirmed on the reporter's `L:` share.
 
 Mapping onto the imaging metadata model is done (and tracked) in imaging-metadata-converter.
 
-- TIFF vendor metadata comes from `src/tiff_metadata.py`, a copy of napari-meta-tiff `_metadata.py`: keep in sync.
+- TIFF vendor metadata comes from `src/biomero_converter/tiff_metadata.py`, a copy of napari-meta-tiff `_metadata.py`: keep in sync.
 - Zeiss Fibics (800 MB) round-trip not checked after the change (ran out of memory).
 
 ### Conversion
@@ -45,7 +45,7 @@ Mapping onto the imaging metadata model is done (and tracked) in imaging-metadat
   one format. iSyntax takes ~9 min per OME-Zarr format.
 - NumPy 2.5 deprecates setting an array's shape, which tifffile still does when reading (DeprecationWarning).
 
-### ome-zarr-py >= 0.18 (pinned `<0.18` in environment.yml; Docker uses 0.13.0)
+### ome-zarr-py >= 0.18 (pinned `<0.18` in pyproject.toml)
 
 ome-zarr-py 0.18 introduced a class-based API (`OMEZarrImage` / `OMEZarrMultiscale`, 0.6 from 0.19), and
 `write_image` / `write_multiscale` now go through it. Checked with 0.21.0, our writer then loses metadata for
