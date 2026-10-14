@@ -39,8 +39,9 @@ Mapping onto the imaging metadata model is done (and tracked) in imaging-metadat
 
 ### Conversion
 
-- `convert()` retries every exception `RETRY_ATTEMPTS` times, also deterministic ones, and its error
-  message reports `RETRY_ATTEMPTS` instead of the `max_attempts` used.
+- `convert()` retries every exception `max_attempts` times, also deterministic ones.
+- OME-Zarr has no RGB flag: 8-bit 3/4-channel images are taken as RGB(A) (`OmeZarrSource.is_rgb`), others as
+  separate channels (fixed in v0.2.1: before, any 3/4-channel OME-Zarr failed to convert to OME-TIFF).
 - MIRAX conversion is very slow (single-threaded `read_region` via dask): `sample4.mrxs` took 40+ min for
   one format. iSyntax takes ~9 min per OME-Zarr format.
 - NumPy 2.5 deprecates setting an array's shape, which tifffile still does when reading (DeprecationWarning).
@@ -74,7 +75,7 @@ The class API writes 0.6 for single images, but builds the pyramid itself (we pa
 ## TODO
 
 - Report the SMB `PermissionError` case upstream to zarr-python (`set_if_not_exists`).
-- Don't retry deterministic errors in `convert()`; fix the retry count in its message.
+- Don't retry deterministic errors in `convert()`.
 - Port `OmeZarrWriter` to ome-zarr-py >= 0.18 (pass `scale`, `axes_units`, `scale_factors`, `omero=`; find a
   way to keep positions and source pyramid levels), then use its native 0.6 support and drop our 0.6 conversion
   and the `<0.18` pin. Consider reporting upstream that `write_image` silently ignores `coordinate_transformations`.
