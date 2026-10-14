@@ -21779,7 +21779,7 @@ otherwise the version of the installed package (taken from the tag when it was b
     <span class="n">slices</span> <span class="o">=</span> <span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">dim_order</span><span class="p">)</span>
     <span class="k">if</span> <span class="s1">'t'</span> <span class="ow">in</span> <span class="n">dim_order</span><span class="p">:</span>
         <span class="n">slices</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'t'</span><span class="p">)]</span> <span class="o">=</span> <span class="n">t</span>
-    <span class="k">if</span> <span class="s1">'c'</span> <span class="ow">in</span> <span class="n">dim_order</span><span class="p">:</span>
+    <span class="k">if</span> <span class="s1">'c'</span> <span class="ow">in</span> <span class="n">dim_order</span> <span class="ow">and</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># None: all channels</span>
         <span class="n">slices</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'c'</span><span class="p">)]</span> <span class="o">=</span> <span class="n">c</span>
     <span class="k">if</span> <span class="s1">'z'</span> <span class="ow">in</span> <span class="n">dim_order</span><span class="p">:</span>
         <span class="n">slices</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'z'</span><span class="p">)]</span> <span class="o">=</span> <span class="n">z</span>
@@ -21796,7 +21796,7 @@ otherwise the version of the installed package (taken from the tag when it was b
 
 
 <h3 id="biomero_converter.ImageDbSource.get_pyramid_levels" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">max_levels</span><span class="p">,</span> <span class="n">downscale</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">max_levels</span><span class="p">,</span> <span class="n">downscale</span><span class="p">,</span> <span class="n">min_level_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></code>
 
 </h3>
 
@@ -21812,11 +21812,11 @@ otherwise the version of the installed package (taken from the tag when it was b
 <span class="normal">61</span>
 <span class="normal">62</span>
 <span class="normal">63</span>
-<span class="normal">64</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">max_levels</span><span class="p">,</span> <span class="n">downscale</span><span class="p">):</span>
-    <span class="c1"># limit number of pyramid levels, keeping the smallest level at least 1 pixel</span>
+<span class="normal">64</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">max_levels</span><span class="p">,</span> <span class="n">downscale</span><span class="p">,</span> <span class="n">min_level_size</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="c1"># limit number of pyramid levels, keeping the smallest level at least min_level_size pixels</span>
     <span class="n">min_size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'x'</span><span class="p">)],</span> <span class="n">shape</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'y'</span><span class="p">)])</span>
     <span class="n">levels</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">while</span> <span class="n">levels</span> <span class="o">&lt;</span> <span class="n">max_levels</span> <span class="ow">and</span> <span class="n">min_size</span> <span class="o">/</span> <span class="n">downscale</span> <span class="o">**</span> <span class="p">(</span><span class="n">levels</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">while</span> <span class="n">levels</span> <span class="o">&lt;</span> <span class="n">max_levels</span> <span class="ow">and</span> <span class="n">min_size</span> <span class="o">/</span> <span class="n">downscale</span> <span class="o">**</span> <span class="p">(</span><span class="n">levels</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">min_level_size</span><span class="p">:</span>
         <span class="n">levels</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">return</span> <span class="n">levels</span>
 </code></pre></div></td></tr></table></div>
@@ -32988,7 +32988,11 @@ otherwise the version of the installed package (taken from the tag when it was b
 <span class="normal">238</span>
 <span class="normal">239</span>
 <span class="normal">240</span>
-<span class="normal">241</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">OmeTiffWriter</span><span class="p">(</span><span class="n">OmeWriter</span><span class="p">):</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">OmeTiffWriter</span><span class="p">(</span><span class="n">OmeWriter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Writes image data and metadata to OME-TIFF files.</span>
 <span class="sd">    """</span>
@@ -33055,7 +33059,7 @@ otherwise the version of the installed package (taken from the tag when it was b
         <span class="n">window</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">output_paths</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">filepath</span><span class="p">,</span> <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-        <span class="n">filetitle</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filename</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">'.ome'</span><span class="p">)</span>
+        <span class="n">filetitle</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filename</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">removesuffix</span><span class="p">(</span><span class="s1">'.ome'</span><span class="p">)</span>
 
         <span class="n">companion_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">filetitle</span> <span class="o">+</span> <span class="s1">'.companion.ome'</span><span class="p">)</span>
         <span class="n">companion_uuid</span> <span class="o">=</span> <span class="n">create_uuid</span><span class="p">()</span>
@@ -33151,7 +33155,9 @@ otherwise the version of the installed package (taken from the tag when it was b
         <span class="n">is_generator</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isgeneratorfunction</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">is_generator</span><span class="p">:</span>
             <span class="n">data_generator</span> <span class="o">=</span> <span class="n">data</span>
-            <span class="n">shape</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="c1"># the source's shape in this writer's dim order (they differ e.g. for RGB: channels last)</span>
+            <span class="n">source_shape</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">get_dim_order</span><span class="p">(),</span> <span class="n">source</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()))</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">source_shape</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span><span class="p">]</span>
             <span class="n">dtype</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">get_dtype</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">shape</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
@@ -33159,7 +33165,9 @@ otherwise the version of the installed package (taken from the tag when it was b
 
         <span class="n">x_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'x'</span><span class="p">)</span>
         <span class="n">y_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'y'</span><span class="p">)</span>
-        <span class="n">pyramid_levels</span> <span class="o">=</span> <span class="n">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span><span class="p">,</span> <span class="n">pyramid_levels</span><span class="p">,</span> <span class="n">pyramid_downscale</span><span class="p">)</span>
+        <span class="c1"># tifffile cannot write a 1x1 pixel level of multi-dimensional (e.g. multi-channel) data</span>
+        <span class="n">pyramid_levels</span> <span class="o">=</span> <span class="n">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span><span class="p">,</span> <span class="n">pyramid_levels</span><span class="p">,</span> <span class="n">pyramid_downscale</span><span class="p">,</span>
+                                            <span class="n">min_level_size</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">tile_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tile_size</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
                 <span class="n">tile_size</span> <span class="o">=</span> <span class="p">[</span><span class="n">tile_size</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
@@ -33935,7 +33943,7 @@ otherwise the version of the installed package (taken from the tag when it was b
     <span class="n">slices</span> <span class="o">=</span> <span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">dim_order</span><span class="p">)</span>
     <span class="k">if</span> <span class="s1">'t'</span> <span class="ow">in</span> <span class="n">dim_order</span><span class="p">:</span>
         <span class="n">slices</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'t'</span><span class="p">)]</span> <span class="o">=</span> <span class="n">t</span>
-    <span class="k">if</span> <span class="s1">'c'</span> <span class="ow">in</span> <span class="n">dim_order</span><span class="p">:</span>
+    <span class="k">if</span> <span class="s1">'c'</span> <span class="ow">in</span> <span class="n">dim_order</span> <span class="ow">and</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># None: all channels</span>
         <span class="n">slices</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'c'</span><span class="p">)]</span> <span class="o">=</span> <span class="n">c</span>
     <span class="k">if</span> <span class="s1">'z'</span> <span class="ow">in</span> <span class="n">dim_order</span><span class="p">:</span>
         <span class="n">slices</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'z'</span><span class="p">)]</span> <span class="o">=</span> <span class="n">z</span>
@@ -33952,7 +33960,7 @@ otherwise the version of the installed package (taken from the tag when it was b
 
 
 <h3 id="biomero_converter.OmeTiffWriter.get_pyramid_levels" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">max_levels</span><span class="p">,</span> <span class="n">downscale</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">max_levels</span><span class="p">,</span> <span class="n">downscale</span><span class="p">,</span> <span class="n">min_level_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></code>
 
 </h3>
 
@@ -33968,11 +33976,11 @@ otherwise the version of the installed package (taken from the tag when it was b
 <span class="normal">61</span>
 <span class="normal">62</span>
 <span class="normal">63</span>
-<span class="normal">64</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">max_levels</span><span class="p">,</span> <span class="n">downscale</span><span class="p">):</span>
-    <span class="c1"># limit number of pyramid levels, keeping the smallest level at least 1 pixel</span>
+<span class="normal">64</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">max_levels</span><span class="p">,</span> <span class="n">downscale</span><span class="p">,</span> <span class="n">min_level_size</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="c1"># limit number of pyramid levels, keeping the smallest level at least min_level_size pixels</span>
     <span class="n">min_size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'x'</span><span class="p">)],</span> <span class="n">shape</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'y'</span><span class="p">)])</span>
     <span class="n">levels</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">while</span> <span class="n">levels</span> <span class="o">&lt;</span> <span class="n">max_levels</span> <span class="ow">and</span> <span class="n">min_size</span> <span class="o">/</span> <span class="n">downscale</span> <span class="o">**</span> <span class="p">(</span><span class="n">levels</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">while</span> <span class="n">levels</span> <span class="o">&lt;</span> <span class="n">max_levels</span> <span class="ow">and</span> <span class="n">min_size</span> <span class="o">/</span> <span class="n">downscale</span> <span class="o">**</span> <span class="p">(</span><span class="n">levels</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">min_level_size</span><span class="p">:</span>
         <span class="n">levels</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">return</span> <span class="n">levels</span>
 </code></pre></div></td></tr></table></div>
@@ -35514,7 +35522,15 @@ otherwise the version of the installed package (taken from the tag when it was b
 <span class="normal">232</span>
 <span class="normal">233</span>
 <span class="normal">234</span>
-<span class="normal">235</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">OmeZarrSource</span><span class="p">(</span><span class="n">ImageSource</span><span class="p">):</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">OmeZarrSource</span><span class="p">(</span><span class="n">ImageSource</span><span class="p">):</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_reader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">add_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">uri</span>
@@ -35597,7 +35613,7 @@ otherwise the version of the installed package (taken from the tag when it was b
             <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">image_node</span><span class="o">.</span><span class="n">data</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">get_filetitle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uri</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">'.ome'</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">removesuffix</span><span class="p">(</span><span class="s1">'.ome'</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">shapes</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">image_node</span><span class="o">.</span><span class="n">data</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shapes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -35657,17 +35673,24 @@ otherwise the version of the installed package (taken from the tag when it was b
             <span class="n">level_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">level</span><span class="p">]</span>
             <span class="n">read_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">TILE_SIZE</span> <span class="o">/</span> <span class="n">rescale</span><span class="p">)</span>
             <span class="n">nz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'z'</span><span class="p">)]</span> <span class="k">if</span> <span class="s1">'z'</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span> <span class="k">else</span> <span class="mi">1</span>
+            <span class="c1"># RGB(A) is written with the channels as samples (last): each tile holds all channels</span>
+            <span class="n">samples</span> <span class="o">=</span> <span class="n">dim_order</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">'c'</span><span class="p">)</span>
+            <span class="n">channels</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="k">if</span> <span class="n">samples</span> <span class="k">else</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_nchannels</span><span class="p">())</span>
+            <span class="n">tile_dims</span> <span class="o">=</span> <span class="s1">'yxc'</span> <span class="k">if</span> <span class="n">samples</span> <span class="k">else</span> <span class="s1">'yx'</span>
+            <span class="n">data_order</span> <span class="o">=</span> <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dim</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span> <span class="k">if</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">tile_dims</span><span class="p">)</span>
+            <span class="n">tile_order</span> <span class="o">=</span> <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dim</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">dim_order</span> <span class="k">if</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">tile_dims</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_time_points</span><span class="p">())):</span>
-                <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_nchannels</span><span class="p">()):</span>
+                <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">channels</span><span class="p">:</span>
                     <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nz</span><span class="p">):</span>
                         <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">heights</span><span class="p">[</span><span class="n">level</span><span class="p">],</span> <span class="n">read_size</span><span class="p">):</span>
                             <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">widths</span><span class="p">[</span><span class="n">level</span><span class="p">],</span> <span class="n">read_size</span><span class="p">):</span>
-                                <span class="n">data</span> <span class="o">=</span> <span class="n">get_numpy_data</span><span class="p">(</span><span class="n">level_data</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">read_size</span><span class="p">,</span> <span class="n">read_size</span><span class="p">)</span>
+                                <span class="n">data</span> <span class="o">=</span> <span class="n">get_numpy_data</span><span class="p">(</span><span class="n">level_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">read_size</span><span class="p">,</span> <span class="n">read_size</span><span class="p">)</span>
                                 <span class="k">if</span> <span class="n">rescale</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-                                    <span class="n">data</span> <span class="o">=</span> <span class="n">sk_transform</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">data</span><span class="p">,</span>
-                                                               <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">*</span> <span class="n">rescale</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+                                    <span class="n">new_shape</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">size</span> <span class="o">*</span> <span class="n">rescale</span><span class="p">)</span> <span class="k">if</span> <span class="n">dim</span> <span class="ow">in</span> <span class="s1">'yx'</span> <span class="k">else</span> <span class="n">size</span>
+                                                 <span class="k">for</span> <span class="n">dim</span><span class="p">,</span> <span class="n">size</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">data_order</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)]</span>
+                                    <span class="n">data</span> <span class="o">=</span> <span class="n">sk_transform</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">new_shape</span><span class="p">,</span>
                                                                <span class="n">preserve_range</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-                                <span class="k">yield</span> <span class="n">redimension_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">)</span>
+                                <span class="k">yield</span> <span class="n">redimension_data</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">data_order</span><span class="p">,</span> <span class="n">tile_order</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">data_generator</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_image_window</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">window_scanner</span><span class="p">,</span> <span class="n">well_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">field_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -35707,7 +35730,8 @@ otherwise the version of the installed package (taken from the tag when it was b
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'c'</span><span class="p">)]</span> <span class="k">if</span> <span class="s1">'c'</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span> <span class="k">else</span> <span class="mi">1</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">is_rgb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_nchannels</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="c1"># OME-Zarr has no RGB flag: 8-bit 3/4-channel images are taken as RGB(A), not e.g. 16-bit fluorescence</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_nchannels</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dtype</span><span class="p">()</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">uint8</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
@@ -35766,8 +35790,8 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">228</span>
-<span class="normal">229</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_acquisition_datetime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">236</span>
+<span class="normal">237</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_acquisition_datetime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">acquisition_datetime</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -35789,8 +35813,8 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">234</span>
-<span class="normal">235</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_acquisition_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">242</span>
+<span class="normal">243</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_acquisition_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">microscope_info</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -35812,8 +35836,8 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">225</span>
-<span class="normal">226</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_acquisitions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">233</span>
+<span class="normal">234</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_acquisitions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">acquisitions</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -35835,8 +35859,8 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">200</span>
-<span class="normal">201</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">207</span>
+<span class="normal">208</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">channels</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -35858,8 +35882,8 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">212</span>
-<span class="normal">213</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">220</span>
+<span class="normal">221</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -35931,23 +35955,37 @@ otherwise the version of the installed package (taken from the tag when it was b
 <span class="normal">165</span>
 <span class="normal">166</span>
 <span class="normal">167</span>
-<span class="normal">168</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_data_as_generator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_data_as_generator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">data_generator</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
         <span class="n">level</span><span class="p">,</span> <span class="n">rescale</span> <span class="o">=</span> <span class="n">get_level_from_scale</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scales</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>
         <span class="n">level_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">level</span><span class="p">]</span>
         <span class="n">read_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">TILE_SIZE</span> <span class="o">/</span> <span class="n">rescale</span><span class="p">)</span>
         <span class="n">nz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'z'</span><span class="p">)]</span> <span class="k">if</span> <span class="s1">'z'</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="c1"># RGB(A) is written with the channels as samples (last): each tile holds all channels</span>
+        <span class="n">samples</span> <span class="o">=</span> <span class="n">dim_order</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">'c'</span><span class="p">)</span>
+        <span class="n">channels</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="k">if</span> <span class="n">samples</span> <span class="k">else</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_nchannels</span><span class="p">())</span>
+        <span class="n">tile_dims</span> <span class="o">=</span> <span class="s1">'yxc'</span> <span class="k">if</span> <span class="n">samples</span> <span class="k">else</span> <span class="s1">'yx'</span>
+        <span class="n">data_order</span> <span class="o">=</span> <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dim</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span> <span class="k">if</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">tile_dims</span><span class="p">)</span>
+        <span class="n">tile_order</span> <span class="o">=</span> <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dim</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">dim_order</span> <span class="k">if</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">tile_dims</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_time_points</span><span class="p">())):</span>
-            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_nchannels</span><span class="p">()):</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">channels</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nz</span><span class="p">):</span>
                     <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">heights</span><span class="p">[</span><span class="n">level</span><span class="p">],</span> <span class="n">read_size</span><span class="p">):</span>
                         <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">widths</span><span class="p">[</span><span class="n">level</span><span class="p">],</span> <span class="n">read_size</span><span class="p">):</span>
-                            <span class="n">data</span> <span class="o">=</span> <span class="n">get_numpy_data</span><span class="p">(</span><span class="n">level_data</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">read_size</span><span class="p">,</span> <span class="n">read_size</span><span class="p">)</span>
+                            <span class="n">data</span> <span class="o">=</span> <span class="n">get_numpy_data</span><span class="p">(</span><span class="n">level_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">read_size</span><span class="p">,</span> <span class="n">read_size</span><span class="p">)</span>
                             <span class="k">if</span> <span class="n">rescale</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-                                <span class="n">data</span> <span class="o">=</span> <span class="n">sk_transform</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">data</span><span class="p">,</span>
-                                                           <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">*</span> <span class="n">rescale</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+                                <span class="n">new_shape</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">size</span> <span class="o">*</span> <span class="n">rescale</span><span class="p">)</span> <span class="k">if</span> <span class="n">dim</span> <span class="ow">in</span> <span class="s1">'yx'</span> <span class="k">else</span> <span class="n">size</span>
+                                             <span class="k">for</span> <span class="n">dim</span><span class="p">,</span> <span class="n">size</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">data_order</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)]</span>
+                                <span class="n">data</span> <span class="o">=</span> <span class="n">sk_transform</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">new_shape</span><span class="p">,</span>
                                                            <span class="n">preserve_range</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-                            <span class="k">yield</span> <span class="n">redimension_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">)</span>
+                            <span class="k">yield</span> <span class="n">redimension_data</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">data_order</span><span class="p">,</span> <span class="n">tile_order</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">data_generator</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -35969,8 +36007,8 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">181</span>
-<span class="normal">182</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_dim_order</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">188</span>
+<span class="normal">189</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_dim_order</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -35992,8 +36030,8 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">184</span>
-<span class="normal">185</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">191</span>
+<span class="normal">192</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -36015,8 +36053,8 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">222</span>
-<span class="normal">223</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">230</span>
+<span class="normal">231</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -36038,13 +36076,13 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">170</span>
-<span class="normal">171</span>
-<span class="normal">172</span>
-<span class="normal">173</span>
-<span class="normal">174</span>
-<span class="normal">175</span>
-<span class="normal">176</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_image_window</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">window_scanner</span><span class="p">,</span> <span class="n">well_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">field_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_image_window</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">window_scanner</span><span class="p">,</span> <span class="n">well_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">field_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">well_id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">field_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span>
     <span class="k">else</span><span class="p">:</span>
@@ -36071,8 +36109,8 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">178</span>
-<span class="normal">179</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">185</span>
+<span class="normal">186</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -36094,8 +36132,8 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">203</span>
-<span class="normal">204</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_nchannels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">210</span>
+<span class="normal">211</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_nchannels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'c'</span><span class="p">)]</span> <span class="k">if</span> <span class="s1">'c'</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span> <span class="k">else</span> <span class="mi">1</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -36117,8 +36155,8 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">187</span>
-<span class="normal">188</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_pixel_size_um</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">194</span>
+<span class="normal">195</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_pixel_size_um</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_size</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -36140,15 +36178,15 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">190</span>
-<span class="normal">191</span>
-<span class="normal">192</span>
-<span class="normal">193</span>
-<span class="normal">194</span>
-<span class="normal">195</span>
-<span class="normal">196</span>
-<span class="normal">197</span>
-<span class="normal">198</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_position_um</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">well_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_position_um</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">well_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">well_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">[</span><span class="n">well_id</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
     <span class="k">else</span><span class="p">:</span>
@@ -36177,8 +36215,8 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">209</span>
-<span class="normal">210</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">217</span>
+<span class="normal">218</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -36269,8 +36307,8 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">231</span>
-<span class="normal">232</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_significant_bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">239</span>
+<span class="normal">240</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_significant_bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bits_per_pixel</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -36292,9 +36330,9 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">218</span>
-<span class="normal">219</span>
-<span class="normal">220</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_time_points</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_time_points</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">nt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'t'</span><span class="p">)]</span> <span class="k">if</span> <span class="s1">'t'</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_order</span> <span class="k">else</span> <span class="mi">1</span>
     <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nt</span><span class="p">))</span>
 </code></pre></div></td></tr></table></div>
@@ -36317,8 +36355,8 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">215</span>
-<span class="normal">216</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_wells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">223</span>
+<span class="normal">224</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_wells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">wells</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -36478,7 +36516,7 @@ otherwise the version of the installed package (taken from the tag when it was b
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">image_node</span><span class="o">.</span><span class="n">data</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">get_filetitle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uri</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">'.ome'</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">removesuffix</span><span class="p">(</span><span class="s1">'.ome'</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">shapes</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">image_node</span><span class="o">.</span><span class="n">data</span><span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shapes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -36531,9 +36569,11 @@ otherwise the version of the installed package (taken from the tag when it was b
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/biomero_converter/OmeZarrSource.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">206</span>
-<span class="normal">207</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_rgb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_nchannels</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_rgb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># OME-Zarr has no RGB flag: 8-bit 3/4-channel images are taken as RGB(A), not e.g. 16-bit fluorescence</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_nchannels</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dtype</span><span class="p">()</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">uint8</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -40967,7 +41007,7 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
             <span class="n">name</span> <span class="o">=</span> <span class="n">get_filetitle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uri</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">'.ome'</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">removesuffix</span><span class="p">(</span><span class="s1">'.ome'</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">acquisition_datetime</span> <span class="o">=</span> <span class="n">acquisition_datetime</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">acquisition_end_datetime</span> <span class="o">=</span> <span class="n">acquisition_end_datetime</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">is_plate</span> <span class="o">=</span> <span class="n">is_plate</span>
@@ -42095,7 +42135,7 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
         <span class="n">name</span> <span class="o">=</span> <span class="n">get_filetitle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uri</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">'.ome'</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">removesuffix</span><span class="p">(</span><span class="s1">'.ome'</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">acquisition_datetime</span> <span class="o">=</span> <span class="n">acquisition_datetime</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">acquisition_end_datetime</span> <span class="o">=</span> <span class="n">acquisition_end_datetime</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">is_plate</span> <span class="o">=</span> <span class="n">is_plate</span>
@@ -43943,7 +43983,7 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">attempts</span> <span class="o">&gt;=</span> <span class="n">max_attempts</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Conversion failed after </span><span class="si">{</span><span class="n">RETRY_ATTEMPTS</span><span class="si">}</span><span class="s1"> attempts: </span><span class="si">{</span><span class="n">input_filename</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Conversion failed after </span><span class="si">{</span><span class="n">max_attempts</span><span class="si">}</span><span class="s1"> attempts: </span><span class="si">{</span><span class="n">input_filename</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
         <span class="n">attempts</span> <span class="o">+=</span> <span class="mi">1</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -46210,7 +46250,7 @@ The legacy names 'omezarr2' and 'omezarr3' (Zarr version) are still accepted.</p
     <span class="n">slices</span> <span class="o">=</span> <span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">dim_order</span><span class="p">)</span>
     <span class="k">if</span> <span class="s1">'t'</span> <span class="ow">in</span> <span class="n">dim_order</span><span class="p">:</span>
         <span class="n">slices</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'t'</span><span class="p">)]</span> <span class="o">=</span> <span class="n">t</span>
-    <span class="k">if</span> <span class="s1">'c'</span> <span class="ow">in</span> <span class="n">dim_order</span><span class="p">:</span>
+    <span class="k">if</span> <span class="s1">'c'</span> <span class="ow">in</span> <span class="n">dim_order</span> <span class="ow">and</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># None: all channels</span>
         <span class="n">slices</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'c'</span><span class="p">)]</span> <span class="o">=</span> <span class="n">c</span>
     <span class="k">if</span> <span class="s1">'z'</span> <span class="ow">in</span> <span class="n">dim_order</span><span class="p">:</span>
         <span class="n">slices</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'z'</span><span class="p">)]</span> <span class="o">=</span> <span class="n">z</span>
@@ -46227,7 +46267,7 @@ The legacy names 'omezarr2' and 'omezarr3' (Zarr version) are still accepted.</p
 
 
 <h3 id="biomero_converter.ome_tiff_util.get_pyramid_levels" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">max_levels</span><span class="p">,</span> <span class="n">downscale</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">max_levels</span><span class="p">,</span> <span class="n">downscale</span><span class="p">,</span> <span class="n">min_level_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></code>
 
 </h3>
 
@@ -46243,11 +46283,11 @@ The legacy names 'omezarr2' and 'omezarr3' (Zarr version) are still accepted.</p
 <span class="normal">61</span>
 <span class="normal">62</span>
 <span class="normal">63</span>
-<span class="normal">64</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">max_levels</span><span class="p">,</span> <span class="n">downscale</span><span class="p">):</span>
-    <span class="c1"># limit number of pyramid levels, keeping the smallest level at least 1 pixel</span>
+<span class="normal">64</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">max_levels</span><span class="p">,</span> <span class="n">downscale</span><span class="p">,</span> <span class="n">min_level_size</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="c1"># limit number of pyramid levels, keeping the smallest level at least min_level_size pixels</span>
     <span class="n">min_size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'x'</span><span class="p">)],</span> <span class="n">shape</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'y'</span><span class="p">)])</span>
     <span class="n">levels</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">while</span> <span class="n">levels</span> <span class="o">&lt;</span> <span class="n">max_levels</span> <span class="ow">and</span> <span class="n">min_size</span> <span class="o">/</span> <span class="n">downscale</span> <span class="o">**</span> <span class="p">(</span><span class="n">levels</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">while</span> <span class="n">levels</span> <span class="o">&lt;</span> <span class="n">max_levels</span> <span class="ow">and</span> <span class="n">min_size</span> <span class="o">/</span> <span class="n">downscale</span> <span class="o">**</span> <span class="p">(</span><span class="n">levels</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">min_level_size</span><span class="p">:</span>
         <span class="n">levels</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">return</span> <span class="n">levels</span>
 </code></pre></div></td></tr></table></div>
@@ -51559,7 +51599,7 @@ its neighbours, which is where the unit of a bare number is named.</p>
     <span class="n">slices</span> <span class="o">=</span> <span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">dim_order</span><span class="p">)</span>
     <span class="k">if</span> <span class="s1">'t'</span> <span class="ow">in</span> <span class="n">dim_order</span><span class="p">:</span>
         <span class="n">slices</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'t'</span><span class="p">)]</span> <span class="o">=</span> <span class="n">t</span>
-    <span class="k">if</span> <span class="s1">'c'</span> <span class="ow">in</span> <span class="n">dim_order</span><span class="p">:</span>
+    <span class="k">if</span> <span class="s1">'c'</span> <span class="ow">in</span> <span class="n">dim_order</span> <span class="ow">and</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># None: all channels</span>
         <span class="n">slices</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'c'</span><span class="p">)]</span> <span class="o">=</span> <span class="n">c</span>
     <span class="k">if</span> <span class="s1">'z'</span> <span class="ow">in</span> <span class="n">dim_order</span><span class="p">:</span>
         <span class="n">slices</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'z'</span><span class="p">)]</span> <span class="o">=</span> <span class="n">z</span>
@@ -51576,7 +51616,7 @@ its neighbours, which is where the unit of a bare number is named.</p>
 
 
 <h3 id="biomero_converter.util.get_pyramid_levels" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">max_levels</span><span class="p">,</span> <span class="n">downscale</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">max_levels</span><span class="p">,</span> <span class="n">downscale</span><span class="p">,</span> <span class="n">min_level_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></code>
 
 </h3>
 
@@ -51592,11 +51632,11 @@ its neighbours, which is where the unit of a bare number is named.</p>
 <span class="normal">61</span>
 <span class="normal">62</span>
 <span class="normal">63</span>
-<span class="normal">64</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">max_levels</span><span class="p">,</span> <span class="n">downscale</span><span class="p">):</span>
-    <span class="c1"># limit number of pyramid levels, keeping the smallest level at least 1 pixel</span>
+<span class="normal">64</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_pyramid_levels</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dim_order</span><span class="p">,</span> <span class="n">max_levels</span><span class="p">,</span> <span class="n">downscale</span><span class="p">,</span> <span class="n">min_level_size</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="c1"># limit number of pyramid levels, keeping the smallest level at least min_level_size pixels</span>
     <span class="n">min_size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'x'</span><span class="p">)],</span> <span class="n">shape</span><span class="p">[</span><span class="n">dim_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'y'</span><span class="p">)])</span>
     <span class="n">levels</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">while</span> <span class="n">levels</span> <span class="o">&lt;</span> <span class="n">max_levels</span> <span class="ow">and</span> <span class="n">min_size</span> <span class="o">/</span> <span class="n">downscale</span> <span class="o">**</span> <span class="p">(</span><span class="n">levels</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">while</span> <span class="n">levels</span> <span class="o">&lt;</span> <span class="n">max_levels</span> <span class="ow">and</span> <span class="n">min_size</span> <span class="o">/</span> <span class="n">downscale</span> <span class="o">**</span> <span class="p">(</span><span class="n">levels</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">min_level_size</span><span class="p">:</span>
         <span class="n">levels</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">return</span> <span class="n">levels</span>
 </code></pre></div></td></tr></table></div>
