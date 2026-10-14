@@ -79,7 +79,7 @@ class OmeTiffWriter(OmeWriter):
         window = []
         output_paths = []
         filepath, filename = os.path.split(filename)
-        filetitle = os.path.splitext(filename)[0].rstrip('.ome')
+        filetitle = os.path.splitext(filename)[0].removesuffix('.ome')
 
         companion_filename = os.path.join(filepath, filetitle + '.companion.ome')
         companion_uuid = create_uuid()
@@ -175,7 +175,9 @@ class OmeTiffWriter(OmeWriter):
         is_generator = inspect.isgeneratorfunction(data)
         if is_generator:
             data_generator = data
-            shape = list(source.shape)
+            # the source's shape in this writer's dim order (they differ e.g. for RGB: channels last)
+            source_shape = dict(zip(source.get_dim_order(), source.get_shape()))
+            shape = [source_shape.get(dim, 1) for dim in self.dim_order]
             dtype = source.get_dtype()
         else:
             shape = list(data.shape)
@@ -183,7 +185,9 @@ class OmeTiffWriter(OmeWriter):
 
         x_index = self.dim_order.index('x')
         y_index = self.dim_order.index('y')
-        pyramid_levels = get_pyramid_levels(shape, self.dim_order, pyramid_levels, pyramid_downscale)
+        # tifffile cannot write a 1x1 pixel level of multi-dimensional (e.g. multi-channel) data
+        pyramid_levels = get_pyramid_levels(shape, self.dim_order, pyramid_levels, pyramid_downscale,
+                                            min_level_size=2)
         if tile_size is not None:
             if isinstance(tile_size, int):
                 tile_size = [tile_size] * 2

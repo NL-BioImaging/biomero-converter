@@ -94,7 +94,7 @@ class OmeZarrSource(ImageSource):
             self.data = image_node.data
         if not self.name:
             self.name = get_filetitle(self.uri)
-        self.name = str(self.name).rstrip('.ome')
+        self.name = str(self.name).removesuffix('.ome')
 
         self.shapes = [data.shape for data in image_node.data]
         self.shape = self.shapes[0]
@@ -154,17 +154,24 @@ class OmeZarrSource(ImageSource):
             level_data = self.data[level]
             read_size = int(TILE_SIZE / rescale)
             nz = self.shape[self.dim_order.index('z')] if 'z' in self.dim_order else 1
+            # RGB(A) is written with the channels as samples (last): each tile holds all channels
+            samples = dim_order.endswith('c')
+            channels = [None] if samples else range(self.get_nchannels())
+            tile_dims = 'yxc' if samples else 'yx'
+            data_order = ''.join(dim for dim in self.dim_order if dim in tile_dims)
+            tile_order = ''.join(dim for dim in dim_order if dim in tile_dims)
             for t in range(len(self.get_time_points())):
-                for c in range(self.get_nchannels()):
+                for c in channels:
                     for z in range(nz):
                         for y in range(0, self.heights[level], read_size):
                             for x in range(0, self.widths[level], read_size):
-                                data = get_numpy_data(level_data, dim_order, t, c, z, y, x, read_size, read_size)
+                                data = get_numpy_data(level_data, self.dim_order, t, c, z, y, x, read_size, read_size)
                                 if rescale != 1:
-                                    data = sk_transform.resize(data,
-                                                               (np.array(data.shape) * rescale).astype(int),
+                                    new_shape = [int(size * rescale) if dim in 'yx' else size
+                                                 for dim, size in zip(data_order, data.shape)]
+                                    data = sk_transform.resize(data, new_shape,
                                                                preserve_range=True).astype(data.dtype)
-                                yield redimension_data(data, self.dim_order, dim_order)
+                                yield redimension_data(np.asarray(data), data_order, tile_order)
         return data_generator
 
     def get_image_window(self, window_scanner, well_id=None, field_id=None, data=None):
@@ -204,7 +211,8 @@ class OmeZarrSource(ImageSource):
         return self.shape[self.dim_order.index('c')] if 'c' in self.dim_order else 1
 
     def is_rgb(self):
-        return self.get_nchannels() in (3, 4)
+        # OME-Zarr has no RGB flag: 8-bit 3/4-channel images are taken as RGB(A), not e.g. 16-bit fluorescence
+        return self.get_nchannels() in (3, 4) and self.get_dtype() == np.uint8
 
     def get_rows(self):
         return self.rows

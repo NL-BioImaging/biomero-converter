@@ -129,7 +129,7 @@ class TiffSource(ImageSource):
 
         if not name:
             name = get_filetitle(self.uri)
-        self.name = os.path.splitext(str(name))[0].rstrip('.ome')
+        self.name = os.path.splitext(str(name))[0].removesuffix('.ome')
         self.acquisition_datetime = acquisition_datetime
         self.acquisition_end_datetime = acquisition_end_datetime
         self.is_plate = is_plate

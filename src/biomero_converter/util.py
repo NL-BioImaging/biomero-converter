@@ -46,7 +46,7 @@ def get_numpy_data(data, dim_order, t, c, z, y, x, y_size, x_size):
     slices = [slice(None)] * len(dim_order)
     if 't' in dim_order:
         slices[dim_order.index('t')] = t
-    if 'c' in dim_order:
+    if 'c' in dim_order and c is not None:  # None: all channels
         slices[dim_order.index('c')] = c
     if 'z' in dim_order:
         slices[dim_order.index('z')] = z
@@ -55,11 +55,11 @@ def get_numpy_data(data, dim_order, t, c, z, y, x, y_size, x_size):
     return data[tuple(slices)]
 
 
-def get_pyramid_levels(shape, dim_order, max_levels, downscale):
-    # limit number of pyramid levels, keeping the smallest level at least 1 pixel
+def get_pyramid_levels(shape, dim_order, max_levels, downscale, min_level_size=1):
+    # limit number of pyramid levels, keeping the smallest level at least min_level_size pixels
     min_size = min(shape[dim_order.index('x')], shape[dim_order.index('y')])
     levels = 0
-    while levels < max_levels and min_size / downscale ** (levels + 1) >= 1:
+    while levels < max_levels and min_size / downscale ** (levels + 1) >= min_level_size:
         levels += 1
     return levels
 

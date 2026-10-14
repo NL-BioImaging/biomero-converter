@@ -41,7 +41,7 @@ def convert(input_filename, output_folder, alt_output_folder=None,
         except Exception as e:
             if attempts >= max_attempts - 1:
                 logging.error(e)
-                raise Exception(f'Conversion failed after {RETRY_ATTEMPTS} attempts: {input_filename}')
+                raise Exception(f'Conversion failed after {max_attempts} attempts: {input_filename}')
         attempts += 1
 
 
@@ -201,8 +201,9 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
 
     if 'window' in output:
         window = np.array(output.pop('window')).tolist()
-        output['channel_mins'] = window[0]
-        output['channel_maxs'] = window[1]
+        if len(window) == 2:  # empty when the source has no value range (e.g. OME-Zarr without omero)
+            output['channel_mins'] = window[0]
+            output['channel_maxs'] = window[1]
 
     if output:
         result['keyvalues'] = [output]
