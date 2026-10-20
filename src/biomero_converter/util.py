@@ -5,6 +5,7 @@ import os.path
 from collections.abc import Sequence
 from decimal import Decimal
 from enum import Enum
+import numbers
 import re
 
 
@@ -256,6 +257,9 @@ def to_plain_types(obj):
         return obj.name
     if obj is None or isinstance(obj, (bool, int, float, str, datetime)):
         return obj
+    if isinstance(obj, numbers.Real):
+        # e.g. a rational (Pillow's Exif IFDRational)
+        return float(obj)
     return str(obj)
 
 

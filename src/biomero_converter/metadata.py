@@ -41,7 +41,23 @@ IDENTITY_TAG_NAMES = ('Make', 'Model', 'Software', 'HostComputer')
 XSI_NAMESPACE = '{http://www.w3.org/2001/XMLSchema-instance}'
 
 
-def get_extra_metadata(tif: TiffFile) -> Dict[str, Any]:
+
+def get_extra_metadata(metadata: dict) -> Dict[str, Any]:
+    """Return the vendor metadata.
+    """
+    extra_metadata = {}
+    for key, value in metadata.items():
+        if key == EXIF_TAG_NAME and isinstance(value, dict):
+            for name, field in value.items():
+                extra_metadata.setdefault(name, field)
+        else:
+            # key by tag name, so that different vendor tags in one
+            # file are kept side by side
+            extra_metadata.setdefault(key, value)
+    return repair_text(extra_metadata)
+
+
+def get_extra_metadata_tiff(tif: TiffFile) -> Dict[str, Any]:
     """Return the vendor metadata in a TIFF file.
 
     Rather than reading the tags of particular vendors, every private tag

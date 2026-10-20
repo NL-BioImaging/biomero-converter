@@ -34,7 +34,7 @@ Only simulated locally; not yet confirmed on the reporter's `L:` share.
 
 Mapping onto the imaging metadata model is done (and tracked) in imaging-metadata-converter.
 
-- TIFF vendor metadata comes from `src/biomero_converter/tiff_metadata.py`, a copy of napari-meta-tiff `_metadata.py`: keep in sync.
+- TIFF vendor metadata comes from `src/biomero_converter/metadata.py`, a copy of napari-meta-tiff `_metadata.py`: keep in sync.
 - Zeiss Fibics (800 MB) round-trip not checked after the change (ran out of memory).
 
 ### Conversion

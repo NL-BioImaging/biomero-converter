@@ -9,7 +9,7 @@ from tifffile import TiffFile, imread, PHOTOMETRIC
 from biomero_converter.ImageSource import ImageSource
 from biomero_converter.ome_tiff_util import metadata_to_dict, read_ome_xml_metadata, read_ome_acquisition_end_datetime
 from biomero_converter.parameters import TILE_SIZE
-from biomero_converter.tiff_metadata import PRIVATE_TAG_CODE, get_extra_metadata, get_pixel_size_um, get_position_um
+from biomero_converter.metadata import PRIVATE_TAG_CODE, get_extra_metadata_tiff, get_pixel_size_um, get_position_um
 from biomero_converter.util import convert_to_um, ensure_list, redimension_data, get_filetitle, without_keys
 
 
@@ -92,7 +92,7 @@ class TiffSource(ImageSource):
             if self.tiff:
                 metadata = metadata_to_dict(self.tiff.ome_metadata)
                 # the OME document whole, but where its pixel data lies and how it is written
-                source_metadata = without_keys(get_extra_metadata(self.tiff), OME_LAYOUT_KEYS)
+                source_metadata = without_keys(get_extra_metadata_tiff(self.tiff), OME_LAYOUT_KEYS)
             if metadata and not 'BinaryOnly' in metadata:
                 self.metadata = metadata
             (name, is_plate, pixel_size, position, dtype, bits_per_pixel, channels, acquisition_metadata, acquisition_datetime,
@@ -108,7 +108,7 @@ class TiffSource(ImageSource):
                          if key not in ('StripOffsets', 'StripByteCounts', 'TileOffsets', 'TileByteCounts', 'JPEGTables')}
 
             # vendor metadata in generic form, with the pixel size and position found in it
-            acquisition_metadata = get_extra_metadata(self.tiff)
+            acquisition_metadata = get_extra_metadata_tiff(self.tiff)
             # and beside it the baseline tags of the image, but those that only lay out or encode its pixels
             source_metadata = dict(acquisition_metadata)
             for tag in self.tiff.pages.first.tags.values():
