@@ -111,6 +111,8 @@ class OmeZarrSource(ImageSource):
                 channel['color'] = colormaps[channeli][-1]
             self.channels.append(channel)
 
+        # OME-XML is optional for an NGFF store.
+        self.microscope_info = {}
         ome_xml_path = image_node.zarr.subpath(os.path.join(OME_DIR, OME_FILE))
         if os.path.exists(ome_xml_path):
             ome_xml_metadata = open(ome_xml_path, encoding='utf-8').read()
