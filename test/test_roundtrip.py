@@ -4,6 +4,7 @@ import json
 import numpy as np
 import pytest
 import tifffile
+import zarr
 
 from biomero_converter.converter import _convert
 from biomero_converter.helper import create_source
@@ -61,3 +62,42 @@ def test_zarr_without_omero_metadata_to_tiff(tmp_path):
     tiff_result = _convert_one(zarr_result['full_path'], tmp_path / 'tiff', 'ometiff')
     _, round_trip = _read(tiff_result['full_path'])
     np.testing.assert_array_equal(round_trip, data)
+
+
+@pytest.mark.parametrize('source_version', [2, 3])
+@pytest.mark.parametrize('output_format', ZARR_FORMATS)
+@pytest.mark.parametrize('limits', [(100, 2000), (100.25, 2000.75)])
+def test_zarr_window_and_pixels_round_trip(tmp_path, source_version, output_format, limits):
+    data = np.arange(32 * 48, dtype=np.uint16).reshape(1, 1, 1, 32, 48)
+    path = tmp_path / 'window.ome.zarr'
+    group = zarr.open_group(path, mode='w', zarr_format=source_version)
+    group.create_array('s0', data=data)
+    version = '0.4' if source_version == 2 else '0.5'
+    attrs = {
+        'multiscales': [{
+            'axes': [{'name': 't', 'type': 'time', 'unit': 'second'},
+                     {'name': 'c', 'type': 'channel'},
+                     *[{'name': name, 'type': 'space', 'unit': 'micrometer'}
+                       for name in ('z', 'y', 'x')]],
+            'datasets': [{'path': 's0', 'coordinateTransformations': [
+                {'type': 'scale', 'scale': [1, 1, 1, 0.5, 0.5]}]}],
+        }],
+        'omero': {'channels': [{'label': 'Green', 'color': '00FF00', 'active': True,
+                               'window': {'min': 0, 'max': 65535,
+                                          'start': limits[0], 'end': limits[1]}}]},
+    }
+    if source_version == 2:
+        attrs['multiscales'][0]['version'] = version
+        group.attrs.update(attrs)
+    else:
+        group.attrs['ome'] = {'version': version, **attrs}
+    result = _convert_one(path, tmp_path / 'output', output_format)
+    source, round_trip = _read(result['full_path'])
+    np.testing.assert_array_equal(round_trip, data.squeeze())
+    assert source.get_pixel_size_um()['x'] == 0.5
+    assert source.get_channels()[0]['label'] == 'Green'
+    output = zarr.open_group(result['full_path'], mode='r')
+    metadata = dict(output.attrs)
+    metadata = metadata.get('ome', metadata)
+    assert metadata['omero']['channels'][0]['window'] == {
+        'min': 0, 'max': 65535, 'start': limits[0], 'end': limits[1]}

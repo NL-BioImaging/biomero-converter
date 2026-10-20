@@ -212,7 +212,12 @@ def create_channel_metadata(dtype, channels, nchannels, is_rgb, window, ome_vers
             start, end = starts[channeli], ends[channeli]
         else:
             start, end = min, max
-        omezarr_channel['window'] = {'min': min, 'max': max, 'start': start, 'end': end}
+        # Zarr readers return NumPy scalars; ome-zarr-py validates Python numbers
+        # before serializing this metadata.
+        omezarr_channel['window'] = {
+            key: value.item() if isinstance(value, np.generic) else value
+            for key, value in {'min': min, 'max': max, 'start': start, 'end': end}.items()
+        }
         omezarr_channels.append(omezarr_channel)
 
     metadata = {
