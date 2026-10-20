@@ -8,7 +8,7 @@ Distilled from recurring feedback across sessions. Follow these when making chan
 - Short-lived feature branches are fine, but merge them back into `main` and delete them when done.
 
 ## Releases
-- Release only from `main`, with the next `v0.1.x` tag (`gh release create --generate-notes`, plus a
+- Release only from `main`, with the next `v0.2.x` tag (`gh release create --generate-notes`, plus a
   short summary). Publishing the release builds the Docker image and the docs (`.github/workflows/docker-image.yml`),
   and publishes the package to PyPI (`.github/workflows/publish.yml`; a manual run publishes to TestPyPI).
 - Only release when converter code changed. Test-only (or docs-only) changes need no release.
