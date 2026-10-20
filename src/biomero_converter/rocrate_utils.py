@@ -24,7 +24,7 @@ CONVERTER_URL = 'https://github.com/NL-BioImaging/biomero-converter'
 
 
 def create_ro_crate(source, dest_path={}):
-    crate = ZarrCrate()
+    crate = ZarrCrate(gen_preview=True)
     # Alternative use github German-BioImaging idr_study_crates GraphBuilder class to low-level build instead?
 
     # converted datasets are kept apart from their sources: the source is known by its name, not a path
