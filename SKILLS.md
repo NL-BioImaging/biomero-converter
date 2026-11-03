@@ -8,8 +8,10 @@ Distilled from recurring feedback across sessions. Follow these when making chan
 - Short-lived feature branches are fine, but merge them back into `main` and delete them when done.
 
 ## Releases
-- Release only from `main`, with the next `v0.2.x` tag (`gh release create --generate-notes`, plus a
-  short summary). Publishing the release builds the Docker image and the docs (`.github/workflows/docker-image.yml`),
+- Before writing a release body, read the current [shared component release-note guide](https://github.com/NL-BioImaging/NL-BIOMERO/blob/master/.agents/skills/omero-biomero-expert/references/component-release-notes.md). Keep the format there rather than copying it into this repository.
+- Release only from `main`, with the next `v0.2.x` tag (use generated notes as input
+  for the concise release body). Publishing the release builds the Docker image and
+  the docs (`.github/workflows/docker-image.yml`),
   and publishes the package to PyPI (`.github/workflows/publish.yml`; a manual run publishes to TestPyPI).
 - Only release when converter code changed. Test-only (or docs-only) changes need no release.
 - The version is taken from the release tag, not from the code: `src/biomero_converter/version.py` uses the
