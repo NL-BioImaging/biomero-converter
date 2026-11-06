@@ -4,6 +4,8 @@ Conversion from various formats to Ome-tiff and Ome-zarr
 
 This tool can be used as biomero plugin, Docker container or stand-alone
 
+![logo](docs/images/logo.png)
+
 ## Features
 - Extract and process image data including bioformats unsupported formats
   - OME-Zarr
@@ -31,4 +33,15 @@ This tool can be used as biomero plugin, Docker container or stand-alone
 ## Documentation
 ### [nl-bioimaging.github.io/biomero-converter](https://nl-bioimaging.github.io/biomero-converter/)
 ### Generated: [deepwiki.com/NL-BioImaging/biomero-converter](https://deepwiki.com/NL-BioImaging/biomero-converter)
-![logo](docs/images/logo.png)
+
+## Use of AI
+
+Though completely human-designed and created, generative AI coding assistants were used in developing this software, including tests and documentation.
+All changes are directed and approved by a maintainer, and checked by automated tests where applicable.
+
+## License
+
+[Apache-2.0]
+
+
+[Apache-2.0]: http://opensource.org/licenses/Apache-2.0
