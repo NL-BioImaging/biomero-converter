@@ -45,7 +45,7 @@ dependencies = [
     "chardet",
     "python-dateutil",
     "pyyaml",
-    "imaging-metadata-converter>=2.0.0",
+    "imaging-metadata-converter>=2.0.1",
 ]
 
 [project.optional-dependencies]
