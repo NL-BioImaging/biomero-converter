@@ -231,6 +231,24 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    biomero-converter
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="." class="md-nav__link md-nav__link--active">
         
   
@@ -247,6 +265,36 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ways-to-use-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ways to use it
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -434,6 +482,25 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ways-to-use-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ways to use it
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -453,8 +520,15 @@
 
 
 <h1 id="biomero-converter">biomero-converter</h1>
-<p>Conversion from various formats to Ome-tiff and Ome-zarr
-<img alt="logo" src="images/logo.png" /></p>
+<p>Conversion from various formats to Ome-tiff and Ome-zarr</p>
+<h2 id="ways-to-use-it">Ways to use it</h2>
+<ul>
+<li><strong>Desktop application:</strong> <code>pip install "biomero-converter[gui]"</code>, then run <code>biomero-converter-gui</code>; see <a href="gui/">Desktop GUI</a>.</li>
+<li><strong>Command line or Docker:</strong> <code>biomero-converter --inputfile ... --outputfolder ...</code>; see <a href="main/">Run the Main Script</a>.</li>
+<li><strong>Python:</strong> <code>from biomero_converter.converter import convert</code>; see <a href="convert/">Convert</a>.</li>
+<li><strong>BIOMERO:</strong> as the preprocessing container for imports; see <a href="container/">Container requirements</a>.</li>
+</ul>
+<p><img alt="logo" src="images/logo.png" /></p>
 
 
 

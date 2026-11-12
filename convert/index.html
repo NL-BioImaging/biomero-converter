@@ -593,6 +593,10 @@
 <li><code>output_format</code> (str): Output format: <code>'omezarr04'</code>, <code>'omezarr05'</code>, <code>'omezarr06'</code> (OME-Zarr version) or <code>'ometiff'</code> (default: <code>'omezarr05'</code>, available as <code>biomero_converter.parameters.DEFAULT_OUTPUT_FORMAT</code>; OME-Zarr input defaults to <code>'ometiff'</code>).</li>
 <li><code>show_progress</code> (bool): If <code>True</code>, prints progress.</li>
 <li><code>verbose</code> (bool): If <code>True</code>, enables verbose logging.</li>
+<li><code>progress</code> (callable, optional): Called with the progress of the conversion as a fraction from 0 to 1, e.g. to
+  show a progress bar in an application. Progress is reported per well and field for plates, per pyramid level
+  and tile while writing images, and per finished dask task. Reading an image fully into memory is one step, so
+  progress can pause there. A retried conversion starts again from 0. The command line does not use it.</li>
 <li><code>**kwargs</code>: Source specific parameters, e.g.:</li>
 <li><code>plate_id</code> (str): Incucyte plate ID (default: all plates).</li>
 <li><code>image_uuid</code> (str) or <code>image_index</code> (int): Leica image to convert (default: all images in the file).</li>

@@ -424,6 +424,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#acknowledgements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acknowledgements
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -545,6 +556,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#acknowledgements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acknowledgements
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -568,6 +590,7 @@
 <h1 id="desktop-gui">Desktop GUI</h1>
 <p>biomero-converter includes an optional desktop application for converting files without the command line.
 It runs on Windows, macOS and Linux.</p>
+<p><img alt="biomero-converter desktop GUI" src="../images/gui.png" /></p>
 <h2 id="install-and-start">Install and start</h2>
 <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"biomero-converter[gui]"</span>
 biomero-converter-gui
@@ -583,13 +606,28 @@ Docker image and Python API do not need it.</p>
 <h2 id="use">Use</h2>
 <ol>
 <li><strong>Add files</strong> or <strong>Add folder</strong> (folder inputs such as OME-Zarr or DICOM folders); several inputs can be queued.</li>
-<li><strong>Browse</strong> to choose the output folder.</li>
-<li>Choose the <strong>output format</strong> (default: OME-Zarr 0.5, see <code>DEFAULT_OUTPUT_FORMAT</code> in <a href="../convert/">Convert</a>).
-   Optionally enter an <strong>Incucyte plate ID</strong> (default: all plates) or a <strong>Leica image UUID</strong> (default: all images).</li>
-<li><strong>Convert.</strong> The inputs are converted one after the other; the log shows each output path. If an input fails,
-   the error is logged and the next input is converted. <strong>Stop after current</strong> stops after the input being converted.</li>
+<li>
+<p>Next to each input, choose <strong>what to convert</strong>. When an input is added, its contents are read and listed:</p>
+<ul>
+<li>Leica files: their images, by name (with the start of the image UUID, or <code>#index</code> for older files);</li>
+<li>Incucyte archives: their plates (<code>Plate &lt;id&gt;</code>);</li>
+<li>DICOM files and folders: their series, by the name the converted series gets, with the number of slices.</li>
+</ul>
+<p>The default <strong>All ...</strong> converts every image, plate or series separately. Other inputs (e.g. TIFF, OME-Zarr,
+image <code>.db</code>) are converted as a whole.
+3. Choose the <strong>output folder</strong>: <strong>Browse</strong> to a folder, or type a <strong>relative path</strong> (e.g. <code>converted</code>, or <code>.</code>) to
+   write each input's output next to it: <code>C:\Data\Leica\a.lif</code> with <code>converted</code> is written to
+   <code>C:\Data\Leica\converted</code>. For folder inputs (DICOM, OME-Zarr) the relative path starts from the folder that
+   contains them, so output is never written inside them.
+4. Choose the <strong>output format</strong> (default: OME-Zarr 0.5, see <code>DEFAULT_OUTPUT_FORMAT</code> in <a href="../convert/">Convert</a>).
+5. <strong>Convert.</strong> Everything is converted one after the other; the log shows each output path. If a conversion fails,
+   the error is logged and the next one continues. <strong>Stop after current</strong> stops after the conversion in progress.
+   One progress bar covers all conversions, including the progress within each one; the text next to it shows
+   which conversion is running and how far it is (e.g. <code>Converting 2/5: 40%</code>).</p>
+</li>
 </ol>
-<p>Closing the window during a conversion stops after the current input and then closes.</p>
+<p>Closing the window during a conversion stops after the current conversion and then closes.</p>
+<p>The lists come from <code>biomero_converter.helper.get_selections()</code>, which other tools can also use.</p>
 <h2 id="use-in-another-application">Use in another application</h2>
 <p>The interface is also available as widgets, so other customtkinter/tkinter applications can host it:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">biomero_converter.gui</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConverterFrame</span><span class="p">,</span> <span class="n">ConverterWindow</span>
@@ -601,6 +639,11 @@ Docker image and Python API do not need it.</p>
 </code></pre></div>
 <p>For applications frozen with PyInstaller, biomero-converter provides a PyInstaller hook (registered automatically)
 that bundles the data files and libraries it needs at runtime.</p>
+<h2 id="acknowledgements">Acknowledgements</h2>
+<p>The desktop GUI started as the biomero-converter module of the
+<a href="https://github.com/BHPD/UMIC_Toolkit">UMIC Toolkit</a> by Peter Duinkerken, a GUI toolkit for UMIC microscopy
+workflows, and was moved into biomero-converter so it can be used on its own. The UMIC Toolkit opens this GUI
+as one of its modules.</p>
 
 
 
