@@ -70,14 +70,12 @@ The class API writes 0.6 for single images, but builds the pyramid itself (we pa
 
 ## In progress
 
-Desktop GUI in biomero-converter (branch `gui`, for v0.3.0; do not release until asked).
-Moved from the UMIC Toolkit module (`modules/BiomeroConverter/BiomeroConverter.py` in BHPD/UMIC_Toolkit PR #5),
-which will become a thin wrapper around it.
-1. `src/biomero_converter/gui/`: `ConverterFrame` (widget), `ConverterWindow` (child window for host apps),
-   `main()` (standalone `biomero-converter-gui`); optional extra `[gui]` (customtkinter).
-2. Tests (`test/test_gui.py`, headless-capable) + CI matrix Windows/macOS/Linux (`.github/workflows/gui.yml`).
-3. Docs (`docs/gui.md`, README).
-4. Push branch, check CI on all OSes; merge into `main` once green. Release v0.3.0 only when asked.
+Desktop GUI (`biomero_converter.gui`, `[gui]` extra, `biomero-converter-gui`) is merged into `main` (PR #20) and
+tested in CI on Windows, macOS and Linux. Remaining: publish v0.3.0 (only when asked). After the release, the
+UMIC Toolkit (BHPD/UMIC_Toolkit PR #5) switches to it: its commit requiring `biomero-converter[gui]>=0.3.0`
+is ready but held until v0.3.0 is on PyPI.
+
+GUI tests do not run the Tk event loop: `update()` hangs on headless macOS CI runners.
 
 ## TODO
 
