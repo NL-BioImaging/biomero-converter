@@ -21,9 +21,13 @@ from biomero_converter.OmeWriter import OmeWriter
 from biomero_converter.ome_tiff_util import create_metadata, reset_ome_ids
 from biomero_converter.ome_zarr_util import *
 from biomero_converter.parameters import *
+from biomero_converter.progress import Progress
 from biomero_converter.rocrate_utils import create_ro_crate
 from biomero_converter.util import split_well_name, print_hbytes, get_level_from_scale, get_pyramid_levels
 from biomero_converter.WindowScanner import WindowScanner
+
+# estimated share of reading the image data in the progress of writing an image (the rest: writing it)
+READ_PROGRESS = 0.3
 
 
 patch_zarr_windows_network_move()
@@ -59,22 +63,24 @@ class OmeZarrWriter(OmeWriter):
         self.verbose = verbose
         self.dim_order = 'tczyx'
 
-    def write(self, filepath, source, write_xml=True, write_rocrate=True, **kwargs):
+    def write(self, filepath, source, write_xml=True, write_rocrate=True, progress=None, **kwargs):
         """
         Write the provided source data to an OME-Zarr file.
 
         Args:
             filepath (str): Output path for the Zarr file.
             source: source reader supporting required interface.
+            progress (Progress, optional): Progress of writing the data.
             **kwargs: Additional arguments (e.g. wells selection).
 
         Returns:
             dict: Containing output_path: str Output file path.
         """
+        progress = progress or Progress()
         if source.is_screen():
-            zarr_root, total_size = self._write_screen(filepath, source, **kwargs)
+            zarr_root, total_size = self._write_screen(filepath, source, progress, **kwargs)
         else:
-            zarr_root, total_size = self._write_image(filepath, source, **kwargs)
+            zarr_root, total_size = self._write_image(filepath, source, progress, **kwargs)
 
         if self.ome_version == '0.6':
             self._convert_to_v06(zarr_root)
@@ -91,7 +97,7 @@ class OmeZarrWriter(OmeWriter):
 
         return {'output_path': filepath}
 
-    def _write_screen(self, filepath, source, **kwargs):
+    def _write_screen(self, filepath, source, progress, **kwargs):
         """
         Write a high-content screening (HCS) plate to OME-Zarr.
 
@@ -121,6 +127,8 @@ class OmeZarrWriter(OmeWriter):
                              name=name, field_count=len(fields), acquisitions=acquisitions,
                              fmt=self.ome_format)
         total_size = 0
+        nimages = len(wells) * len(fields)
+        index = 0
         for well_id in wells:
             row, col = split_well_name(well_id)
             row_group = zarr_root.require_group(str(row))
@@ -128,16 +136,18 @@ class OmeZarrWriter(OmeWriter):
             write_well_metadata(well_group, fields, fmt=self.ome_format)
             position = source.get_position_um(well_id)
             for field_id in fields:
-                image_group = well_group.require_group(field_id)
-                data = source.get_data(self.dim_order, well_id=well_id, field_id=field_id)
-                window_scanner = WindowScanner()
-                window = source.get_image_window(window_scanner, well_id=well_id, field_id=field_id, data=data)
-                size = self._write_data(image_group, data, source, window, position=position)
-                total_size += size
+                with progress.step(index / nimages, (index + 1) / nimages):
+                    image_group = well_group.require_group(field_id)
+                    data = source.get_data(self.dim_order, well_id=well_id, field_id=field_id)
+                    window_scanner = WindowScanner()
+                    window = source.get_image_window(window_scanner, well_id=well_id, field_id=field_id, data=data)
+                    size = self._write_data(image_group, data, source, window, position=position)
+                    total_size += size
+                index += 1
 
         return zarr_root, total_size
 
-    def _write_image(self, filepath, source, **kwargs):
+    def _write_image(self, filepath, source, progress, **kwargs):
         """
         Write a single image to OME-Zarr.
 
@@ -157,42 +167,44 @@ class OmeZarrWriter(OmeWriter):
         size0 = np.prod(source.get_shape()) * source.get_dtype().itemsize
         available = psutil.virtual_memory().available
 
-        pyramid_data = []
-        scale = 1
-        last_level = None
-        if nlevels > 1:
-            # load best matching levels for pyramid
-            pyramid_levels = get_pyramid_levels(source.get_shape(), source.get_dim_order(),
-                                                PYRAMID_LEVELS, PYRAMID_DOWNSCALE)
-            for index in range(pyramid_levels + 1):
-                level, rescale = get_level_from_scale(source.get_scales(), scale)
-                if level != last_level:
-                    if size0 < available:
-                        data = np.asarray(source.get_data(self.dim_order, level=level))
-                    else:
-                        data = source.get_data_as_dask(self.dim_order, level=level)
-                    last_level = level
-                if index == 0:
-                    shape0 = data.shape
-                if rescale != 1:
-                    shape = list(shape0)
-                    shape[-2:] = np.multiply(shape0[-2:], scale).astype(int)
-                    if isinstance(data, da.Array):
-                        data = dask_utils.resize(data, shape)
-                    else:
-                        data = resize(data, shape, preserve_range=True).astype(data.dtype)
-                pyramid_data.append(data)
-                scale /= PYRAMID_DOWNSCALE
-        else:
-            # no source pyramids sizes available
-            if size0 < available:
-                pyramid_data = np.asarray(source.get_data(self.dim_order))
+        with progress.step(0, READ_PROGRESS):
+            pyramid_data = []
+            scale = 1
+            last_level = None
+            if nlevels > 1:
+                # load best matching levels for pyramid
+                pyramid_levels = get_pyramid_levels(source.get_shape(), source.get_dim_order(),
+                                                    PYRAMID_LEVELS, PYRAMID_DOWNSCALE)
+                for index in range(pyramid_levels + 1):
+                    level, rescale = get_level_from_scale(source.get_scales(), scale)
+                    if level != last_level:
+                        if size0 < available:
+                            data = np.asarray(source.get_data(self.dim_order, level=level))
+                        else:
+                            data = source.get_data_as_dask(self.dim_order, level=level)
+                        last_level = level
+                    if index == 0:
+                        shape0 = data.shape
+                    if rescale != 1:
+                        shape = list(shape0)
+                        shape[-2:] = np.multiply(shape0[-2:], scale).astype(int)
+                        if isinstance(data, da.Array):
+                            data = dask_utils.resize(data, shape)
+                        else:
+                            data = resize(data, shape, preserve_range=True).astype(data.dtype)
+                    pyramid_data.append(data)
+                    scale /= PYRAMID_DOWNSCALE
             else:
-                pyramid_data = source.get_data_as_dask(self.dim_order)
+                # no source pyramids sizes available
+                if size0 < available:
+                    pyramid_data = np.asarray(source.get_data(self.dim_order))
+                else:
+                    pyramid_data = source.get_data_as_dask(self.dim_order)
 
-        window_scanner = WindowScanner()
-        window = source.get_image_window(window_scanner)
-        size = self._write_data(zarr_root, pyramid_data, source, window, position=source.get_position_um())
+            window_scanner = WindowScanner()
+            window = source.get_image_window(window_scanner)
+        with progress.step(READ_PROGRESS, 1):
+            size = self._write_data(zarr_root, pyramid_data, source, window, position=source.get_position_um())
         return zarr_root, size
 
     def _write_data(self, group, data, source, window, position=None):
