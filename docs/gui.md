@@ -47,3 +47,10 @@ frame.set_output_folder('path/to/output')
 
 For applications frozen with PyInstaller, biomero-converter provides a PyInstaller hook (registered automatically)
 that bundles the data files and libraries it needs at runtime.
+
+## Acknowledgements
+
+The desktop GUI started as the biomero-converter module of the
+[UMIC Toolkit](https://github.com/BHPD/UMIC_Toolkit) by Peter Duinkerken, a GUI toolkit for UMIC microscopy
+workflows, and was moved into biomero-converter so it can be used on its own. The UMIC Toolkit opens this GUI
+as one of its modules.
