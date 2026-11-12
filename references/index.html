@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -6232,6 +6232,62 @@
     <span class="md-ellipsis">
       
         process
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#biomero_converter.__pyinstaller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __pyinstaller
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="__pyinstaller">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#biomero_converter.__pyinstaller.get_hook_dirs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_hook_dirs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#biomero_converter.__pyinstaller.hook-biomero_converter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hook-biomero_converter
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="hook-biomero_converter">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#biomero_converter.__pyinstaller.hook-biomero_converter.PACKAGES" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PACKAGES
       
     </span>
   </a>
@@ -14059,6 +14115,62 @@
     <span class="md-ellipsis">
       
         process
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#biomero_converter.__pyinstaller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __pyinstaller
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="__pyinstaller">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#biomero_converter.__pyinstaller.get_hook_dirs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_hook_dirs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#biomero_converter.__pyinstaller.hook-biomero_converter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hook-biomero_converter
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="hook-biomero_converter">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#biomero_converter.__pyinstaller.hook-biomero_converter.PACKAGES" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PACKAGES
       
     </span>
   </a>
@@ -45176,6 +45288,132 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
 
 
 
+<h2 id="biomero_converter.__pyinstaller" class="doc doc-heading">
+            <code>__pyinstaller</code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+        <p>PyInstaller support: registered as a <code>pyinstaller40</code> entry point in pyproject.toml,
+so applications that bundle biomero-converter with PyInstaller pick up its hook automatically.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="biomero_converter.__pyinstaller.get_hook_dirs" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_hook_dirs</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/biomero_converter/__pyinstaller/__init__.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">7</span>
+<span class="normal">8</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_hook_dirs</span><span class="p">():</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)]</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h3 id="biomero_converter.__pyinstaller.hook-biomero_converter" class="doc doc-heading">
+            <code>hook-biomero_converter</code>
+
+
+</h3>
+
+    <div class="doc doc-contents ">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="biomero_converter.__pyinstaller.hook-biomero_converter.PACKAGES" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">PACKAGES</span> <span class="o">=</span> <span class="p">(</span><span class="s1">'biomero_converter'</span><span class="p">,</span> <span class="s1">'openslide'</span><span class="p">,</span> <span class="s1">'openslide_bin'</span><span class="p">,</span> <span class="s1">'isyntax'</span><span class="p">,</span> <span class="s1">'imagecodecs'</span><span class="p">,</span> <span class="s1">'pydicom'</span><span class="p">,</span> <span class="s1">'liffile'</span><span class="p">,</span> <span class="s1">'ome_zarr'</span><span class="p">,</span> <span class="s1">'zarr'</span><span class="p">,</span> <span class="s1">'numcodecs'</span><span class="p">,</span> <span class="s1">'rocrate'</span><span class="p">,</span> <span class="s1">'imaging_metadata_converter'</span><span class="p">,</span> <span class="s1">'linkml_runtime'</span><span class="p">,</span> <span class="s1">'prefixmaps'</span><span class="p">,</span> <span class="s1">'prefixcommons'</span><span class="p">,</span> <span class="s1">'curies'</span><span class="p">,</span> <span class="s1">'jsonschema_specifications'</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
 <h2 id="biomero_converter.color_conversion" class="doc doc-heading">
             <code>color_conversion</code>
 
@@ -45382,19 +45620,29 @@ PermissionError [WinError 5] instead, which zarr does not handle.</p>
 <span class="normal">42</span>
 <span class="normal">43</span>
 <span class="normal">44</span>
-<span class="normal">45</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">convert</span><span class="p">(</span><span class="n">input_filename</span><span class="p">,</span> <span class="n">output_folder</span><span class="p">,</span> <span class="n">alt_output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">convert</span><span class="p">(</span><span class="n">input_filename</span><span class="p">,</span> <span class="n">output_folder</span><span class="p">,</span> <span class="n">alt_output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">output_format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_attempts</span><span class="o">=</span><span class="n">RETRY_ATTEMPTS</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="n">attempts</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="n">max_attempts</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_attempts</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">first_error</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">attempt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_attempts</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">_convert</span><span class="p">(</span><span class="n">input_filename</span><span class="p">,</span> <span class="n">output_folder</span><span class="p">,</span> <span class="n">alt_output_folder</span><span class="o">=</span><span class="n">alt_output_folder</span><span class="p">,</span>
                             <span class="n">output_format</span><span class="o">=</span><span class="n">output_format</span><span class="p">,</span> <span class="n">show_progress</span><span class="o">=</span><span class="n">show_progress</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
                             <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">attempts</span> <span class="o">&gt;=</span> <span class="n">max_attempts</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Conversion failed after </span><span class="si">{</span><span class="n">max_attempts</span><span class="si">}</span><span class="s1"> attempts: </span><span class="si">{</span><span class="n">input_filename</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
-        <span class="n">attempts</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="c1"># Log every attempt (with the traceback of the first): a retry can fail differently as a</span>
+            <span class="c1"># side effect of the first failure (e.g. a half-imported module), hiding the real cause.</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Conversion attempt </span><span class="si">{</span><span class="n">attempt</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">max_attempts</span><span class="si">}</span><span class="s1"> failed: </span><span class="si">{</span><span class="n">e</span><span class="si">!r}</span><span class="s1">'</span><span class="p">,</span>
+                          <span class="n">exc_info</span><span class="o">=</span><span class="p">(</span><span class="n">attempt</span> <span class="o">==</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">first_error</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">first_error</span> <span class="o">=</span> <span class="n">e</span>
+    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Conversion failed after </span><span class="si">{</span><span class="n">max_attempts</span><span class="si">}</span><span class="s1"> attempts: </span><span class="si">{</span><span class="n">input_filename</span><span class="si">}</span><span class="s1"> '</span>
+                    <span class="sa">f</span><span class="s1">'(first error: </span><span class="si">{</span><span class="n">first_error</span><span class="si">!r}</span><span class="s1">)'</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">first_error</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -54200,7 +54448,7 @@ otherwise the version of the installed package (taken from the tag when it was b
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>
