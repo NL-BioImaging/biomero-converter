@@ -6,6 +6,7 @@ import shutil
 
 from biomero_converter.helper import create_source, create_writer
 from biomero_converter.parameters import DEFAULT_OUTPUT_FORMAT, RETRY_ATTEMPTS
+from biomero_converter.progress import Progress
 from biomero_converter.util import validate_filename
 
 
@@ -31,14 +32,22 @@ def init_logging(log_filename, verbose=False):
 
 
 def convert(input_filename, output_folder, alt_output_folder=None,
-            output_format=None, show_progress=False, verbose=False, max_attempts=RETRY_ATTEMPTS, **kwargs):
+            output_format=None, show_progress=False, verbose=False, max_attempts=RETRY_ATTEMPTS, progress=None,
+            **kwargs):
+    """
+    Convert an input file to OME format (retrying a failed conversion); see _convert().
+
+    Args:
+        progress (callable, optional): Called with the progress of the conversion as a fraction (0 to 1), e.g.
+            for a progress bar in an application; a retry starts again from 0.
+    """
     max_attempts = max(max_attempts, 1)
     first_error = None
     for attempt in range(1, max_attempts + 1):
         try:
             return _convert(input_filename, output_folder, alt_output_folder=alt_output_folder,
                             output_format=output_format, show_progress=show_progress, verbose=verbose,
-                            **kwargs)
+                            progress=Progress(progress), **kwargs)
         except Exception as e:
             # Log every attempt (with the traceback of the first): a retry can fail differently as a
             # side effect of the first failure (e.g. a half-imported module), hiding the real cause.
@@ -51,7 +60,7 @@ def convert(input_filename, output_folder, alt_output_folder=None,
 
 
 def _convert(input_filename, output_folder, alt_output_folder=None,
-             output_format=None, show_progress=False, verbose=False, **kwargs):
+             output_format=None, show_progress=False, verbose=False, progress=None, **kwargs):
     """
     Convert an input file to OME format and write to output folder(s).
 
@@ -62,11 +71,13 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
         output_format (str, optional): Output format string.
         show_progress (bool): If True, print progress.
         verbose (bool): If True, enable verbose logging.
+        progress (Progress, optional): Progress of the conversion.
 
     Returns:
         str: JSON string with conversion result info array.
     """
-    
+    progress = progress or Progress()
+
     # Check if input is an Incucyte archive and handle multiple plates
     input_ext = os.path.splitext(input_filename)[1].lower()
     if input_ext == '.icarch':
@@ -80,7 +91,7 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
             logging.info(f'Processing {len(available_plates)} '
                          f'plate(s): "{plate_list}"')
             results = []
-            for plate_id in available_plates:
+            for index, plate_id in enumerate(available_plates):
                 logging.info(f'Processing plate {plate_id}')
                 plate_kwargs = kwargs.copy()
                 plate_kwargs['plate_id'] = plate_id
@@ -90,6 +101,7 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
                     output_format=output_format,
                     show_progress=show_progress,
                     verbose=verbose,
+                    progress=progress.part(index / len(available_plates), (index + 1) / len(available_plates)),
                     **plate_kwargs)
                 results.extend(json.loads(result))
             return json.dumps(results)
@@ -112,6 +124,7 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
                 output_format=output_format,
                 show_progress=show_progress,
                 verbose=verbose,
+                progress=progress.part(image_index / image_count, (image_index + 1) / image_count),
                 **image_kwargs)
             results.extend(json.loads(result))
         return json.dumps(results)
@@ -123,12 +136,13 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
         output_format=output_format,
         show_progress=show_progress,
         verbose=verbose,
+        progress=progress,
         **kwargs)
 
 
 def _convert_single(input_filename, output_folder, alt_output_folder=None,
                     output_format=None, show_progress=False,
-                    verbose=False, **kwargs):
+                    verbose=False, progress=None, **kwargs):
     """
     Convert a single source to OME format.
 
@@ -140,6 +154,7 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
             or 'ometiff' for OME-Zarr input).
         show_progress (bool): If True, print progress.
         verbose (bool): If True, enable verbose logging.
+        progress (Progress, optional): Progress of the conversion.
         **kwargs: Source-specific parameters (e.g., plate_id for Incucyte).
 
     Returns:
@@ -173,7 +188,8 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
         os.makedirs(output_folder)
     output_path = os.path.join(output_folder, validate_filename(name) + output_ext)
     
-    output = writer.write(output_path, source, **kwargs)
+    progress = progress or Progress()
+    output = writer.write(output_path, source, progress=progress, **kwargs)
     source.close()
 
     if show_progress:
@@ -218,4 +234,5 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
     if show_progress:
         print(message)
 
+    progress.report(1, force=True)
     return json.dumps([result])

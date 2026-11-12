@@ -8,6 +8,7 @@ from biomero_converter.ome_tiff_util import create_metadata, create_binaryonly_m
     reset_ome_ids
 from biomero_converter.OmeWriter import OmeWriter
 from biomero_converter.parameters import *
+from biomero_converter.progress import Progress
 from biomero_converter.util import *
 from biomero_converter.WindowScanner import WindowScanner
 
@@ -26,13 +27,14 @@ class OmeTiffWriter(OmeWriter):
         super().__init__()
         self.verbose = verbose
 
-    def write(self, filepath, source, **kwargs):
+    def write(self, filepath, source, progress=None, **kwargs):
         """
         Writes image or screen data to OME-TIFF files.
 
         Args:
             filepath (str): Output file path.
             source (ImageSource): Source object.
+            progress (Progress, optional): Progress of writing the data.
             **kwargs: Additional options (e.g. wells selection).
 
         Returns:
@@ -53,17 +55,18 @@ class OmeTiffWriter(OmeWriter):
         self.dim_order = dim_order
 
         reset_ome_ids()
+        progress = progress or Progress()
         if source.is_screen():
-            filepath, total_size, window = self._write_screen(filepath, source, **kwargs)
+            filepath, total_size, window = self._write_screen(filepath, source, progress, **kwargs)
         else:
-            filepath, total_size, window = self._write_image(filepath, source, **kwargs)
+            filepath, total_size, window = self._write_image(filepath, source, progress, **kwargs)
 
         if self.verbose:
             print(f'Total data written: {print_hbytes(total_size)}')
 
         return {'output_path': filepath, 'window': window}
 
-    def _write_screen(self, filename, source, **kwargs):
+    def _write_screen(self, filename, source, progress, **kwargs):
         """
         Writes multi-well screen data to separate TIFF files and companion metadata.
 
@@ -90,8 +93,9 @@ class OmeTiffWriter(OmeWriter):
         total_size = 0
         image_uuids = []
         image_filenames = []
-        for well_id in wells:
-            for field_id in fields:
+        nimages = len(wells) * len(fields)
+        for index, (well_id, field_id) in enumerate((well_id, field_id) for well_id in wells for field_id in fields):
+            with progress.step(index / nimages, (index + 1) / nimages) as field_progress:
                 resolution, resolution_unit = create_resolution_metadata(source)
                 data = source.get_data(self.dim_order, well_id=well_id, field_id=field_id)
 
@@ -107,7 +111,8 @@ class OmeTiffWriter(OmeWriter):
                                                 tile_size=TILE_SIZE, compression=TIFF_COMPRESSION,
                                                 xml_metadata=xml_metadata,
                                                 pyramid_levels=PYRAMID_LEVELS, pyramid_downscale=PYRAMID_DOWNSCALE,
-                                                well_id=well_id, field_id=field_id, **kwargs)
+                                                well_id=well_id, field_id=field_id, progress=field_progress,
+                                                **kwargs)
 
                 image_uuids.append(image_uuid)
                 image_filenames.append(os.path.basename(filename))
@@ -126,7 +131,7 @@ class OmeTiffWriter(OmeWriter):
 
         return output_paths, total_size, window
 
-    def _write_image(self, filename, source, **kwargs):
+    def _write_image(self, filename, source, progress, **kwargs):
         """
         Writes single image data to a TIFF file.
 
@@ -147,13 +152,14 @@ class OmeTiffWriter(OmeWriter):
                                         tile_size=TILE_SIZE, compression=TIFF_COMPRESSION,
                                         xml_metadata=xml_metadata,
                                         pyramid_levels=PYRAMID_LEVELS, pyramid_downscale=PYRAMID_DOWNSCALE,
-                                        **kwargs)
+                                        progress=progress, **kwargs)
 
         return filename, size, window
 
     def _write_tiff(self, filename, source, data,
                     resolution=None, resolution_unit=None, tile_size=None, compression=None, compressionargs=None,
-                    xml_metadata=None, pyramid_levels=0, pyramid_downscale=2, well_id=None, field_id=None, **kwargs):
+                    xml_metadata=None, pyramid_levels=0, pyramid_downscale=2, well_id=None, field_id=None,
+                    progress=None, **kwargs):
         """
         Writes image data to a TIFF file with optional pyramids and metadata.
 
@@ -168,10 +174,13 @@ class OmeTiffWriter(OmeWriter):
             xml_metadata (str, optional): OME-XML metadata.
             pyramid_levels (int): Number of pyramid levels.
             pyramid_downscale (int): Pyramid downscale factor.
+            progress (Progress, optional): Progress of writing (per level, by its number of pixels; per tile for a
+                tile generator).
 
         Returns:
             int: Data size in bytes.
         """
+        progress = progress or Progress()
         is_generator = inspect.isgeneratorfunction(data)
         if is_generator:
             data_generator = data
@@ -214,9 +223,13 @@ class OmeTiffWriter(OmeWriter):
             scale /= pyramid_downscale
         is_bigtiff = (max_size > 2 ** 32)
 
+        # progress per level: its share of all pixels written
+        level_sizes = [pyramid_downscale ** (-2 * level) for level in range(pyramid_levels + 1)]
+        level_ends = np.cumsum(level_sizes) / sum(level_sizes)
         window_scanner = WindowScanner()
         with TiffWriter(filename, bigtiff=is_bigtiff, ome=is_ome) as writer:
             for level in range(pyramid_levels + 1):
+                level_start = level_ends[level - 1] if level > 0 else 0
                 if level == 0:
                     scale = 1
                     subifds = pyramid_levels
@@ -233,13 +246,19 @@ class OmeTiffWriter(OmeWriter):
                     subfiletype = FILETYPE.REDUCEDIMAGE
                     xml_metadata_bytes = None
                 if is_generator:
-                    data = data_generator(scale)
+                    # count the tiles written for progress within the level
+                    ntiles = int(np.prod([n for dim, n in zip(self.dim_order, new_shape) if dim not in 'yxc']))
+                    if tile_size is not None:
+                        ntiles *= (int(np.ceil(new_shape[y_index] / tile_size[0]))
+                                   * int(np.ceil(new_shape[x_index] / tile_size[1])))
+                    data = progress.items(data_generator(scale), ntiles, level_start, level_ends[level])
                 writer.write(data, shape=tuple(new_shape), dtype=dtype, metadata={'axes': self.dim_order},
                              photometric='rgb' if source.is_rgb() else 'minisblack',
                              subifds=subifds, subfiletype=subfiletype,
                              resolution=resolution, resolutionunit=resolution_unit, tile=tile_size,
                              compression=compression, compressionargs=compressionargs,
                              description=xml_metadata_bytes)
+                progress.report(level_ends[level])
                 if level == pyramid_levels:
                     window = source.get_image_window(window_scanner, well_id=well_id, field_id=field_id, data=data)
         return data_size, window

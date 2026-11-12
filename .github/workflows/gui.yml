@@ -37,9 +37,9 @@ jobs:
       - name: Test (Linux, virtual display)
         if: runner.os == 'Linux'
         timeout-minutes: 8
-        run: xvfb-run -a python -m pytest test/test_gui.py test/test_convert.py -k "gui or resolve_output or default_output_format or retry or selection" -v -o faulthandler_timeout=60
+        run: xvfb-run -a python -m pytest test/test_gui.py test/test_convert.py -k "gui or resolve_output or default_output_format or retry or selection or progress" -v -o faulthandler_timeout=60
 
       - name: Test
         if: runner.os != 'Linux'
         timeout-minutes: 8
-        run: python -m pytest test/test_gui.py test/test_convert.py -k "gui or resolve_output or default_output_format or retry or selection" -v -o faulthandler_timeout=60
+        run: python -m pytest test/test_gui.py test/test_convert.py -k "gui or resolve_output or default_output_format or retry or selection or progress" -v -o faulthandler_timeout=60

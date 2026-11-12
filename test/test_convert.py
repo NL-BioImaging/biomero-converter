@@ -201,6 +201,7 @@ def test_cli_default_output_format(monkeypatch):
     with pytest.raises(SystemExit):
         main.main()
     assert captured['output_format'] == DEFAULT_OUTPUT_FORMAT
+    assert 'progress' not in captured      # the command line reports no progress
 
 
 def test_selections_without_parts(tmp_path):
@@ -257,3 +258,53 @@ def test_selections_incucyte_plates():
     assert selections == [(f'Plate {plate_id}', {'plate_id': plate_id})
                           for plate_id in get_incucyte_plates(input_filename)]
     assert selections == [('Plate 1450', {'plate_id': '1450'})]
+
+
+def test_progress_parts(monkeypatch):
+    from biomero_converter import progress as progress_module
+    from biomero_converter.progress import Progress
+    monkeypatch.setattr(progress_module, 'REPORT_INTERVAL', 0)
+    reports = []
+    progress = Progress(reports.append)
+    first, second = progress.part(0, 0.5), progress.part(0.5, 1)
+    first.report(0.5)
+    first.report(0.2)                       # never goes back
+    second.report(0.5)
+    assert reports == [0.25, 0.25, 0.75]
+    assert all(type(fraction) is float for fraction in reports)
+    assert list(progress.items(iter('abcd'), 4, 0.75, 1)) == list('abcd')
+    assert reports[-1] == 1.0
+    silent = Progress()                     # no callback (e.g. command line): nothing tracked
+    assert not silent.active
+    with silent.step(0, 1) as part:
+        part.report(0.5)
+
+
+@pytest.mark.parametrize('output_format', ['omezarr05', 'ometiff'])
+def test_convert_progress(tmp_path, monkeypatch, output_format):
+    import tifffile
+    from biomero_converter import progress as progress_module
+    from biomero_converter.converter import convert
+    monkeypatch.setattr(progress_module, 'REPORT_INTERVAL', 0)
+    input_filename = str(tmp_path / 'input.tif')
+    tifffile.imwrite(input_filename, np.zeros((2048, 2048), dtype=np.uint8))
+    reports = []
+    convert(input_filename, str(tmp_path / 'output'), output_format=output_format, progress=reports.append)
+    assert len(reports) > 2
+    assert all(later >= earlier for earlier, later in zip(reports, reports[1:]))
+    assert reports[-1] == 1.0 and all(type(fraction) is float for fraction in reports)
+
+
+def test_convert_progress_plate(tmp_path, monkeypatch):
+    # a plate reports progress per well/field
+    from biomero_converter import progress as progress_module
+    from biomero_converter.converter import convert
+    input_filename = 'C:/Project/slides/DB/CellsSmall/experiment.db'
+    if not os.path.exists(input_filename):
+        pytest.skip(f'test data not available: {input_filename}')
+    monkeypatch.setattr(progress_module, 'REPORT_INTERVAL', 0)
+    reports = []
+    convert(input_filename, str(tmp_path / 'output'), output_format='omezarr05', progress=reports.append)
+    assert len(reports) > 10
+    assert all(later >= earlier for earlier, later in zip(reports, reports[1:]))
+    assert reports[-1] == 1.0

@@ -100,7 +100,7 @@ def test_gui_selection_dropdown(app, tmp_path, monkeypatch):
     monkeypatch.setattr(gui_app, 'get_selections', lambda path: parts if path.endswith('.lif') else [])
     calls = []
 
-    def fake_convert(input_path, output_folder, output_format=None, **source_kwargs):
+    def fake_convert(input_path, output_folder, output_format=None, progress=None, **source_kwargs):
         calls.append(source_kwargs)
         return json.dumps([{'name': 'out', 'full_path': os.path.join(output_folder, 'out.ome.zarr')}])
 
@@ -171,7 +171,7 @@ def test_gui_relative_output_folder(app, tmp_path, monkeypatch):
     monkeypatch.setattr(gui_app, 'get_selections', lambda path: [])
     output_folders = []
 
-    def fake_convert(input_path, output_folder, output_format=None, **source_kwargs):
+    def fake_convert(input_path, output_folder, output_format=None, progress=None, **source_kwargs):
         output_folders.append(output_folder)
         return json.dumps([{'name': 'out', 'full_path': os.path.join(output_folder, 'out.ome.zarr')}])
 
@@ -185,3 +185,31 @@ def test_gui_relative_output_folder(app, tmp_path, monkeypatch):
     wait_until_done(frame)
     assert output_folders == [os.path.normpath(str(tmp_path / 'first' / 'converted')),
                               os.path.normpath(str(tmp_path / 'second' / 'converted'))]
+
+
+def test_gui_progress_bar(app, tmp_path, monkeypatch):
+    # one bar for all conversions, including the progress within each conversion
+    from biomero_converter.gui import ConverterFrame
+    from biomero_converter.gui import app as gui_app
+    monkeypatch.setattr(gui_app, 'get_selections', lambda path: [])
+
+    def fake_convert(input_path, output_folder, output_format=None, progress=None, **source_kwargs):
+        progress(0.5)
+        progress(1.0)
+        return json.dumps([{'name': 'out', 'full_path': os.path.join(output_folder, 'out.ome.zarr')}])
+
+    monkeypatch.setattr(gui_app, 'convert', fake_convert)
+    frame = ConverterFrame(app)
+    frame.add_inputs([str(tmp_path / 'a.tif'), str(tmp_path / 'b.tif')])
+    wait_until_read(frame)
+    frame.set_output_folder(str(tmp_path / 'output'))
+    frame.start_conversion()
+    assert frame.status_label.cget('text') == 'Starting...'
+    frame.worker.join(60)
+    messages = list(frame.messages.queue)
+    bar = [content[0] for kind, content in messages if kind == 'progress']
+    assert bar == [0, 0.25, 0.5, 0.5, 0.5, 0.75, 1.0, 1.0]     # (index + fraction) / number of conversions
+    assert ('progress', (0.75, '2/2: 50%')) in messages
+    frame._poll_messages()
+    assert frame.progress.get() == 1
+    assert frame.status_label.cget('text') == 'Finished'
