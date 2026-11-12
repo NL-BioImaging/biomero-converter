@@ -3,6 +3,8 @@
 biomero-converter includes an optional desktop application for converting files without the command line.
 It runs on Windows, macOS and Linux.
 
+![biomero-converter desktop GUI](images/gui.png)
+
 ## Install and start
 
 ```sh

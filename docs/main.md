@@ -51,3 +51,14 @@ biomero-converter \
 usage: biomero-converter [-h] --inputfile INPUTFILE --outputfolder OUTPUTFOLDER [--altoutputfolder ALTOUTPUTFOLDER] [--outputformat OUTPUTFORMAT] [--show_progress] [--verbose] [--plateid PLATEID] [--image_uuid IMAGE_UUID]
 biomero-converter: error: the following arguments are required: --inputfile, --outputfolder
 ```
+
+## Desktop GUI
+
+To convert files without the command line, install the GUI extra and start the desktop application:
+
+```sh
+pip install "biomero-converter[gui]"
+biomero-converter-gui
+```
+
+See [Desktop GUI](gui.md).
