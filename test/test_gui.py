@@ -1,3 +1,4 @@
+import gc
 import json
 import os
 import tkinter
@@ -20,6 +21,14 @@ def tk_root():
     root.withdraw()
     yield root
     root.destroy()
+    _collect_tk_garbage()
+
+
+def _collect_tk_garbage():
+    # Free unreferenced Tk objects (e.g. CTkFont) now, on the main thread. Otherwise a later garbage collection
+    # can run their __del__ in a converter (dask) worker thread: its Tcl call waits for the main thread, which
+    # waits for the conversion - a deadlock that hangs the next test that converts.
+    gc.collect()
 
 
 @pytest.fixture
@@ -27,6 +36,7 @@ def app(tk_root):
     yield tk_root
     for child in tk_root.winfo_children():     # remove this test's frames and windows
         child.destroy()
+    _collect_tk_garbage()
 
 
 # Deterministic, without running the Tk event loop (update() hangs on headless macOS CI):

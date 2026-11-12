@@ -103,6 +103,7 @@ def keys_anywhere(node):
             yield from keys_anywhere(item)
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize('name', EXAMPLES)
 def test_metadata(tmp_path, name):
     path = SLIDES + name
@@ -134,6 +135,8 @@ def test_metadata(tmp_path, name):
         assert value_at(crate_metadata, model_path) == value, model_path
 
 
+@pytest.mark.integration
+@pytest.mark.timeout(600)
 @pytest.mark.parametrize('input_filename', CONVERT_FILENAMES, ids=os.path.basename)
 def test_converted_metadata(tmp_path, input_filename):
     output = json.loads(_convert(input_filename, str(tmp_path), output_format='omezarr05'))
@@ -222,6 +225,7 @@ def test_ro_crate_instrument_only_from_instrument_keys(tmp_path):
     assert graph['#data-capture-001']['instrument'] == {'@id': '#instrument-helios'}
 
 
+@pytest.mark.integration
 def test_tiff_acquisition_datetime():
     # the vendor's acquisition date, not the file's time; none if the metadata has none
     path = SLIDES + 'tiff/TFS Phenom Pharos.tiff'
