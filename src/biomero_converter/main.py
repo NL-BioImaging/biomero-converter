@@ -2,6 +2,7 @@ import sys
 import argparse
 
 from biomero_converter.converter import convert, init_logging
+from biomero_converter.parameters import DEFAULT_OUTPUT_FORMAT
 
 
 def main():
@@ -9,7 +10,8 @@ def main():
     parser.add_argument('--inputfile', required=True, help='input file')
     parser.add_argument('--outputfolder', required=True, help='output folder')
     parser.add_argument('--altoutputfolder', help='alternative output folder')
-    parser.add_argument('--outputformat', help='output format: omezarr04, omezarr05, omezarr06 or ometiff', default='omezarr04')
+    parser.add_argument('--outputformat', default=DEFAULT_OUTPUT_FORMAT,
+                        help=f'output format: omezarr04, omezarr05, omezarr06 or ometiff (default: {DEFAULT_OUTPUT_FORMAT})')
     parser.add_argument('--show_progress', action='store_true')
     parser.add_argument('--verbose', action='store_true')
     # Allow additional arguments for source-specific parameters (e.g., --plateid)

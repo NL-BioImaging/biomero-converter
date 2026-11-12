@@ -18,3 +18,7 @@ PYRAMID_DOWNSCALE = 2
 PYRAMID_LEVELS = 6
 
 RETRY_ATTEMPTS = 3
+
+# Default output format: 'omezarr04', 'omezarr05', 'omezarr06' (OME-Zarr version) or 'ometiff'.
+# Callers (e.g. GUIs) can use this as their default to stay in sync with the converter.
+DEFAULT_OUTPUT_FORMAT = 'omezarr05'

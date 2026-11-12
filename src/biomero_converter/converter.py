@@ -5,7 +5,7 @@ import os.path
 import shutil
 
 from biomero_converter.helper import create_source, create_writer
-from biomero_converter.parameters import RETRY_ATTEMPTS
+from biomero_converter.parameters import DEFAULT_OUTPUT_FORMAT, RETRY_ATTEMPTS
 from biomero_converter.util import validate_filename
 
 
@@ -136,7 +136,8 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
         input_filename (str): Path to the input file.
         output_folder (str): Output folder path.
         alt_output_folder (str, optional): Alternative output folder path.
-        output_format (str, optional): Output format string (default: omezarr04).
+        output_format (str, optional): Output format string (default: DEFAULT_OUTPUT_FORMAT,
+            or 'ometiff' for OME-Zarr input).
         show_progress (bool): If True, print progress.
         verbose (bool): If True, enable verbose logging.
         **kwargs: Source-specific parameters (e.g., plate_id for Incucyte).
@@ -146,12 +147,12 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
     """
 
     if output_format is None:
-        # output format zarr default, unless input is zarr
+        # default output format (OME-Zarr), unless the input is OME-Zarr
         input_ext = os.path.splitext(input_filename)[1].lower()
         if 'zar' in input_ext:
             output_format = 'ometiff'
         else:
-            output_format = 'omezarr04'
+            output_format = DEFAULT_OUTPUT_FORMAT
 
     logging.info(f'Importing {input_filename}')
     source = create_source(input_filename, **kwargs)

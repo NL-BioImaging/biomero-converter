@@ -174,3 +174,30 @@ def test_convert_retry_succeeds(monkeypatch):
 
     monkeypatch.setattr(converter, '_convert', flaky_convert)
     assert converter.convert('input.tif', 'output', max_attempts=3) == '[{"name": "ok"}]'
+
+
+def test_default_output_format(tmp_path):
+    # Without an explicit format, convert() writes DEFAULT_OUTPUT_FORMAT (OME-Zarr 0.5)
+    import tifffile
+    from biomero_converter.converter import convert
+    from biomero_converter.parameters import DEFAULT_OUTPUT_FORMAT
+    assert DEFAULT_OUTPUT_FORMAT == 'omezarr05'
+    input_filename = str(tmp_path / 'input.tif')
+    tifffile.imwrite(input_filename, np.zeros((32, 32), dtype=np.uint8))
+    result = json.loads(convert(input_filename, str(tmp_path / 'output')))
+    with open(os.path.join(result[0]['full_path'], 'zarr.json')) as file:
+        zarr_metadata = json.load(file)
+    assert zarr_metadata['attributes']['ome']['version'] == '0.5'
+
+
+def test_cli_default_output_format(monkeypatch):
+    # The command line default is the same constant
+    from biomero_converter import main
+    from biomero_converter.parameters import DEFAULT_OUTPUT_FORMAT
+    captured = {}
+    monkeypatch.setattr(main, 'convert', lambda *args, **kwargs: captured.update(kwargs) or '[{}]')
+    monkeypatch.setattr(main, 'init_logging', lambda *args, **kwargs: None)
+    monkeypatch.setattr(sys, 'argv', ['biomero-converter', '--inputfile', 'in.tif', '--outputfolder', 'out'])
+    with pytest.raises(SystemExit):
+        main.main()
+    assert captured['output_format'] == DEFAULT_OUTPUT_FORMAT

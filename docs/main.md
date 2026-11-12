@@ -13,7 +13,7 @@ docker run --rm \
   cellularimagingcf/biomero-converter:latest \
     --inputfile /data/input/input_file.tiff \
     --outputfolder /data/output \
-    --outputformat omezarr04 \
+    --outputformat omezarr05 \
     --show_progress \
     --verbose
 ```
@@ -28,7 +28,7 @@ Refer to the main script for all available arguments:
 - `--inputfile`: Path to the input file (required)
 - `--outputfolder`: Path to the output folder (required)
 - `--altoutputfolder`: Alternative output folder (optional)
-- `--outputformat`: Output format: `omezarr04`, `omezarr05`, `omezarr06` (OME-Zarr version) or `ometiff` (default: `omezarr04`)
+- `--outputformat`: Output format: `omezarr04`, `omezarr05`, `omezarr06` (OME-Zarr version) or `ometiff` (default: `omezarr05`)
 - `--show_progress`: Show progress bar (flag)
 - `--verbose`: Enable verbose logging (flag)
 - `--plateid`: Incucyte plate ID (optional, default: all plates)
@@ -44,7 +44,7 @@ Refer to the main script for all available arguments:
 biomero-converter \
     --inputfile /data/input/input_file.tiff \
     --outputfolder /data/output \
-    --outputformat omezarr04 \
+    --outputformat omezarr05 \
     --show_progress \
     --verbose
     
