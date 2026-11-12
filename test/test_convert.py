@@ -14,6 +14,9 @@ from biomero_converter.Timer import Timer
 from biomero_converter.util import print_dict, print_hbytes
 
 
+# converts real files from C:/Project/slides: slow, so only run on request (pytest -m integration)
+@pytest.mark.integration
+@pytest.mark.timeout(600)
 class TestConvert:
     filenames = ['DB/CellsSmall/experiment.db',
                  'isyntax/small.isyntax',
@@ -35,6 +38,8 @@ class TestConvert:
 
     @pytest.mark.parametrize("input_filename", input_filenames)
     def test_source(self, input_filename, verbose=False, **kwargs):
+        if not os.path.exists(input_filename):
+            pytest.skip(f'test data not available: {input_filename}')
         init_logging('log/biomero_converter.log', verbose=True)
         source = create_source(input_filename, **self.get_source_kwargs(input_filename))
         metadata = source.init_metadata()
@@ -51,6 +56,8 @@ class TestConvert:
     @pytest.mark.parametrize("input_filename", input_filenames)
     @pytest.mark.parametrize("output_format", output_formats)
     def test_convert(self, tmp_path, input_filename, output_format, alt_output_folder=None, show_progess=False, verbose=False, **kwargs):
+        if not os.path.exists(input_filename):
+            pytest.skip(f'test data not available: {input_filename}')
         init_logging('log/biomero_converter.log', verbose=True)
         source_kwargs = self.get_source_kwargs(input_filename)
         with Timer(f'convert {input_filename} to {output_format}'):
@@ -213,6 +220,7 @@ def test_selections_without_parts(tmp_path):
     assert get_selections(input_filename) == []
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize('filename, expected', [
     ('Leica/RGB.lif', [('LargeImage [710afbc4]', {'image_uuid': '710afbc4-24d7-11f0-bebf-80e82ce1e716'}),
                        ('SmallImage [b98ee309]', {'image_uuid': 'b98ee309-6d42-11f0-bed3-80e82ce1e716'})]),
@@ -235,6 +243,7 @@ def test_selections_with_parts(filename, expected):
         assert all(set(kwargs) == {'image_uuid'} for _, kwargs in selections)
 
 
+@pytest.mark.integration
 def test_selection_names_match_output_names():
     # the dropdown shows the name the source gives the converted part (shared naming code)
     from biomero_converter.DicomSource import DicomSource
@@ -248,6 +257,7 @@ def test_selection_names_match_output_names():
     assert source.get_name() == name
 
 
+@pytest.mark.integration
 def test_selections_incucyte_plates():
     # an Incucyte archive lists its plates, selected by plate_id
     from biomero_converter.helper import get_incucyte_plates, get_selections
@@ -295,6 +305,7 @@ def test_convert_progress(tmp_path, monkeypatch, output_format):
     assert reports[-1] == 1.0 and all(type(fraction) is float for fraction in reports)
 
 
+@pytest.mark.integration
 def test_convert_progress_plate(tmp_path, monkeypatch):
     # a plate reports progress per well/field
     from biomero_converter import progress as progress_module
