@@ -24,7 +24,7 @@ This tool can be used as biomero plugin, Docker container or stand-alone
     - RGB, multi-channel, Z-stack, time series and tile scans (stitched)
 - Export to Ome formats
   - OME-Tiff
-  - OME-Zarr
+  - OME-Zarr 0.4, 0.5 (default) and 0.6
 - Supporting
   - (Large) whole slide images
   - Screen Plate Well / High Content Screening format
