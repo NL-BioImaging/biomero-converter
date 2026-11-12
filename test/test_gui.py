@@ -1,5 +1,5 @@
 import os
-import time
+import tkinter
 
 import numpy as np
 import pytest
@@ -12,7 +12,7 @@ tifffile = pytest.importorskip('tifffile')
 def app():
     try:
         app = customtkinter.CTk()
-    except Exception as error:     # no display (e.g. headless Linux without xvfb)
+    except tkinter.TclError as error:     # no display (e.g. headless Linux without xvfb)
         pytest.skip(f'no display for the GUI: {error}')
     app.withdraw()
     yield app
@@ -20,15 +20,12 @@ def app():
         app.destroy()
 
 
-def wait_until_done(app, frame, timeout=180):
-    start = time.monotonic()
-    while frame.busy or not frame.messages.empty():
-        assert time.monotonic() - start < timeout, 'conversion did not finish in time'
-        app.update()
-        time.sleep(0.05)
-    for _ in range(5):              # let the last poll update the widgets
-        app.update()
-        time.sleep(0.05)
+def wait_until_done(frame, timeout=180):
+    # Deterministic, without running the Tk event loop (update() hangs on headless macOS CI):
+    # wait for the conversion thread, then let the GUI handle its messages as its timer would.
+    frame.worker.join(timeout)
+    assert not frame.busy, 'conversion did not finish in time'
+    frame._poll_messages()
 
 
 def log_text(frame):
@@ -63,7 +60,7 @@ def test_gui_converts_and_continues_after_failure(app, tmp_path):
     frame.start_conversion()
     assert frame.busy
     assert frame.convert_button.cget('state') == 'disabled'
-    wait_until_done(app, frame)
+    wait_until_done(frame)
 
     text = log_text(frame)
     assert 'FAILED' in text                                           # the bad input is reported...
@@ -85,6 +82,6 @@ def test_gui_window_closes_after_current_input(app, tmp_path):
     frame.start_conversion()
     frame.close()                   # while converting: stop after the current input, then close
     assert window.winfo_exists()
-    wait_until_done(app, frame)
+    wait_until_done(frame)
     assert not window.winfo_exists()
     assert os.listdir(tmp_path / 'output')
