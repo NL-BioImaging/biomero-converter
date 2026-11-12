@@ -29,6 +29,7 @@ This tool can be used as biomero plugin, Docker container or stand-alone
   - (Large) whole slide images
   - Screen Plate Well / High Content Screening format
 - Compatible with Omero
+- Desktop GUI for Windows, macOS and Linux: `pip install "biomero-converter[gui]"`, then `biomero-converter-gui`
 
 ## Documentation
 ### [nl-bioimaging.github.io/biomero-converter](https://nl-bioimaging.github.io/biomero-converter/)
