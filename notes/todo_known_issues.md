@@ -75,7 +75,13 @@ conversion thread and call the message handler directly.
 
 ## In progress
 
-(none)
+GUI selection dropdown + light screenshot (branch `gui-selection`, PR into `main`; no release unless asked).
+1. `helper.get_selections(filename)`: Leica images, Incucyte plates, DICOM series a user can choose from.
+2. GUI: input rows with one selection dropdown each (replaces the plate ID / image UUID fields); "All" converts
+   each part (DICOM: each series, as convert() only takes the first by default). Wells are not selectable.
+3. Tests (helper with local Leica data; GUI with stubs, data-free for CI).
+4. Light-mode screenshot in README (near the top, small logo) and docs.
+5. Relative output folder (e.g. `converted`), resolved per input from the folder containing it.
 
 ## TODO
 

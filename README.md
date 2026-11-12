@@ -1,10 +1,10 @@
-# biomero-converter
+# biomero-converter <img src="docs/images/logo.png" alt="biomero-converter logo" width="64" align="right">
 
 Conversion from various formats to Ome-tiff and Ome-zarr
 
 This tool can be used as biomero plugin, Docker container, stand-alone command line tool, Python package or desktop application (GUI)
 
-![logo](docs/images/logo.png)
+![biomero-converter desktop GUI](docs/images/gui.png)
 
 ## Features
 - Extract and process image data including bioformats unsupported formats
@@ -32,9 +32,7 @@ This tool can be used as biomero plugin, Docker container, stand-alone command l
 - Desktop GUI for Windows, macOS and Linux (see below)
 
 ## Desktop GUI
-Convert files without the command line, on Windows, macOS and Linux:
-
-![biomero-converter desktop GUI](docs/images/gui.png)
+Convert files without the command line, on Windows, macOS and Linux (screenshot above):
 
 1. Install the package with the GUI extra (Python 3.12 or newer):
    ```sh
@@ -45,7 +43,7 @@ Convert files without the command line, on Windows, macOS and Linux:
    biomero-converter-gui
    ```
    (or `python -m biomero_converter.gui.app`)
-3. **Add files** or **Add folder**, **Browse** to an output folder, choose the output format (default OME-Zarr 0.5) and click **Convert**.
+3. **Add files** or **Add folder**, and choose next to each input what to convert: all or one of its images (Leica), plates (Incucyte) or series (DICOM). **Browse** to an output folder (or enter a relative path, e.g. `converted`, to write next to each input), choose the output format (default OME-Zarr 0.5) and click **Convert**.
 
 The GUI uses Tk, which comes with Python on Windows (python.org or conda). On macOS use Python from python.org or conda; on Linux install your distribution's Tk package (e.g. `sudo apt install python3-tk`) or use conda.
 See the [Desktop GUI documentation](https://nl-bioimaging.github.io/biomero-converter/gui/) for all options.
