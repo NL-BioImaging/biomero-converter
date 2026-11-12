@@ -54,6 +54,10 @@ test = ["pytest>=7.0"]
 [project.scripts]
 biomero-converter = "biomero_converter.main:main"
 
+[project.entry-points.pyinstaller40]
+# lets PyInstaller find the hook in biomero_converter/__pyinstaller when an app bundles this package
+hook-dirs = "biomero_converter.__pyinstaller:get_hook_dirs"
+
 [project.urls]
 Homepage = "https://github.com/NL-BioImaging/biomero-converter"
 Repository = "https://github.com/NL-BioImaging/biomero-converter"
