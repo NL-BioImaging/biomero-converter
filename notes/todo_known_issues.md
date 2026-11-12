@@ -68,14 +68,14 @@ The class API writes 0.6 for single images, but builds the pyramid itself (we pa
 - tifffile < 2026.9.20 reports squeezed shape/axes for 'shaped' series (our OME-TIFF output) but returns
   unsqueezed data, so reading back our OME-TIFF gave a wrong shape; fixed by tifffile 2026.9.20 (pinned as minimum).
 
+### GUI tests
+
+GUI tests do not run the Tk event loop: `update()` hangs on headless macOS CI runners. They wait for the
+conversion thread and call the message handler directly.
+
 ## In progress
 
-Desktop GUI (`biomero_converter.gui`, `[gui]` extra, `biomero-converter-gui`) is merged into `main` (PR #20) and
-tested in CI on Windows, macOS and Linux. Remaining: publish v0.3.0 (only when asked). After the release, the
-UMIC Toolkit (BHPD/UMIC_Toolkit PR #5) switches to it: its commit requiring `biomero-converter[gui]>=0.3.0`
-is ready but held until v0.3.0 is on PyPI.
-
-GUI tests do not run the Tk event loop: `update()` hangs on headless macOS CI runners.
+(none)
 
 ## TODO
 
