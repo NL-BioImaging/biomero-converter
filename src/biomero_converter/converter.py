@@ -32,17 +32,22 @@ def init_logging(log_filename, verbose=False):
 
 def convert(input_filename, output_folder, alt_output_folder=None,
             output_format=None, show_progress=False, verbose=False, max_attempts=RETRY_ATTEMPTS, **kwargs):
-    attempts = 0
-    while True:
+    max_attempts = max(max_attempts, 1)
+    first_error = None
+    for attempt in range(1, max_attempts + 1):
         try:
             return _convert(input_filename, output_folder, alt_output_folder=alt_output_folder,
                             output_format=output_format, show_progress=show_progress, verbose=verbose,
                             **kwargs)
         except Exception as e:
-            if attempts >= max_attempts - 1:
-                logging.error(e)
-                raise Exception(f'Conversion failed after {max_attempts} attempts: {input_filename}')
-        attempts += 1
+            # Log every attempt (with the traceback of the first): a retry can fail differently as a
+            # side effect of the first failure (e.g. a half-imported module), hiding the real cause.
+            logging.error(f'Conversion attempt {attempt}/{max_attempts} failed: {e!r}',
+                          exc_info=(attempt == 1))
+            if first_error is None:
+                first_error = e
+    raise Exception(f'Conversion failed after {max_attempts} attempts: {input_filename} '
+                    f'(first error: {first_error!r})') from first_error
 
 
 def _convert(input_filename, output_folder, alt_output_folder=None,

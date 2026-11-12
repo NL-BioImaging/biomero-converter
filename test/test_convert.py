@@ -142,3 +142,35 @@ if __name__ == '__main__':
             except Exception as e:
                 print(f'Error converting {filename} to {output_format}: {e}')
                 logging.exception(e)
+
+
+def test_convert_retry_reports_first_error(monkeypatch, caplog):
+    # A retry can fail differently as a side effect of the first failure; the first error must not be lost
+    from biomero_converter import converter
+    errors = iter([FileNotFoundError('schema.yaml'), ImportError('circular import'), ImportError('circular import')])
+
+    def failing_convert(*args, **kwargs):
+        raise next(errors)
+
+    monkeypatch.setattr(converter, '_convert', failing_convert)
+    with caplog.at_level(logging.ERROR), pytest.raises(Exception) as exc_info:
+        converter.convert('input.lof', 'output', max_attempts=3)
+    assert isinstance(exc_info.value.__cause__, FileNotFoundError)
+    assert 'schema.yaml' in str(exc_info.value)
+    attempt_logs = [record for record in caplog.records if 'Conversion attempt' in record.getMessage()]
+    assert len(attempt_logs) == 3
+    assert attempt_logs[0].exc_info is not None
+
+
+def test_convert_retry_succeeds(monkeypatch):
+    from biomero_converter import converter
+    results = iter([RuntimeError('transient'), '[{"name": "ok"}]'])
+
+    def flaky_convert(*args, **kwargs):
+        result = next(results)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    monkeypatch.setattr(converter, '_convert', flaky_convert)
+    assert converter.convert('input.tif', 'output', max_attempts=3) == '[{"name": "ok"}]'
