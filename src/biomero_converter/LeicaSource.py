@@ -124,8 +124,24 @@ class LeicaSource(ImageSource):
         Returns:
             int: Number of images.
         """
+        return len(LeicaSource.get_images(uri))
+
+    @staticmethod
+    def get_images(uri):
+        """
+        Get the images in a Leica file, e.g. to choose one to convert.
+
+        Args:
+            uri (str): Path to the Leica file.
+
+        Returns:
+            list: (name, source kwargs) per image, in file order. The name is the image's path in the file (which
+            the output name is based on); the source kwargs select the image: its UUID, or its index for older
+            files without UUIDs.
+        """
         with LifFile(uri) as lif:
-            return len(lif.images)
+            return [(image.path, {'image_uuid': image.uuid} if image.uuid else {'image_index': index})
+                    for index, image in enumerate(lif.images)]
 
     def init_metadata(self):
         image = self.image

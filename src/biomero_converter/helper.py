@@ -108,6 +108,38 @@ def get_incucyte_plates(filename):
     return IncucyteSource.get_available_plates(archive_folder)
 
 
+def get_selections(filename):
+    """
+    Get the parts of an input that can be converted on their own, for a user to choose from.
+
+    Args:
+        filename (str): Path to the input file or folder.
+
+    Returns:
+        list: (label, source kwargs) per Leica image, Incucyte plate or DICOM series, in file order; passing the
+        source kwargs to convert() converts only that part. Empty when the input has no separate parts.
+    """
+    input_ext = os.path.splitext(filename)[1].lower()
+    if input_ext in LEICA_EXTENSIONS:
+        from biomero_converter.LeicaSource import LeicaSource
+        # label: the image name with the start of its UUID (older files without UUIDs: its index)
+        return [(f"{name} [{kwargs['image_uuid'][:8]}]" if 'image_uuid' in kwargs
+                 else f"{name} [#{kwargs['image_index']}]", kwargs)
+                for name, kwargs in LeicaSource.get_images(filename)]
+    if input_ext == '.icarch':
+        return [(f'Plate {plate_id}', {'plate_id': plate_id}) for plate_id in get_incucyte_plates(filename)]
+    if input_ext in ('.db', '.isyntax', '.mrxs') or '.zar' in input_ext or '.tif' in input_ext             or input_ext in ('.ome', '.xml'):
+        # single image or plate (same order as create_source, so OME-Zarr folders are not searched for DICOM)
+        return []
+    if is_dicom(filename):
+        from biomero_converter.DicomSource import DicomSource
+        # label: the series name (as used for the output), its number of slices and the end of its UID
+        return [(f"{' '.join(name.split())} ({nslices} {'slice' if nslices == 1 else 'slices'}) "
+                 f"[...{series_uid[-8:]}]", {'image_uuid': series_uid})
+                for series_uid, (name, nslices) in DicomSource.get_series_names(filename).items()]
+    return []
+
+
 def create_incucyte_source(filename, plate_id=None):
     """
     Create an IncucyteSource object for a specific plate.

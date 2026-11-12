@@ -201,3 +201,59 @@ def test_cli_default_output_format(monkeypatch):
     with pytest.raises(SystemExit):
         main.main()
     assert captured['output_format'] == DEFAULT_OUTPUT_FORMAT
+
+
+def test_selections_without_parts(tmp_path):
+    # a single image (TIFF) has no parts to choose from
+    import tifffile
+    from biomero_converter.helper import get_selections
+    input_filename = str(tmp_path / 'input.tif')
+    tifffile.imwrite(input_filename, np.zeros((32, 32), dtype=np.uint8))
+    assert get_selections(input_filename) == []
+
+
+@pytest.mark.parametrize('filename, expected', [
+    ('Leica/RGB.lif', [('LargeImage [710afbc4]', {'image_uuid': '710afbc4-24d7-11f0-bebf-80e82ce1e716'}),
+                       ('SmallImage [b98ee309]', {'image_uuid': 'b98ee309-6d42-11f0-bed3-80e82ce1e716'})]),
+    ('Leica/LMD7-Test.lif', None),          # no image UUIDs: selected by index
+    ('dicom/2_skull_ct', None),             # DICOM series
+])
+def test_selections_with_parts(filename, expected):
+    from biomero_converter.helper import get_selections
+    input_filename = 'C:/Project/slides/' + filename
+    if not os.path.exists(input_filename):
+        pytest.skip(f'test data not available: {input_filename}')
+    selections = get_selections(input_filename)
+    if expected is not None:
+        assert selections == expected
+    assert len(selections) > 1
+    assert len({label for label, _ in selections}) == len(selections)      # labels are unique
+    if filename.endswith('LMD7-Test.lif'):
+        assert selections[0] == ('LMDPic__wil_7 [#0]', {'image_index': 0})
+    if filename.startswith('dicom'):
+        assert all(set(kwargs) == {'image_uuid'} for _, kwargs in selections)
+
+
+def test_selection_names_match_output_names():
+    # the dropdown shows the name the source gives the converted part (shared naming code)
+    from biomero_converter.DicomSource import DicomSource
+    input_filename = 'C:/Project/slides/dicom/2_skull_ct'
+    if not os.path.exists(input_filename):
+        pytest.skip(f'test data not available: {input_filename}')
+    names = DicomSource.get_series_names(input_filename)
+    series_uid, (name, nslices) = min(names.items(), key=lambda item: item[1][1])     # smallest series
+    source = DicomSource(input_filename, image_uuid=series_uid)
+    source.init_metadata()
+    assert source.get_name() == name
+
+
+def test_selections_incucyte_plates():
+    # an Incucyte archive lists its plates, selected by plate_id
+    from biomero_converter.helper import get_incucyte_plates, get_selections
+    input_filename = 'C:/Project/slides/incucyte/251125_morphology_XW_2/20251125_morphology_XW2.icarch'
+    if not os.path.exists(input_filename):
+        pytest.skip(f'test data not available: {input_filename}')
+    selections = get_selections(input_filename)
+    assert selections == [(f'Plate {plate_id}', {'plate_id': plate_id})
+                          for plate_id in get_incucyte_plates(input_filename)]
+    assert selections == [('Plate 1450', {'plate_id': '1450'})]

@@ -71,6 +71,35 @@ class DicomSource(ImageSource):
         return {series_uid: filenames for series_uid, (filenames, _) in DicomSource._find_series(uri).items()}
 
     @staticmethod
+    def get_series_names(uri):
+        """
+        Find the series in a DICOM file, folder or DICOMDIR, with their names (as used for the converted output).
+
+        Returns:
+            dict: Per SeriesInstanceUID (in series order), its name and number of slices.
+        """
+        series = DicomSource._find_series(uri)
+        return {series_uid: (DicomSource._get_series_name(dcmread(filenames[0], stop_before_pixels=True), uri,
+                                                          series_uid, len(series)),
+                             len(filenames))
+                for series_uid, (filenames, _) in series.items()}
+
+    @staticmethod
+    def _get_series_name(metadata, uri, series_uid, nseries):
+        # the series description, else the study description, else the file (or DICOMDIR folder) name;
+        # with several series, followed by the series number
+        name = metadata.get('SeriesDescription')
+        if not name:
+            name = metadata.get('StudyDescription')
+        if not name:
+            # the folder's name for a DICOMDIR
+            is_dicomdir = os.path.basename(uri).upper() == 'DICOMDIR'
+            name = get_filetitle(os.path.dirname(uri) if is_dicomdir else uri)
+        if nseries > 1:
+            name = f"{name}_{metadata.get('SeriesNumber', series_uid)}"
+        return str(name)
+
+    @staticmethod
     def _find_series(uri):
         # per SeriesInstanceUID: its filenames in order of slice position, and the number of files left out
         if os.path.isfile(uri) and os.path.basename(uri).upper() != 'DICOMDIR':
@@ -165,16 +194,7 @@ class DicomSource(ImageSource):
                 break
         self.bits_per_pixel = self.metadata.get('BitsStored', self.dtype.itemsize * 8)
 
-        name = self.metadata.get('SeriesDescription')
-        if not name:
-            name = self.metadata.get('StudyDescription')
-        if not name:
-            # the folder's name for a DICOMDIR
-            is_dicomdir = os.path.basename(self.uri).upper() == 'DICOMDIR'
-            name = get_filetitle(os.path.dirname(self.uri) if is_dicomdir else self.uri)
-        if self.nseries > 1:
-            name = f"{name}_{self.metadata.get('SeriesNumber', self.series_uid)}"
-        self.name = name
+        self.name = self._get_series_name(self.metadata, self.uri, self.series_uid, self.nseries)
 
         return self.metadata
 
