@@ -50,9 +50,14 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest>=7.0"]
+# desktop GUI (biomero-converter-gui)
+gui = ["customtkinter>=5.2"]
 
 [project.scripts]
 biomero-converter = "biomero_converter.main:main"
+
+[project.gui-scripts]
+biomero-converter-gui = "biomero_converter.gui:main"
 
 [project.entry-points.pyinstaller40]
 # lets PyInstaller find the hook in biomero_converter/__pyinstaller when an app bundles this package
