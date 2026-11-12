@@ -75,7 +75,13 @@ conversion thread and call the message handler directly.
 
 ## In progress
 
-(none)
+GUI progress bar (branch `gui-progress`, PR into `main`; no release unless asked). One bar for all conversions,
+including progress within each conversion; the CLI is unchanged.
+1. `convert(..., progress=None)`: optional callback `progress(done, total)`, passed to the writers, which report
+   per well/field (plates) and per image; convert() loops (plates, Leica images) scale it.
+2. GUI: combines it with dask task progress (a dask callback, for lazily read data and OME-Zarr writing) into
+   one monotonic bar, plus a status line.
+3. Tests: callback calls (TIFF, local plate data), GUI bar/status with a stub convert, CLI passes no progress.
 
 ## TODO
 

@@ -38,6 +38,8 @@ Tk must be available in the Python installation:
 4. Choose the **output format** (default: OME-Zarr 0.5, see `DEFAULT_OUTPUT_FORMAT` in [Convert](convert.md)).
 5. **Convert.** Everything is converted one after the other; the log shows each output path. If a conversion fails,
    the error is logged and the next one continues. **Stop after current** stops after the conversion in progress.
+   One progress bar covers all conversions, including the progress within each one; the text next to it shows
+   which conversion is running and how far it is (e.g. `Converting 2/5: 40%`).
 
 Closing the window during a conversion stops after the current conversion and then closes.
 

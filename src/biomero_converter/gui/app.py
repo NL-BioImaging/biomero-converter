@@ -208,18 +208,20 @@ class ConverterFrame(customtkinter.CTkFrame):
         self.log_box.grid(row=4, column=0, sticky='nsew', pady=5, padx=10)
         self.log_box.configure(state='disabled')
 
-        # progress, stop and convert
+        # status, progress (one bar for all conversions, including progress within each), stop and convert
         run_frame = customtkinter.CTkFrame(self, fg_color='transparent')
         run_frame.grid(row=5, column=0, sticky='ew', pady=(5, 10), padx=10)
-        run_frame.grid_columnconfigure(0, weight=1)
+        run_frame.grid_columnconfigure(1, weight=1)
+        self.status_label = customtkinter.CTkLabel(run_frame, text='', width=150, anchor='w')
+        self.status_label.grid(row=0, column=0, sticky='w', pady=5, padx=5)
         self.progress = customtkinter.CTkProgressBar(run_frame)
         self.progress.set(0)
-        self.progress.grid(row=0, column=0, sticky='ew', pady=5, padx=5)
+        self.progress.grid(row=0, column=1, sticky='ew', pady=5, padx=5)
         self.stop_button = customtkinter.CTkButton(
             run_frame, text='Stop after current', state='disabled', command=self.request_stop)
-        self.stop_button.grid(row=0, column=1, sticky='e', pady=5, padx=5)
+        self.stop_button.grid(row=0, column=2, sticky='e', pady=5, padx=5)
         self.convert_button = customtkinter.CTkButton(run_frame, text='Convert', command=self.start_conversion)
-        self.convert_button.grid(row=0, column=2, sticky='e', pady=5, padx=5)
+        self.convert_button.grid(row=0, column=3, sticky='e', pady=5, padx=5)
 
     @property
     def inputs(self):
@@ -322,6 +324,7 @@ class ConverterFrame(customtkinter.CTkFrame):
         self.stop_requested.clear()
         self._set_running(True)
         self.progress.set(0)
+        self.status_label.configure(text='Starting...')
         self.worker = threading.Thread(
             target=self._convert_all,
             args=(conversions, OUTPUT_FORMATS[self.format_menu.get()]),
@@ -353,15 +356,23 @@ class ConverterFrame(customtkinter.CTkFrame):
                     break
                 part = f' ({label})' if label else ''
                 messages.put(('log', f'[{index + 1}/{nconversions}] Converting {input_path}{part}'))
+
+                def report(fraction, index=index):
+                    # progress of this conversion (0-1, see convert()): one bar for all conversions
+                    messages.put(('progress', ((index + fraction) / nconversions,
+                                               f'{index + 1}/{nconversions}: {fraction:.0%}')))
+
+                report(0)
                 try:
-                    result = convert(input_path, output_folder, output_format=output_format, **source_kwargs)
+                    result = convert(input_path, output_folder, output_format=output_format, progress=report,
+                                     **source_kwargs)
                     for output in json.loads(result or '[]'):
                         messages.put(('log', f"    -> {output.get('full_path', output)}"))
                     nconverted += 1
                 except Exception as error:
                     # the cause is logged by convert() above
                     messages.put(('log', f'    FAILED: {error}'))
-                messages.put(('progress', (index + 1) / nconversions))
+                messages.put(('progress', ((index + 1) / nconversions, f'{index + 1}/{nconversions}: done')))
         finally:
             root_logger.removeHandler(handler)
             root_logger.setLevel(old_level)
@@ -375,9 +386,12 @@ class ConverterFrame(customtkinter.CTkFrame):
                 if kind == 'log':
                     self.log(content)
                 elif kind == 'progress':
-                    self.progress.set(content)
+                    fraction, status = content
+                    self.progress.set(fraction)
+                    self.status_label.configure(text=f'Converting {status}')
                 elif kind == 'done':
                     self.log(content)
+                    self.status_label.configure(text='Finished')
                     done = True
         except queue.Empty:
             pass
