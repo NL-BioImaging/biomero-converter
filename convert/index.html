@@ -574,17 +574,23 @@
 <span class="n">output_folder</span> <span class="o">=</span> <span class="s2">"path/to/output_folder"</span>
 <span class="n">alt_output_folder</span> <span class="o">=</span> <span class="s2">"path/to/alternative_output_folder"</span>
 
-<span class="n">result_json</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span>
-    <span class="n">input_filename</span><span class="p">,</span>
-    <span class="n">output_folder</span><span class="p">,</span>
-    <span class="n">alt_output_folder</span><span class="p">,</span>
-    <span class="n">output_format</span><span class="o">=</span><span class="s2">"omezarr05"</span><span class="p">,</span>
-    <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
-<span class="p">)</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">'__main__'</span><span class="p">:</span>
+    <span class="n">result_json</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span>
+        <span class="n">input_filename</span><span class="p">,</span>
+        <span class="n">output_folder</span><span class="p">,</span>
+        <span class="n">alt_output_folder</span><span class="p">,</span>
+        <span class="n">output_format</span><span class="o">=</span><span class="s2">"omezarr05"</span><span class="p">,</span>
+        <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="n">result_json</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">result_json</span><span class="p">)</span>
 </code></pre></div>
+<p>Run a script calling <code>convert()</code> under <code>if __name__ == '__main__':</code>: some formats (iSyntax) are read in parallel in
+worker processes, which import the script.</p>
+<p>Images larger than the available memory (on a Slurm node: the job's memory limit) are read lazily and written per
+chunk or tile, using the dask threads (all CPUs of the job) for reading (where the format allows), compressing and
+writing.</p>
 <h2 id="arguments">Arguments</h2>
 <ul>
 <li><code>input_filename</code> (str): Path to the input file.</li>
@@ -600,6 +606,9 @@
 <li><code>**kwargs</code>: Source specific parameters, e.g.:</li>
 <li><code>plate_id</code> (str): Incucyte plate ID (default: all plates).</li>
 <li><code>image_uuid</code> (str) or <code>image_index</code> (int): Leica image to convert (default: all images in the file).</li>
+<li><code>crop_to_scan</code> (bool, default True): MIRAX: crop to the scanned region, leaving out the unscanned (background)
+    area around it; no data lost, about twice as fast. The image position is the region's offset in the slide.
+    False (command line: <code>--no-crop_to_scan</code>; GUI: "Crop slides to the scanned region") keeps the whole slide.</li>
 </ul>
 <h2 id="returns">Returns</h2>
 <p>A JSON string containing an array with conversion result info, e.g.:</p>
