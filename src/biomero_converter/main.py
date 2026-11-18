@@ -1,11 +1,13 @@
 import sys
 import argparse
+import multiprocessing
 
 from biomero_converter.converter import convert, init_logging
 from biomero_converter.parameters import DEFAULT_OUTPUT_FORMAT
 
 
 def main():
+    multiprocessing.freeze_support()   # worker processes (e.g. iSyntax reads) in a frozen (PyInstaller) app
     parser = argparse.ArgumentParser(description='Convert file to ome format')
     parser.add_argument('--inputfile', required=True, help='input file')
     parser.add_argument('--outputfolder', required=True, help='output folder')
@@ -19,6 +21,9 @@ def main():
     parser.add_argument('--image_uuid', help='Leica image UUID (optional, default: all images) '
                                                'or DICOM SeriesInstanceUID (optional, default: the first series)')
     parser.add_argument('--position', type=int, help='Leica position index, for a tile scan with gaps between its tiles')
+    parser.add_argument('--crop_to_scan', action=argparse.BooleanOptionalAction, default=True,
+                        help='MIRAX: crop to the scanned region, leaving out the unscanned (background) area '
+                             '(default; --no-crop_to_scan: the whole slide)')
     args = parser.parse_args()
 
     init_logging('db_to_zarr.log', verbose=args.verbose)
@@ -31,6 +36,7 @@ def main():
         source_kwargs['image_uuid'] = args.image_uuid
     if args.position is not None:
         source_kwargs['position'] = args.position
+    source_kwargs['crop_to_scan'] = args.crop_to_scan
 
     result = convert(
         args.inputfile,

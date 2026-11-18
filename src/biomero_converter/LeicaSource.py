@@ -357,17 +357,16 @@ class LeicaSource(ImageSource):
         self.tile_index = self.position_index
         self.tile_position = positions[self.position_index]
 
-    def _get_source_data(self, as_dask=False):
+    def _get_source_data(self):
         """
-        Get image data in tczyx order (with mosaic tiles stitched).
+        Get image data as dask array in tczyx order (with mosaic tiles stitched).
         """
         data = self.image.asarray(out='memmap')
         dims = ''.join(self.source_dims)
         # select first index of unsupported dimensions
         data = data[tuple(0 if dim not in 'TCZYXSM' else slice(None) for dim in dims)]
         dims = ''.join(dim for dim in dims if dim in 'TCZYXSM')
-        if as_dask:
-            data = da.from_array(data, chunks=tuple(TILE_SIZE if dim in 'YX' else 1 for dim in dims))
+        data = da.from_array(data, chunks=tuple(TILE_SIZE if dim in 'YX' else 1 for dim in dims))
         if 'S' in dims:
             # RGB samples as channels
             if 'C' in dims:
@@ -382,16 +381,15 @@ class LeicaSource(ImageSource):
         order = 'm' + self.dim_order if 'M' in dims else self.dim_order
         data = redimension_data(data, dims.lower(), order)
         if 'M' in dims:
-            data = self._stitch_tiles(data, as_dask=as_dask)
+            data = self._stitch_tiles(data)
         return data
 
-    def _stitch_tiles(self, data, as_dask=False):
+    def _stitch_tiles(self, data):
         """
         Stitch mosaic tiles (first axis) along the last two (yx) axes.
         """
-        lib = da if as_dask else np
         if self.tile_grid is None:
-            return self._transform_tile(data[self.tile_index], lib)
+            return self._transform_tile(data[self.tile_index])
         ny, nx = len(self.tile_grid), len(self.tile_grid[0])
         rows = []
         for y, grid_row in enumerate(self.tile_grid):
@@ -401,14 +399,14 @@ class LeicaSource(ImageSource):
                 height = self.tile_step[0] if y < ny - 1 else self.tile_size[0]
                 width = self.tile_step[1] if x < nx - 1 else self.tile_size[1]
                 if m_index is not None:
-                    tile = self._transform_tile(data[m_index], lib)[..., :height, :width]
+                    tile = self._transform_tile(data[m_index])[..., :height, :width]
                 else:
-                    tile = lib.zeros(data.shape[1:-2] + (height, width), dtype=data.dtype)
+                    tile = da.zeros(data.shape[1:-2] + (height, width), dtype=data.dtype)
                 row.append(tile)
             rows.append(row)
-        return lib.block(rows)
+        return da.block(rows)
 
-    def _transform_tile(self, tile, lib):
+    def _transform_tile(self, tile):
         # tiles are flipped / transposed as placed in the tile scan
         flip_y, flip_x, swap_xy = self.tile_flip
         if flip_y:
@@ -416,37 +414,12 @@ class LeicaSource(ImageSource):
         if flip_x:
             tile = tile[..., ::-1]
         if swap_xy:
-            tile = lib.swapaxes(tile, -1, -2)
+            tile = da.swapaxes(tile, -1, -2)
         return tile
 
-    def is_screen(self):
-        return False
-
-    def get_shape(self):
-        return self.shape
-
-    def get_shapes(self):
-        return self.shapes
-
-    def get_scales(self):
-        return self.scales
-
-    def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
-        data = np.asarray(self._get_source_data())
-        return redimension_data(data, self.dim_order, dim_order)
-
     def get_data_as_dask(self, dim_order, level=0, **kwargs):
-        data = self._get_source_data(as_dask=True)
+        data = self._get_source_data()
         return redimension_data(data, self.dim_order, dim_order)
-
-    def get_name(self):
-        return self.name
-
-    def get_dim_order(self):
-        return self.dim_order
-
-    def get_dtype(self):
-        return self.dtype
 
     def get_pixel_size_um(self):
         if self.pixel_size:
@@ -460,38 +433,14 @@ class LeicaSource(ImageSource):
     def get_channels(self):
         return self.channels
 
-    def get_nchannels(self):
-        return self.nchannels
-
     def is_rgb(self):
         return self.is_rgb_channels
-
-    def get_rows(self):
-        return []
-
-    def get_columns(self):
-        return []
-
-    def get_wells(self):
-        return []
 
     def get_time_points(self):
         return list(range(self.shape[0]))
 
-    def get_fields(self):
-        return []
-
-    def get_acquisitions(self):
-        return []
-
-    def get_acquisition_datetime(self):
-        return self.acquisition_datetime
-
     def get_acquisition_end_datetime(self):
         return self.acquisition_end_datetime
-
-    def get_significant_bits(self):
-        return self.bits_per_pixel
 
     def get_acquisition_metadata(self):
         return self.acquisition_metadata

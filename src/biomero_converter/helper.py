@@ -2,6 +2,7 @@ import os.path
 
 
 LEICA_EXTENSIONS = ['.lif', '.lof', '.lifext', '.xlif', '.xlcf', '.xlef']
+WHOLE_SLIDE_EXTENSIONS = ['.mrxs', '.isyntax']     # TiledSource: option crop_to_scan
 
 
 def create_source(filename, **kwargs):
@@ -19,6 +20,8 @@ def create_source(filename, **kwargs):
         ValueError: If the file format is unsupported.
     """
     input_ext = os.path.splitext(filename)[1].lower()
+    if input_ext not in WHOLE_SLIDE_EXTENSIONS:
+        kwargs.pop('crop_to_scan', None)
 
     if input_ext in LEICA_EXTENSIONS:
         from biomero_converter.LeicaSource import LeicaSource

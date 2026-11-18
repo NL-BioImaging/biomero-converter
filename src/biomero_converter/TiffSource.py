@@ -4,7 +4,7 @@ import dateutil
 from enum import Enum
 import numpy as np
 import os.path
-from tifffile import TiffFile, imread, PHOTOMETRIC
+from tifffile import TiffFile, PHOTOMETRIC
 
 from biomero_converter.ImageSource import ImageSource
 from biomero_converter.ome_tiff_util import metadata_to_dict, read_ome_xml_metadata, read_ome_acquisition_end_datetime
@@ -151,15 +151,6 @@ class TiffSource(ImageSource):
     def is_screen(self):
         return self.is_plate
 
-    def get_shape(self):
-        return self.shape
-
-    def get_shapes(self):
-        return self.shapes
-
-    def get_scales(self):
-        return self.scales
-
     def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
         if well_id is not None:
             image_id = self.image_refs[well_id][int(field_id)]
@@ -170,21 +161,11 @@ class TiffSource(ImageSource):
         return redimension_data(data, self.dim_order, dim_order)
 
     def get_data_as_dask(self, dim_order, level=0, **kwargs):
-        #lazy_array = dask.delayed(imread)(self.uri, level=level)
-        #data = da.from_delayed(lazy_array, shape=self.shapes[level], dtype=self.dtype)
-        data = da.from_zarr(imread(self.uri, level=level, aszarr=True))
+        # zarr store on the open file (first series, as get_data), closed with it in close()
+        data = da.from_zarr(self.tiff.aszarr(level=level))
         if data.chunksize == data.shape:
             data = data.rechunk(TILE_SIZE)
         return redimension_data(data, self.dim_order, dim_order)
-
-    def get_name(self):
-        return self.name
-
-    def get_dim_order(self):
-        return self.dim_order
-
-    def get_dtype(self):
-        return self.dtype
 
     def get_pixel_size_um(self):
         if self.pixel_size:
@@ -197,9 +178,6 @@ class TiffSource(ImageSource):
 
     def get_channels(self):
         return self.channels
-
-    def get_nchannels(self):
-        return self.nchannels
 
     def is_rgb(self):
         return self.is_photometric_rgb
@@ -223,9 +201,6 @@ class TiffSource(ImageSource):
     def get_fields(self):
         return self.fields
 
-    def get_acquisitions(self):
-        return []
-
     def get_acquisition_datetime(self):
         if self.is_ome:
             return self.acquisition_datetime
@@ -235,9 +210,6 @@ class TiffSource(ImageSource):
     def get_acquisition_end_datetime(self):
         return self.acquisition_end_datetime
 
-    def get_significant_bits(self):
-        return self.bits_per_pixel
-
     def get_acquisition_metadata(self):
         return self.acquisition_metadata
 
@@ -245,7 +217,8 @@ class TiffSource(ImageSource):
         return self.source_metadata
 
     def close(self):
-        self.tiff.close()
+        if self.tiff is not None:   # None: multi-file plate
+            self.tiff.close()
 
 
 def get_fiji_pixelsize(metadata):

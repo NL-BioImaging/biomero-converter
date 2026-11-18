@@ -101,3 +101,63 @@ def test_zarr_window_and_pixels_round_trip(tmp_path, source_version, output_form
     metadata = metadata.get('ome', metadata)
     assert metadata['omero']['channels'][0]['window'] == {
         'min': 0, 'max': 65535, 'start': limits[0], 'end': limits[1]}
+
+
+SMALL_TILE = 64   # tile / chunk size in the tests below: small images with several chunks and edge tiles
+
+
+@pytest.fixture
+def small_tiles(monkeypatch):
+    import biomero_converter.ImageSource
+    import biomero_converter.OmeTiffWriter
+    import biomero_converter.OmeZarrWriter
+    import biomero_converter.TiffSource
+    for module in (biomero_converter.ImageSource, biomero_converter.OmeTiffWriter, biomero_converter.TiffSource):
+        monkeypatch.setattr(module, 'TILE_SIZE', SMALL_TILE)
+    monkeypatch.setattr(biomero_converter.OmeZarrWriter, 'ZARR_CHUNK_SIZE', SMALL_TILE)
+
+
+@pytest.mark.parametrize('zarr_format', ZARR_FORMATS)
+def test_zarr_chunks_of_in_memory_image(tmp_path, small_tiles, zarr_format):
+    # in-memory data: zarr chunks of ZARR_CHUNK_SIZE (not dask's automatic chunks), shards from OME-Zarr 0.5
+    from biomero_converter.parameters import ZARR_SHARD_MULTIPLIER
+    data = np.random.default_rng(0).integers(0, 4096, (2, 150, 200), dtype=np.uint16)
+    tiff = tmp_path / 'chunks.ome.tif'
+    tifffile.imwrite(tiff, data, ome=True, metadata={'axes': 'CYX'})
+    result = _convert_one(tiff, tmp_path / 'zarr', zarr_format)
+    array = zarr.open_group(result['full_path'], mode='r')['s0']   # full resolution
+    assert array.chunks == (1, 1, 1, SMALL_TILE, SMALL_TILE)
+    if zarr_format == 'omezarr05':
+        assert array.shards == (1, 1, 1, SMALL_TILE * ZARR_SHARD_MULTIPLIER, SMALL_TILE * ZARR_SHARD_MULTIPLIER)
+    _, round_trip = _read(result['full_path'])
+    np.testing.assert_array_equal(np.squeeze(round_trip), data)
+
+
+@pytest.mark.parametrize('output_format', ZARR_FORMATS + ['ometiff'])
+@pytest.mark.parametrize('axes', ['CYX', 'YXS'])
+def test_larger_than_memory_round_trip(tmp_path, monkeypatch, small_tiles, output_format, axes):
+    # as if larger than memory: read lazily, written per chunk (OME-Zarr) / per tile (OME-TIFF), with edge tiles
+    import biomero_converter.OmeTiffWriter
+    import biomero_converter.OmeZarrWriter
+    for module in (biomero_converter.OmeTiffWriter, biomero_converter.OmeZarrWriter):
+        monkeypatch.setattr(module, 'fits_in_memory', lambda *args, **kwargs: False)
+    rng = np.random.default_rng(0)
+    if axes == 'CYX':
+        data = rng.integers(0, 4096, (2, 150, 200), dtype=np.uint16)
+    else:
+        data = rng.integers(0, 256, (150, 200, 3), dtype=np.uint8)
+    tiff = tmp_path / 'large.ome.tif'
+    tifffile.imwrite(tiff, data, photometric='rgb' if axes == 'YXS' else 'minisblack', tile=(32, 32),
+                     ome=True, metadata={'axes': axes})
+    result = _convert_one(tiff, tmp_path / 'out', output_format)
+    original, target = create_source(str(tiff)), create_source(result['full_path'])
+    original.init_metadata()
+    target.init_metadata()
+    np.testing.assert_array_equal(target.get_data('tczyx'), original.get_data('tczyx'))
+    if output_format != 'ometiff':
+        array = zarr.open_group(result['full_path'], mode='r')['s0']
+        assert array.chunks[-2:] == (SMALL_TILE, SMALL_TILE)
+    else:
+        # pyramid levels written from the tiles
+        with tifffile.TiffFile(result['full_path']) as file:
+            assert len(file.series[0].levels) > 1

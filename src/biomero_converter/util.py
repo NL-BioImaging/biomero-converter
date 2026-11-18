@@ -370,3 +370,71 @@ def fix_bad_micro_value(value):
     if isinstance(value, str) and '\xa6\xcc' in value:
         value = value.replace('\xa6\xcc', '\xb5')
     return value
+
+
+def get_available_memory(cgroup_root='/sys/fs/cgroup', proc_cgroup='/proc/self/cgroup', environ=None):
+    """
+    Memory (bytes) this process can still use: the free system memory, limited by the memory limit of its (Slurm job)
+    cgroup, else of the Slurm job (SLURM_MEM_PER_NODE / SLURM_MEM_PER_CPU) - these see the whole node's memory.
+    """
+    import psutil
+    environ = os.environ if environ is None else environ
+    available = psutil.virtual_memory().available
+    cgroup_available = _get_cgroup_available_memory(cgroup_root, proc_cgroup)
+    if cgroup_available is not None:
+        return min(available, cgroup_available)
+    # no cgroup (limit): Slurm job memory (MB), less what this process uses
+    mem_mb = environ.get('SLURM_MEM_PER_NODE')
+    if not mem_mb and environ.get('SLURM_MEM_PER_CPU'):
+        ncpus = environ.get('SLURM_CPUS_ON_NODE') or environ.get('SLURM_CPUS_PER_TASK') or 1
+        mem_mb = int(environ['SLURM_MEM_PER_CPU']) * int(ncpus)
+    if mem_mb:
+        limit = int(mem_mb) * 1024 * 1024
+        available = min(available, max(limit - psutil.Process().memory_info().rss, 0))
+    return available
+
+
+def _get_cgroup_available_memory(cgroup_root, proc_cgroup):
+    # smallest (limit - usage) of this process's memory cgroup and its parents (e.g. the Slurm job above its step)
+    try:
+        with open(proc_cgroup) as file:
+            lines = file.read().splitlines()
+    except OSError:
+        return None
+    candidates = []
+    for line in lines:
+        _, controllers, path = line.split(':', 2)
+        if controllers == '':
+            # cgroup v2 (unified)
+            base, limit_file, usage_file = cgroup_root, 'memory.max', 'memory.current'
+        elif 'memory' in controllers.split(','):
+            base, limit_file, usage_file = os.path.join(cgroup_root, 'memory'), 'memory.limit_in_bytes', \
+                'memory.usage_in_bytes'
+        else:
+            continue
+        parts = [part for part in path.split('/') if part]
+        for depth in range(len(parts), -1, -1):
+            folder = os.path.join(base, *parts[:depth])
+            try:
+                with open(os.path.join(folder, limit_file)) as file:
+                    limit = file.read().strip()
+                with open(os.path.join(folder, usage_file)) as file:
+                    usage = int(file.read().strip())
+            except (OSError, ValueError):
+                continue
+            # no limit: 'max' (v2) or a huge number (v1)
+            if limit.isdigit() and int(limit) < 2 ** 60:
+                candidates.append(max(int(limit) - usage, 0))
+    return min(candidates) if candidates else None
+
+
+def fits_in_memory(shape, dtype, available=None):
+    """
+    Check if image data fits in memory to convert it there: the data and its pyramid (+1/3), and the float64 copy
+    (with its resized output) skimage resize makes of a level. Else it is converted lazily (dask / tiles).
+    """
+    npixels = float(np.prod(shape))
+    needed = npixels * np.dtype(dtype).itemsize * 4 / 3 + npixels * 8 * 1.25
+    if available is None:
+        available = get_available_memory()
+    return needed < available

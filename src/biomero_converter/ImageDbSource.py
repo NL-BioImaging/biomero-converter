@@ -30,15 +30,6 @@ class ImageDbSource(ImageSource):
         self._get_sizes()
         return self.metadata
 
-    def get_shape(self):
-        return self.shape
-
-    def get_shapes(self):
-        return self.shapes
-
-    def get_scales(self):
-        return self.scales
-
     def _get_time_series_info(self):
         """
         Loads time series and image file info into metadata.
@@ -297,12 +288,6 @@ class ImageDbSource(ImageSource):
     def get_fields(self):
         return self.fields
 
-    def get_dim_order(self):
-        return self.dim_order
-
-    def get_dtype(self):
-        return self.dtype
-
     def get_pixel_size_um(self):
         return {'x': self.pixel_size, 'y': self.pixel_size}
 
@@ -351,9 +336,6 @@ class ImageDbSource(ImageSource):
 
     def get_acquisition_datetime(self):
         return self.metadata.get('DateCreated')
-
-    def get_significant_bits(self):
-        return self.bits_per_pixel
 
     def print_timepoint_well_matrix(self):
         s = ''

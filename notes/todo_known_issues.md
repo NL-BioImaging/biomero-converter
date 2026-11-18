@@ -42,8 +42,12 @@ Mapping onto the imaging metadata model is done (and tracked) in imaging-metadat
 - `convert()` retries every exception `max_attempts` times, also deterministic ones.
 - OME-Zarr has no RGB flag: 8-bit 3/4-channel images are taken as RGB(A) (`OmeZarrSource.is_rgb`), others as
   separate channels (fixed in v0.2.1: before, any 3/4-channel OME-Zarr failed to convert to OME-TIFF).
-- MIRAX conversion is very slow (single-threaded `read_region` via dask): `sample4.mrxs` took 40+ min for
-  one format. iSyntax takes ~9 min per OME-Zarr format.
+- MIRAX / iSyntax (`TiledSource`) read multi-threaded; iSyntax in worker processes (libisyntax reads only on the
+  thread that opened the file), so a script converting it needs `if __name__ == '__main__':`. sample4.mrxs to
+  OME-Zarr 0.4: 6.4 min (was 40+), 2.6 min cropped to the scanned region (default, `crop_to_scan`); iSyntax ~70 s
+  (was ~9 min). iSyntax has no scanned bounds, so is not cropped.
+- Memory limits (cgroup v1/v2, Slurm env) decide in-memory vs lazy (per tile) conversion and the number of iSyntax
+  worker processes; only tested with simulated cgroup files, not on a real Slurm node.
 - NumPy 2.5 deprecates setting an array's shape, which tifffile still does when reading (DeprecationWarning).
 
 ### ome-zarr-py >= 0.18 (pinned `<0.18` in pyproject.toml)

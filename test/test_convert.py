@@ -24,6 +24,11 @@ class TestConvert:
                  'tiff/EM04573_01small.ome.tif',
                  'incucyte/251125_morphology_XW_2/20251125_morphology_XW2.icarch',
                  'Leica/lif/3dtiny.lif']
+    # small files only: whole-slide images (iSyntax, MIRAX) take 5-40+ min per format
+    filenames = ['DB/CellsSmall/experiment.db',
+                 'tiff/EM04573_01small.ome.tif',
+                 'dicom/MRBRAIN.DCM',
+                 'Leica/lif/3dtiny.lif']
 
     input_filenames = ['C:/Project/slides/' + filename for filename in filenames]
 
