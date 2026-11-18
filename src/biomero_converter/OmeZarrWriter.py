@@ -7,13 +7,13 @@
 #from ome_zarr_models.v05 import Image
 #from ome_zarr_models.v05.multiscales import Dataset
 
+import dask
 import dask.array as da
 from ome_zarr import dask_utils
 #from ome_zarr.io import parse_url
 from ome_zarr.scale import Scaler
 from ome_zarr.writer import write_image, write_plate_metadata, write_well_metadata, write_multiscale
 import os.path
-import psutil
 from skimage.transform import resize
 import zarr
 
@@ -23,7 +23,8 @@ from biomero_converter.ome_zarr_util import *
 from biomero_converter.parameters import *
 from biomero_converter.progress import Progress
 from biomero_converter.rocrate_utils import create_ro_crate
-from biomero_converter.util import split_well_name, print_hbytes, get_level_from_scale, get_pyramid_levels
+from biomero_converter.util import split_well_name, print_hbytes, get_level_from_scale, get_pyramid_levels, get_available_memory
+from biomero_converter.util import fits_in_memory
 from biomero_converter.WindowScanner import WindowScanner
 
 # estimated share of reading the image data in the progress of writing an image (the rest: writing it)
@@ -164,8 +165,13 @@ class OmeZarrWriter(OmeWriter):
         zarr_root = zarr.open_group(zarr_location, mode='w', zarr_format=self.zarr_format)
 
         nlevels = len(source.get_scales())
-        size0 = np.prod(source.get_shape()) * source.get_dtype().itemsize
-        available = psutil.virtual_memory().available
+        # else (larger than memory) read lazily, written per chunk by dask
+        in_memory = not source.is_lazy() or fits_in_memory(source.get_shape(), source.get_dtype())
+
+        def get_data(level=0):
+            if in_memory:
+                return np.asarray(source.get_data(self.dim_order, level=level))
+            return source.get_data_as_dask(self.dim_order, level=level)
 
         with progress.step(0, READ_PROGRESS):
             pyramid_data = []
@@ -178,10 +184,7 @@ class OmeZarrWriter(OmeWriter):
                 for index in range(pyramid_levels + 1):
                     level, rescale = get_level_from_scale(source.get_scales(), scale)
                     if level != last_level:
-                        if size0 < available:
-                            data = np.asarray(source.get_data(self.dim_order, level=level))
-                        else:
-                            data = source.get_data_as_dask(self.dim_order, level=level)
+                        data = get_data(level)
                         last_level = level
                     if index == 0:
                         shape0 = data.shape
@@ -196,10 +199,7 @@ class OmeZarrWriter(OmeWriter):
                     scale /= PYRAMID_DOWNSCALE
             else:
                 # no source pyramids sizes available
-                if size0 < available:
-                    pyramid_data = np.asarray(source.get_data(self.dim_order))
-                else:
-                    pyramid_data = source.get_data_as_dask(self.dim_order)
+                pyramid_data = get_data()
 
             window_scanner = WindowScanner()
             window = source.get_image_window(window_scanner)
@@ -238,19 +238,15 @@ class OmeZarrWriter(OmeWriter):
             data0 = data[0]
         else:
             data0 = data
-        storage_options = None
+        # else the zarr chunks would be the dask chunks (e.g. automatic: 5792x5792 pixels, of in-memory data)
+        storage_options = {'chunks': [ZARR_CHUNK_SIZE if dim in 'xy' else 1 for dim in dim_order]}
+        fill_value = source.get_fill_value()
+        if fill_value is not None:
+            # chunks of only this value (e.g. a slide's empty background) are not written
+            storage_options['fill_value'] = fill_value
         if float(self.ome_version) >= 0.5:
-            if not hasattr(data0, 'chunksize'):
-                chunks = []
-                shards = []
-                for dim, n in zip(dim_order, data0.shape):
-                    if dim in 'xy':
-                        chunks += [ZARR_CHUNK_SIZE]
-                        shards += [ZARR_CHUNK_SIZE * ZARR_SHARD_MULTIPLIER]
-                    else:
-                        chunks += [1]
-                        shards += [1]
-                storage_options = {'chunks': chunks, 'shards': shards}
+            shard_size = ZARR_CHUNK_SIZE * self._get_shard_multiplier(data0.dtype)
+            storage_options['shards'] = [shard_size if dim in 'xy' else 1 for dim in dim_order]
 
         size = data0.size * data0.itemsize
         if is_pyramid:
@@ -271,6 +267,17 @@ class OmeZarrWriter(OmeWriter):
                         scaler=scaler, fmt=self.ome_format, storage_options=storage_options,
                         name=source.get_name(), metadata=metadata)
         return size
+
+    @staticmethod
+    def _get_shard_multiplier(dtype):
+        """
+        Shard size in chunks (per x and y): each shard is a dask task, held in memory (with the data it is made of:
+        twice) by each dask thread at once, so limited by the available memory.
+        """
+        chunk_size = ZARR_CHUNK_SIZE ** 2 * np.dtype(dtype).itemsize
+        nthreads = dask.config.get('num_workers', None) or dask.system.CPU_COUNT
+        multiplier = int(np.sqrt(get_available_memory() / (2 * nthreads * chunk_size)))
+        return max(min(multiplier, ZARR_SHARD_MULTIPLIER), 1)
 
     def _create_scale_metadata(self, source, dim_order, translation=None, scaler=None):
         """

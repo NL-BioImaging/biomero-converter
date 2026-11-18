@@ -145,7 +145,11 @@ class OmeTiffWriter(OmeWriter):
         """
         xml_metadata = create_metadata(source, image_filenames=[filename])
         resolution, resolution_unit = create_resolution_metadata(source)
-        data = source.get_data_as_generator(self.dim_order)
+        if fits_in_memory(source.get_shape(), source.get_dtype()):
+            data = source.get_data(self.dim_order)
+        else:
+            # larger than memory: read and written per tile
+            data = source.get_data_as_generator(self.dim_order)
 
         size, window = self._write_tiff(filename, source, data,
                                         resolution=resolution, resolution_unit=resolution_unit,
@@ -257,8 +261,11 @@ class OmeTiffWriter(OmeWriter):
                              subifds=subifds, subfiletype=subfiletype,
                              resolution=resolution, resolutionunit=resolution_unit, tile=tile_size,
                              compression=compression, compressionargs=compressionargs,
+                             predictor=TIFF_PREDICTOR if compression and np.dtype(dtype).kind in 'ui' else None,
                              description=xml_metadata_bytes)
                 progress.report(level_ends[level])
                 if level == pyramid_levels:
-                    window = source.get_image_window(window_scanner, well_id=well_id, field_id=field_id, data=data)
+                    # (from a generator: the source reads a small level itself)
+                    window = source.get_image_window(window_scanner, well_id=well_id, field_id=field_id,
+                                                     data=None if is_generator else data)
         return data_size, window

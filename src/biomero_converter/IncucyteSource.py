@@ -669,21 +669,6 @@ class IncucyteSource(ImageSource):
 
         return redimension_data(data, self.dim_order, dim_order)
 
-    def get_shape(self):
-        return self.shape
-
-    def get_scales(self):
-        return self.scales
-
-    def get_name(self):
-        return self.name
-
-    def get_dim_order(self):
-        return self.dim_order
-
-    def get_dtype(self):
-        return self.dtype
-
     def get_pixel_size_um(self):
         return self.pixel_size
 

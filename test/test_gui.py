@@ -64,6 +64,7 @@ def test_gui_defaults(app):
     from biomero_converter.parameters import DEFAULT_OUTPUT_FORMAT
     frame = ConverterFrame(app)
     assert OUTPUT_FORMATS[frame.format_menu.get()] == DEFAULT_OUTPUT_FORMAT
+    assert frame.crop_checkbox.get() == 1
     assert frame.convert_button.cget('state') == 'normal'
     frame.start_conversion()        # nothing selected: asks for inputs, does not start
     assert not frame.busy
@@ -223,3 +224,30 @@ def test_gui_progress_bar(app, tmp_path, monkeypatch):
     frame._poll_messages()
     assert frame.progress.get() == 1
     assert frame.status_label.cget('text') == 'Finished'
+
+
+def test_gui_crop_option_for_slides(app, tmp_path, monkeypatch):
+    # the crop checkbox goes to whole-slide inputs only
+    from biomero_converter.gui import ConverterFrame
+    from biomero_converter.gui import app as gui_app
+    monkeypatch.setattr(gui_app, 'get_selections', lambda path: [])
+    calls = []
+
+    def fake_convert(input_path, output_folder, output_format=None, progress=None, **source_kwargs):
+        calls.append((os.path.basename(input_path), source_kwargs))
+        return json.dumps([])
+
+    monkeypatch.setattr(gui_app, 'convert', fake_convert)
+    frame = ConverterFrame(app)
+    frame.add_inputs([str(tmp_path / 'slide.mrxs'), str(tmp_path / 'image.tif')])
+    wait_until_read(frame)
+    frame.set_output_folder(str(tmp_path / 'output'))
+    frame.start_conversion()
+    wait_until_done(frame)
+    assert calls == [('slide.mrxs', {'crop_to_scan': True}), ('image.tif', {})]
+
+    calls.clear()
+    frame.crop_checkbox.deselect()
+    frame.start_conversion()
+    wait_until_done(frame)
+    assert calls[0] == ('slide.mrxs', {'crop_to_scan': False})

@@ -2,7 +2,8 @@ from abc import ABC
 from imaging_metadata_converter import convert_metadata
 import numpy as np
 
-from biomero_converter.util import ensure_list, pad_leading_zero, parse_datetime, to_plain_types
+from biomero_converter.parameters import TILE_SIZE
+from biomero_converter.util import ensure_list, pad_leading_zero, parse_datetime, to_plain_types, get_level_from_scale
 
 
 class ImageSource(ABC):
@@ -33,42 +34,33 @@ class ImageSource(ABC):
     def is_screen(self):
         """
         Check if the source is a screen (multi-well).
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'is_screen' method must be implemented by subclasses.")
+        return False
 
     def get_shape(self):
         """
         Get the shape of the image data.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_shape' method must be implemented by subclasses.")
+        return self.shape
 
     def get_shapes(self):
         """
         Get a list of shapes corresponding to the image data levels.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_shapes' method must be implemented by subclasses.")
+        return self.shapes
 
     def get_scales(self):
         """
         Get the list of image scales.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_scales' method must be implemented by subclasses.")
+        return self.scales
 
     def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
         """
-        Get image data for a well and field.
+        Get image data (numpy) for a well and field.
+
+        A source implements get_data() (reading all into memory) and/or get_data_as_dask() (lazy reading, also for
+        data larger than memory); by default each is taken from the other.
 
         Args:
             dim_order: Dimension order of data
@@ -76,15 +68,15 @@ class ImageSource(ABC):
             well_id (str, optional): Well identifier
             field_id (int, optional): Field identifier
             kwargs (optional): Format specific keyword arguments.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_data' method must be implemented by subclasses.")
+        if not self.is_lazy():
+            raise NotImplementedError("The 'get_data' or 'get_data_as_dask' method must be implemented by subclasses.")
+        data = self.get_data_as_dask(dim_order, level=level, well_id=well_id, field_id=field_id, **kwargs)
+        return np.asarray(data)
 
     def get_data_as_dask(self, dim_order, level=0, **kwargs):
         """
-        Get image data (WSI) as dask array.
+        Get image data as dask array: lazily read if the source implements it (is_lazy()), else read in memory.
 
         Args:
             dim_order: Dimension order of data
@@ -93,15 +85,43 @@ class ImageSource(ABC):
         """
         return self.get_data(dim_order, level=level, **kwargs)
 
+    def is_lazy(self):
+        """
+        Check if the source reads lazily (implements get_data_as_dask()): data larger than memory can be converted.
+        """
+        return type(self).get_data_as_dask is not ImageSource.get_data_as_dask
+
     def get_data_as_generator(self, dim_order, **kwargs):
         """
-        Get image data (WSI) as generator.
+        Get image data as a generator function data_generator(scale) for OmeTiffWriter, yielding the tiles
+        (TILE_SIZE, yx or yxc with RGB samples last) of each plane, read a row of tiles at a time from the best
+        resolution level and resized to the scale.
 
         Args:
-            dim_order: Dimension order of data
+            dim_order: Dimension order of data (planes: the leading dimensions, before yx)
             kwargs (optional): Format specific keyword arguments.
         """
-        return self.get_data(dim_order, **kwargs)
+        import skimage.transform as sk_transform
+
+        tile_dims = 'yxc' if dim_order.endswith('c') else 'yx'
+        nplane_dims = len(dim_order) - len(tile_dims)
+
+        def data_generator(scale=1):
+            level, rescale = get_level_from_scale(self.get_scales(), scale)
+            data = self.get_data_as_dask(dim_order, level=level, **kwargs)
+            read_size = int(TILE_SIZE / rescale)
+            for plane_index in np.ndindex(*data.shape[:nplane_dims]):
+                plane = data[plane_index]
+                for y in range(0, plane.shape[0], read_size):
+                    row = np.asarray(plane[y:y + read_size])
+                    for x in range(0, row.shape[1], read_size):
+                        tile = row[:, x:x + read_size]
+                        if rescale != 1:
+                            shape = np.multiply(tile.shape[:2], rescale).astype(int)
+                            shape = tuple(shape) + tile.shape[2:]
+                            tile = sk_transform.resize(tile, shape, preserve_range=True).astype(tile.dtype)
+                        yield tile
+        return data_generator
 
     def get_image_window(self, window_scanner, well_id=None, field_id=None, data=None):
         """
@@ -124,32 +144,30 @@ class ImageSource(ABC):
                 window_scanner.process(data, self.get_dim_order())
         return window_scanner.get_window()
 
+    def get_fill_value(self):
+        """
+        Get the value of pixels outside the acquired area (e.g. a slide's background), or None: written as the
+        zarr fill value, so chunks of only that value (empty areas) are not written.
+        """
+        return None
+
     def get_name(self):
         """
         Get the name of the image source.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_name' method must be implemented by subclasses.")
+        return self.name
 
     def get_dim_order(self):
         """
         Get the dimension order string.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_dim_order' method must be implemented by subclasses.")
+        return self.dim_order
 
     def get_dtype(self):
         """
         Get the numpy dtype of the image data.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_dtype' method must be implemented by subclasses.")
+        return self.dtype
 
     def get_pixel_size_um(self):
         """
@@ -182,11 +200,8 @@ class ImageSource(ABC):
     def get_nchannels(self):
         """
         Get the number of channels.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_nchannels' method must be implemented by subclasses.")
+        return self.nchannels
 
     def is_rgb(self):
         """
@@ -197,65 +212,44 @@ class ImageSource(ABC):
     def get_rows(self):
         """
         Get the list of row identifiers.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_rows' method must be implemented by subclasses.")
+        return []
 
     def get_columns(self):
         """
         Get the list of column identifiers.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_columns' method must be implemented by subclasses.")
+        return []
 
     def get_wells(self):
         """
         Get the list of well identifiers.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_wells' method must be implemented by subclasses.")
+        return []
 
     def get_time_points(self):
         """
         Get the list of time points.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_time_points' method must be implemented by subclasses.")
+        return []
 
     def get_fields(self):
         """
         Get the list of field indices.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_fields' method must be implemented by subclasses.")
+        return []
 
     def get_acquisitions(self):
         """
         Get acquisition metadata.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_acquisitions' method must be implemented by subclasses.")
+        return []
 
     def get_acquisition_datetime(self):
         """
         Get the acquisition datetime.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_acquisition_datetime' method must be implemented by subclasses.")
+        return self.acquisition_datetime
 
     def get_acquisition_end_datetime(self):
         """
@@ -269,11 +263,8 @@ class ImageSource(ABC):
     def get_significant_bits(self):
         """
         Get the number of significant bits in the image data.
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("The 'get_significant_bits' method must be implemented by subclasses.")
+        return self.bits_per_pixel
 
     def get_metadata(self):
         """

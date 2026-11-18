@@ -2,18 +2,21 @@ from datetime import datetime
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
 import os.path
-import skimage.transform as sk_transform
 
 from biomero_converter.ImageSource import ImageSource
 from biomero_converter.ome_tiff_util import metadata_to_dict, read_ome_xml_metadata
 from biomero_converter.ome_zarr_util import *
 from biomero_converter.parameters import *
-from biomero_converter.util import convert_to_um, get_level_from_scale, redimension_data, get_filetitle, get_numpy_data, parse_datetime
+from biomero_converter.util import convert_to_um, redimension_data, get_filetitle, parse_datetime
 
 
 class OmeZarrSource(ImageSource):
 
     def _get_reader(self, add_path=None):
+        # the last reader is kept: a plate field is read for its data and then for its window (get_image_window)
+        cached = getattr(self, '_last_reader', None)
+        if cached is not None and cached[0] == add_path:
+            return cached[1]
         uri = self.uri
         if add_path:
             uri = os.path.join(uri, add_path)
@@ -22,6 +25,7 @@ class OmeZarrSource(ImageSource):
             raise FileNotFoundError(f'Error parsing ome-zarr file {uri}')
         reader = Reader(location)
         nodes = list(reader())
+        self._last_reader = (add_path, (reader, nodes))
         return reader, nodes
 
     def _get_metadata(self, add_path=None):
@@ -133,48 +137,13 @@ class OmeZarrSource(ImageSource):
     def is_screen(self):
         return self.is_plate
 
-    def get_shape(self):
-        return self.shape
-
-    def get_shapes(self):
-        return self.shapes
-
-    def get_scales(self):
-        return self.scales
-
-    def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
+    def get_data_as_dask(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
         if well_id is None and field_id is None:
             data = self.data[level]
         else:
             _, nodes = self._get_reader(self.paths[well_id][int(field_id)])
             data = nodes[0].data[level]
         return redimension_data(data, self.dim_order, dim_order)
-
-    def get_data_as_generator(self, dim_order, **kwargs):
-        def data_generator(scale=1):
-            level, rescale = get_level_from_scale(self.scales, scale)
-            level_data = self.data[level]
-            read_size = int(TILE_SIZE / rescale)
-            nz = self.shape[self.dim_order.index('z')] if 'z' in self.dim_order else 1
-            # RGB(A) is written with the channels as samples (last): each tile holds all channels
-            samples = dim_order.endswith('c')
-            channels = [None] if samples else range(self.get_nchannels())
-            tile_dims = 'yxc' if samples else 'yx'
-            data_order = ''.join(dim for dim in self.dim_order if dim in tile_dims)
-            tile_order = ''.join(dim for dim in dim_order if dim in tile_dims)
-            for t in range(len(self.get_time_points())):
-                for c in channels:
-                    for z in range(nz):
-                        for y in range(0, self.heights[level], read_size):
-                            for x in range(0, self.widths[level], read_size):
-                                data = get_numpy_data(level_data, self.dim_order, t, c, z, y, x, read_size, read_size)
-                                if rescale != 1:
-                                    new_shape = [int(size * rescale) if dim in 'yx' else size
-                                                 for dim, size in zip(data_order, data.shape)]
-                                    data = sk_transform.resize(data, new_shape,
-                                                               preserve_range=True).astype(data.dtype)
-                                yield redimension_data(np.asarray(data), data_order, tile_order)
-        return data_generator
 
     def get_image_window(self, window_scanner, well_id=None, field_id=None, data=None):
         if well_id is None and field_id is None:
@@ -183,15 +152,6 @@ class OmeZarrSource(ImageSource):
             metadata = self._get_metadata(self.paths[well_id][int(field_id)])
         window = np.transpose(metadata.get('contrast_limits', ([], [])))
         return window
-
-    def get_name(self):
-        return self.name
-
-    def get_dim_order(self):
-        return self.dim_order
-
-    def get_dtype(self):
-        return self.dtype
 
     def get_pixel_size_um(self):
         return self.pixel_size
@@ -234,12 +194,6 @@ class OmeZarrSource(ImageSource):
 
     def get_acquisitions(self):
         return self.acquisitions
-
-    def get_acquisition_datetime(self):
-        return self.acquisition_datetime
-
-    def get_significant_bits(self):
-        return self.bits_per_pixel
 
     def get_acquisition_metadata(self):
         return self.microscope_info

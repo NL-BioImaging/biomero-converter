@@ -11,17 +11,25 @@ input_filename = "path/to/input_file"
 output_folder = "path/to/output_folder"
 alt_output_folder = "path/to/alternative_output_folder"
 
-result_json = convert(
-    input_filename,
-    output_folder,
-    alt_output_folder,
-    output_format="omezarr05",
-    show_progress=False,
-    verbose=False
-)
+if __name__ == '__main__':
+    result_json = convert(
+        input_filename,
+        output_folder,
+        alt_output_folder,
+        output_format="omezarr05",
+        show_progress=False,
+        verbose=False
+    )
 
-print(result_json)
+    print(result_json)
 ```
+
+Run a script calling `convert()` under `if __name__ == '__main__':`: some formats (iSyntax) are read in parallel in
+worker processes, which import the script.
+
+Images larger than the available memory (on a Slurm node: the job's memory limit) are read lazily and written per
+chunk or tile, using the dask threads (all CPUs of the job) for reading (where the format allows), compressing and
+writing.
 
 ## Arguments
 
@@ -38,6 +46,9 @@ print(result_json)
 - `**kwargs`: Source specific parameters, e.g.:
   - `plate_id` (str): Incucyte plate ID (default: all plates).
   - `image_uuid` (str) or `image_index` (int): Leica image to convert (default: all images in the file).
+  - `crop_to_scan` (bool, default True): MIRAX: crop to the scanned region, leaving out the unscanned (background)
+    area around it; no data lost, about twice as fast. The image position is the region's offset in the slide.
+    False (command line: `--no-crop_to_scan`; GUI: "Crop slides to the scanned region") keeps the whole slide.
 
 ## Returns
 

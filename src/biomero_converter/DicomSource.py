@@ -1,4 +1,7 @@
 from datetime import datetime, time
+import dask
+import dask.array as da
+from itertools import islice
 import logging
 import numpy as np
 import os.path
@@ -9,6 +12,7 @@ from pydicom.datadict import keyword_for_tag
 from pydicom.encaps import generate_frames
 from pydicom.errors import InvalidDicomError
 from pydicom.multival import MultiValue
+from pydicom.pixels import pixel_array
 from pydicom.valuerep import DA, TM
 
 from biomero_converter.ImageSource import ImageSource
@@ -58,7 +62,7 @@ class DicomSource(ImageSource):
         if nleft_out:
             logging.warning(f'DICOM series {self.series_uid}: using {len(self.filenames)} slices of one orientation, '
                             f'leaving out {nleft_out} (e.g. a reference image)')
-        self.dicom = dcmread(self.filenames[0])
+        self.dicom = dcmread(self.filenames[0], stop_before_pixels=True)
 
     @staticmethod
     def get_series(uri):
@@ -150,8 +154,10 @@ class DicomSource(ImageSource):
     def init_metadata(self):
         metadata = dicom_to_dict(self.dicom)
         self.metadata = metadata
-        pixel_array = self._read_pixels(self.dicom)
-        shape = list(pixel_array.shape)
+        nframes = int(metadata.get('NumberOfFrames') or 1)
+        # the first frame for its shape and type: reading all the pixels (possibly larger than memory) is lazy
+        frame = self._read_pixels(self.filenames[0], index=0)
+        shape = list(frame.shape) if nframes == 1 else [nframes] + list(frame.shape)
         self.is_rgb_type = (metadata.get('PhotometricInterpretation').lower() == 'rgb')
         dim_order = 'yx'
         nchannels = 1
@@ -159,9 +165,9 @@ class DicomSource(ImageSource):
             # pydicom gives the samples last
             nchannels = shape[-1]
             dim_order = dim_order + 'c'
-        self.dtype = pixel_array.dtype
+        self.dtype = frame.dtype
         self.pixel_size = {dim:value for dim, value in zip('xy', metadata.get('PixelSpacing', (1, 1)))}
-        if int(metadata.get('NumberOfFrames') or 1) > 1:
+        if nframes > 1:
             # multi-frame: frames are time points if they increment by frame time (e.g. cine, ultrasound), else slices
             dim_order = ('t' if self._frames_are_time() else 'z') + dim_order
         nfiles = len(self.filenames)
@@ -220,19 +226,28 @@ class DicomSource(ImageSource):
         return any(keyword_for_tag(tag) in ['FrameTime', 'FrameTimeVector'] for tag in tags)
 
     @staticmethod
-    def _read_pixels(dicom):
+    def _read_pixels(filename, index=None):
+        """
+        Pixel data of a file: all its frames, or one frame (index), RGB samples last.
+        """
         try:
-            return dicom.pixel_array
+            # reads (and decodes) only that frame from the file
+            return pixel_array(filename, index=index)
         except RuntimeError:
             # no pydicom decoder plugin for this compression: decode with imagecodecs instead
+            dicom = dcmread(filename)
             transfer_syntax = str(dicom.file_meta.TransferSyntaxUID)
             if transfer_syntax not in IMAGECODECS_DECODERS:
                 raise
             import imagecodecs
             decode = getattr(imagecodecs, IMAGECODECS_DECODERS[transfer_syntax])
             nframes = int(dicom.get('NumberOfFrames') or 1)
-            frames = [decode(frame) for frame in generate_frames(dicom.PixelData, number_of_frames=nframes)]
-            data = np.stack(frames) if nframes > 1 else frames[0]
+            frames = generate_frames(dicom.PixelData, number_of_frames=nframes)
+            if index is not None:
+                data = decode(next(islice(frames, index, None)))
+            else:
+                data = [decode(frame) for frame in frames]
+                data = np.stack(data) if nframes > 1 else data[0]
             if dicom.get('PixelRepresentation') == 1 and data.dtype.kind == 'u':
                 # signed values: sign-extend the stored bits
                 data = data.view(data.dtype.str.replace('u', 'i'))
@@ -241,30 +256,8 @@ class DicomSource(ImageSource):
                     data = (data << unused_bits) >> unused_bits
             return data
 
-    def is_screen(self):
-        # DICOM files are not multi-well screens
-        return False
-
     def is_rgb(self):
         return self.is_rgb_type
-
-    def get_name(self):
-        return self.name
-
-    def get_shape(self):
-        return self.shape
-
-    def get_shapes(self):
-        return self.shapes
-
-    def get_dtype(self):
-        return self.dtype
-
-    def get_scales(self):
-        return self.scales
-
-    def get_dim_order(self):
-        return self.dim_order
 
     def get_channels(self):
         if self.is_rgb():
@@ -274,9 +267,6 @@ class DicomSource(ImageSource):
         else:
             return [{'label': f'Channel {index}', 'color': [1, 1, 1, 1]} for index in range(self.nchannels)]
 
-    def get_nchannels(self):
-        return self.nchannels
-
     def get_pixel_size_um(self):
         return {dim: size * 1e3 for dim, size in self.pixel_size.items()}
 
@@ -285,12 +275,6 @@ class DicomSource(ImageSource):
             return {dim: size * 1e3 for dim, size in self.position.items()}
         else:
             return None
-
-    def get_acquisition_datetime(self):
-        return self.acquisition_datetime
-
-    def get_significant_bits(self):
-        return self.bits_per_pixel
 
     def get_acquisition_metadata(self):
         # all DICOM attributes as they are (patient details included), for mapping onto the imaging metadata model
@@ -305,29 +289,22 @@ class DicomSource(ImageSource):
             return list(range(self.shape[self.dim_order.index('t')]))
         return []
 
-    def get_rows(self):
-        return []
+    def get_data_as_dask(self, dim_order, level=0, **kwargs):
+        # lazily, per frame of each file (slice)
+        nframes = int(self.metadata.get('NumberOfFrames') or 1)
+        frame_shape = tuple(self.shape[-3:] if self.is_rgb_type else self.shape[-2:])
 
-    def get_columns(self):
-        return []
+        def read_file(filename):
+            frames = [da.from_delayed(dask.delayed(self._read_pixels)(filename, index=index), frame_shape, self.dtype)
+                      for index in range(nframes)]
+            return da.stack(frames) if nframes > 1 else frames[0]
 
-    def get_wells(self):
-        return []
-
-    def get_fields(self):
-        return []
-
-    def get_acquisitions(self):
-        return []
-
-    def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
-        # https://pydicom.github.io/pydicom/stable/auto_examples/image_processing/reslice.html#sphx-glr-auto-examples-image-processing-reslice-py
-        if len(self.filenames) > 1:
-            arrays = [self._read_pixels(dcmread(filename)) for filename in self.filenames]
-            if int(self.metadata.get('NumberOfFrames') or 1) > 1 and self.dim_order[0] == 'z':
-                data = np.concatenate(arrays)
+        arrays = [read_file(filename) for filename in self.filenames]
+        if len(arrays) > 1:
+            if nframes > 1 and self.dim_order[0] == 'z':
+                data = da.concatenate(arrays)
             else:
-                data = np.stack(arrays, axis=self.dim_order.index('z'))
+                data = da.stack(arrays, axis=self.dim_order.index('z'))
         else:
-            data = self._read_pixels(self.dicom)
+            data = arrays[0]
         return redimension_data(data, self.dim_order, dim_order)

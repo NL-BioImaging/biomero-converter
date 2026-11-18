@@ -1,5 +1,6 @@
 import json
 import logging
+import multiprocessing
 import os.path
 import queue
 import threading
@@ -8,7 +9,7 @@ from tkinter import filedialog
 import customtkinter
 
 from biomero_converter.converter import convert
-from biomero_converter.helper import LEICA_EXTENSIONS, get_selections
+from biomero_converter.helper import LEICA_EXTENSIONS, WHOLE_SLIDE_EXTENSIONS, get_selections
 from biomero_converter.parameters import DEFAULT_OUTPUT_FORMAT, VERSION
 
 OUTPUT_FORMATS = {
@@ -202,6 +203,10 @@ class ConverterFrame(customtkinter.CTkFrame):
         self.format_menu = customtkinter.CTkOptionMenu(options, values=list(OUTPUT_FORMATS))
         self.format_menu.set(DEFAULT_FORMAT_LABEL)
         self.format_menu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
+        # whole-slide images (MIRAX): leave out the unscanned background area around the scanned region
+        self.crop_checkbox = customtkinter.CTkCheckBox(options, text='Crop slides to the scanned region')
+        self.crop_checkbox.select()
+        self.crop_checkbox.grid(row=0, column=2, sticky='w', pady=5, padx=15)
 
         # log
         self.log_box = customtkinter.CTkTextbox(self, wrap='word')
@@ -317,7 +322,8 @@ class ConverterFrame(customtkinter.CTkFrame):
             return
 
         # one conversion per chosen part ("All": each part; no parts: the whole input)
-        conversions = [(path, label, source_kwargs, resolve_output_folder(self.output_folder, path))
+        conversions = [(path, label, self._source_options(path, source_kwargs),
+                        resolve_output_folder(self.output_folder, path))
                        for path, row in self.rows.items()
                        for label, source_kwargs in row.get_parts()]
 
@@ -331,6 +337,12 @@ class ConverterFrame(customtkinter.CTkFrame):
             daemon=True)
         self.worker.start()
         self.after(POLL_INTERVAL_MS, self._poll_messages)
+
+    def _source_options(self, path, source_kwargs):
+        """The source kwargs of a part, with the options for its format."""
+        if os.path.splitext(path)[1].lower() in WHOLE_SLIDE_EXTENSIONS:
+            return {**source_kwargs, 'crop_to_scan': bool(self.crop_checkbox.get())}
+        return source_kwargs
 
     def request_stop(self):
         self.stop_requested.set()
@@ -405,7 +417,7 @@ class ConverterFrame(customtkinter.CTkFrame):
     def _set_running(self, running):
         state = 'disabled' if running else 'normal'
         for widget in (self.convert_button, self.add_files_button, self.add_folder_button, self.clear_button,
-                       self.output_entry, self.output_button, self.format_menu):
+                       self.output_entry, self.output_button, self.format_menu, self.crop_checkbox):
             widget.configure(state=state)
         for row in self.rows.values():
             row.set_state(state)
@@ -438,6 +450,7 @@ class ConverterWindow(customtkinter.CTkToplevel):
 
 def main():
     """Standalone application: ``biomero-converter-gui``."""
+    multiprocessing.freeze_support()   # worker processes (e.g. iSyntax reads) in a frozen (PyInstaller) app
     customtkinter.set_appearance_mode('system')
     app = customtkinter.CTk()
     app.title(TITLE)

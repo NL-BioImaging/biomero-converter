@@ -8,6 +8,8 @@ OME_FILE = 'METADATA.ome.xml'
 TILE_SIZE = 1024
 
 TIFF_COMPRESSION = 'LZW'
+# horizontal differencing before compressing: LZW without it makes (brightfield) tiles larger than raw
+TIFF_PREDICTOR = True
 #TIFF_COMPRESSION = 'JPEGXR_NDPI'
 #TIFF_COMPRESSIONARGS = 75
 

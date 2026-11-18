@@ -10,7 +10,7 @@ dependencies:
  - tifffile
  - liffile
  - imagecodecs
- - dask[array]
+ - dask[array]>=2025.12.0  # older: ome-zarr-py drops zarr shards and compressors
  - imageio
  - psutil
  - pip

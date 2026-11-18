@@ -1,3 +1,5 @@
+import dask
+import dask.array as da
 import imageio.v3 as iio
 import numpy as np
 import os.path
@@ -65,30 +67,15 @@ class GenericSource(ImageSource):
         self.name = get_filetitle(self.uri)
         return self.metadata
 
-    def is_screen(self):
-        return False
-
-    def get_shape(self):
-        return self.shape
-
-    def get_shapes(self):
-        return self.shapes
-
-    def get_scales(self):
-        return self.scales
-
-    def get_data(self, dim_order, level=0, well_id=None, field_id=None, **kwargs):
-        data = self.image.read()
+    def get_data_as_dask(self, dim_order, level=0, **kwargs):
+        # lazily per frame (a batch, e.g. animated GIF); an image itself these formats can only read whole
+        if 't' in self.dim_order:
+            frames = [da.from_delayed(dask.delayed(iio.imread)(self.uri, index=index), self.shape[1:], self.dtype)
+                      for index in range(self.shape[0])]
+            data = da.stack(frames)
+        else:
+            data = da.from_delayed(dask.delayed(iio.imread)(self.uri), self.shape, self.dtype)
         return redimension_data(data, self.dim_order, dim_order)
-
-    def get_name(self):
-        return self.name
-
-    def get_dim_order(self):
-        return self.dim_order
-
-    def get_dtype(self):
-        return self.dtype
 
     def get_pixel_size_um(self):
         if self.pixel_size:
@@ -107,38 +94,17 @@ class GenericSource(ImageSource):
         else:
             return [{'label': f'Channel {index}', 'color': [1, 1, 1, 1]} for index in range(self.nchannels)]
 
-    def get_nchannels(self):
-        return self.nchannels
-
     def is_rgb(self):
         return self.is_rgb_type
-
-    def get_rows(self):
-        return []
-
-    def get_columns(self):
-        return []
-
-    def get_wells(self):
-        return []
 
     def get_time_points(self):
         if 't' in self.dim_order:
             return list(range(self.shape[self.dim_order.index('t')]))
         return []
 
-    def get_fields(self):
-        return []
-
-    def get_acquisitions(self):
-        return []
-
     def get_acquisition_datetime(self):
         # the vendor's acquisition date before the Exif dates
         return self.get_model_acquisition_datetime() or self.acquisition_datetime
-
-    def get_significant_bits(self):
-        return self.bits_per_pixel
 
     def get_acquisition_metadata(self):
         return self.acquisition_metadata

@@ -189,8 +189,10 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
     output_path = os.path.join(output_folder, validate_filename(name) + output_ext)
     
     progress = progress or Progress()
-    output = writer.write(output_path, source, progress=progress, **kwargs)
-    source.close()
+    try:
+        output = writer.write(output_path, source, progress=progress, **kwargs)
+    finally:
+        source.close()
 
     if show_progress:
         print(f'Converting {input_filename} to {output_path}')
