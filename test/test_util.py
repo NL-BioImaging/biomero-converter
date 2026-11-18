@@ -1,9 +1,19 @@
 """get_available_memory(): the free memory, limited by the (Slurm job) cgroup or Slurm memory limit."""
+from types import SimpleNamespace
+
 import psutil
+import pytest
 
 from biomero_converter.util import get_available_memory
 
 GB = 1024 ** 3
+FREE = 64 * GB
+
+
+@pytest.fixture(autouse=True)
+def free_memory(monkeypatch):
+    # fixed free memory: the real one changes between calls (and can be below the limits, e.g. on CI runners)
+    monkeypatch.setattr(psutil, 'virtual_memory', lambda: SimpleNamespace(available=FREE))
 
 
 def _write(path, text):
@@ -20,7 +30,7 @@ def test_cgroup_v2_job_limit(tmp_path):
     _write(root / 'slurm/uid_1/job_2/step_0/memory.max', 'max')
     _write(root / 'slurm/uid_1/job_2/step_0/memory.current', str(1 * GB))
     available = get_available_memory(str(root), str(tmp_path / 'proc_cgroup'), environ={})
-    assert available == min(3 * GB, psutil.virtual_memory().available)
+    assert available == 3 * GB
 
 
 def test_cgroup_v1_limit(tmp_path):
@@ -31,7 +41,7 @@ def test_cgroup_v1_limit(tmp_path):
     _write(root / 'memory/memory.limit_in_bytes', str(2 ** 63 - 4096))   # no limit
     _write(root / 'memory/memory.usage_in_bytes', str(GB))
     available = get_available_memory(str(root), str(tmp_path / 'proc_cgroup'), environ={})
-    assert available == min(GB * 3 // 2, psutil.virtual_memory().available)
+    assert available == GB * 3 // 2
 
 
 def test_slurm_environment_without_cgroup(tmp_path):
