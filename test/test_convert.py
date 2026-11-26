@@ -310,6 +310,43 @@ def test_convert_progress(tmp_path, monkeypatch, output_format):
     assert reports[-1] == 1.0 and all(type(fraction) is float for fraction in reports)
 
 
+def test_rotation_transform_as_napari_rotates():
+    # napari's rotate=30 is [[cos, -sin], [sin, cos]] on (y, x); other axes stay
+    from biomero_converter.ome_zarr_util import create_rotation_transform
+    matrix = create_rotation_transform(['c', 'y', 'x'], 30)['rotation']
+    assert np.allclose(matrix, [[1, 0, 0], [0, 0.8660254, -0.5], [0, 0.5, 0.8660254]])
+
+
+def test_v06_rotation_between_scale_and_translation():
+    from biomero_converter.ome_zarr_util import convert_multiscales_to_v06
+    multiscales = [{'axes': [{'name': 'y'}, {'name': 'x'}], 'datasets': [{'path': '0', 'coordinateTransformations': [
+        {'type': 'scale', 'scale': [2, 2]}, {'type': 'translation', 'translation': [5, 6]}]}]}]
+    transform = convert_multiscales_to_v06(multiscales, rotation_deg=30)[0]['datasets'][0]['coordinateTransformations'][0]
+    assert [step['type'] for step in transform['transformations']] == ['scale', 'rotation', 'translation']
+
+
+def test_v06_without_rotation():
+    from biomero_converter.ome_zarr_util import convert_multiscales_to_v06
+    multiscales = [{'axes': [{'name': 'y'}, {'name': 'x'}],
+                    'datasets': [{'path': '0', 'coordinateTransformations': [{'type': 'scale', 'scale': [2, 2]}]}]}]
+    transform = convert_multiscales_to_v06(multiscales)[0]['datasets'][0]['coordinateTransformations'][0]
+    assert transform['type'] == 'scale'
+
+
+def test_convert_rotation_to_v06(tmp_path):
+    # a scan rotation in the vendor header (Ciqtek, in the FEI tag) is written to OME-Zarr 0.6, and read back
+    import tifffile
+    from biomero_converter.converter import convert
+    from biomero_converter.OmeZarrSource import OmeZarrSource
+    input_filename = str(tmp_path / 'input.tif')
+    tifffile.imwrite(input_filename, np.zeros((32, 32), dtype=np.uint8),
+                     extratags=[(34682, 's', 0, '[Beam]\r\nElectricRotate=-30\r\n', True)])
+    output = json.loads(convert(input_filename, str(tmp_path / 'output'), output_format='omezarr06'))[0]['full_path']
+    source = OmeZarrSource(output)
+    source.init_metadata()
+    assert source.get_rotation() == pytest.approx(-30)
+
+
 def test_check_output_path(tmp_path):
     from biomero_converter.converter import OutputPathError, check_output_path
     check_output_path(str(tmp_path / 'a.tif'), str(tmp_path / 'converted' / 'a.ome.zarr'))

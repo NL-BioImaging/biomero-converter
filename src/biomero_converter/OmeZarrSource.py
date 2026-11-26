@@ -81,6 +81,7 @@ class OmeZarrSource(ImageSource):
         x_index, y_index = self.dim_order.index('x'), self.dim_order.index('y')
         scale0 = np.mean([scales[0][x_index] + scales[0][y_index]])
         self.scales = [float(scale0 / np.mean([scale[x_index] + scale[y_index]])) for scale in scales]
+        self.rotation = get_rotation_degrees(self.metadata['coordinateTransformations'][0], list(self.dim_order))
         if self.is_plate:
             self.name = self.plate.get('name', '')
             self.rows = [row['name'] for row in self.plate.get('rows', [])]
