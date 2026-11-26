@@ -225,6 +225,39 @@ def test_ro_crate_instrument_only_from_instrument_keys(tmp_path):
     assert graph['#data-capture-001']['instrument'] == {'@id': '#instrument-helios'}
 
 
+def tiny_tiff(path, header=None):
+    # a 32x32 TIFF, with a vendor header in the FEI tag as Ciqtek writes it
+    import numpy as np
+    import tifffile
+    from biomero_converter.TiffSource import TiffSource
+    extratags = [(34682, 's', 0, header, True)] if header else []
+    tifffile.imwrite(path, np.zeros((32, 32), np.uint8), extratags=extratags)
+    source = TiffSource(str(path))
+    source.init_metadata()
+    source.close()
+    return source
+
+
+def test_tiff_scan_rotation(tmp_path):
+    source = tiny_tiff(tmp_path / 'a.tif', '[Beam]\r\nElectricRotate=-30\r\n')
+    assert source.get_rotation() == -30.0
+
+
+def test_tiff_stage_position(tmp_path):
+    source = tiny_tiff(tmp_path / 'a.tif', '[Stage]\r\nStagePosX=12.5\r\n')
+    assert source.get_position_um() == {'x': 12500.0}
+
+
+def test_tiff_pixel_size_from_field_width(tmp_path):
+    source = tiny_tiff(tmp_path / 'a.tif', '[Beam]\r\nHFW=64um\r\n')
+    assert source.get_pixel_size_um() == {'x': 2.0, 'y': 2.0}
+
+
+def test_tiff_without_spatial_metadata(tmp_path):
+    source = tiny_tiff(tmp_path / 'a.tif')
+    assert (source.get_rotation(), source.get_position_um()) == (None, {})
+
+
 @pytest.mark.integration
 def test_tiff_acquisition_datetime():
     # the vendor's acquisition date, not the file's time; none if the metadata has none

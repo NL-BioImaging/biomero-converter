@@ -9,7 +9,7 @@ import re
 from urllib.parse import quote
 import yaml
 from imaging_metadata_converter import SOURCE_MAP_KEY
-from imaging_metadata_converter.ModelPaths import DEFAULT_MODEL_FILE
+from imaging_metadata_converter import DEFAULT_MODEL_FILE
 from rocrate.model import ContextEntity
 
 from biomero_converter.util import to_plain_types

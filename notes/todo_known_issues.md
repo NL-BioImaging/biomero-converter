@@ -34,7 +34,10 @@ Only simulated locally; not yet confirmed on the reporter's `L:` share.
 
 Mapping onto the imaging metadata model is done (and tracked) in imaging-metadata-converter.
 
-- TIFF vendor metadata comes from `src/biomero_converter/metadata.py`, a copy of napari-meta-tiff `_metadata.py`: keep in sync.
+- TIFF vendor metadata: `src/biomero_converter/metadata.py` reads a TIFF into a dict (and ImageJ / resolution pixel
+  sizes); pixel size, position and rotation the metadata states come from imaging-metadata-converter
+  (`spatial_metadata`, `ImageSource.get_spatial_metadata`), shared with napari-meta-tiff. A vendor whose values are
+  missing needs a rule there, not code here.
 - Zeiss Fibics (800 MB) round-trip not checked after the change (ran out of memory).
 
 ### Conversion

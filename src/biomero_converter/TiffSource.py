@@ -9,7 +9,7 @@ from tifffile import TiffFile, PHOTOMETRIC
 from biomero_converter.ImageSource import ImageSource
 from biomero_converter.ome_tiff_util import metadata_to_dict, read_ome_xml_metadata, read_ome_acquisition_end_datetime
 from biomero_converter.parameters import TILE_SIZE
-from biomero_converter.metadata import PRIVATE_TAG_CODE, get_extra_metadata_tiff, get_pixel_size_um, get_position_um
+from biomero_converter.metadata import PRIVATE_TAG_CODE, get_extra_metadata_tiff, get_pixel_size_um
 from biomero_converter.util import convert_to_um, ensure_list, redimension_data, get_filetitle, without_keys
 
 
@@ -58,7 +58,6 @@ class TiffSource(ImageSource):
         acquisition_end_datetime = None
         pixel_size = {}
         position = {}
-        rotation = None
         channels = []
         acquisition_metadata = {}
         wells = {}
@@ -114,11 +113,6 @@ class TiffSource(ImageSource):
             for tag in self.tiff.pages.first.tags.values():
                 if tag.code < PRIVATE_TAG_CODE and tag.name not in TIFF_LAYOUT_TAGS:
                     source_metadata.setdefault(tag.name, plain_tag_value(tag.value))
-            shape = dict(zip(self.dim_order, self.shape))
-            for dim, size in get_pixel_size_um(self.tiff, acquisition_metadata, shape).items():
-                pixel_size.setdefault(dim, size)
-            position = get_position_um(acquisition_metadata)
-
             self.metadata = metadata
             name = self.tiff.filename
             # not the file's time: that changes as the file is copied
@@ -140,12 +134,20 @@ class TiffSource(ImageSource):
         self.image_refs = image_refs
         self.pixel_size = pixel_size
         self.position = position
-        self.rotation = rotation
         self.channels = channels
         self.dtype = dtype
         self.bits_per_pixel = bits_per_pixel
         self.acquisition_metadata = acquisition_metadata
         self.source_metadata = source_metadata
+
+        # what the metadata states (mapped by the imaging metadata converter), as the other readers read it
+        shape = dict(zip(self.dim_order, self.shape)) if self.tiff else None
+        spatial = self.get_spatial_metadata(shape)
+        if not self.is_ome:
+            for dim, size in get_pixel_size_um(self.tiff, spatial['pixel_size']).items():
+                self.pixel_size.setdefault(dim, size)
+            self.position = spatial['position']
+        self.rotation = spatial['rotation']
         return self.metadata
 
     def is_screen(self):

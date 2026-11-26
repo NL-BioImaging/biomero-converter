@@ -6,8 +6,7 @@ import os.path
 
 from biomero_converter.ImageSource import ImageSource
 from biomero_converter.TiffSource import parse_tiff_datetime
-from biomero_converter.metadata import get_extra_metadata, field_of_view_pixel_size, get_position_um, \
-    is_plausible_pixel_size, stated_pixel_size
+from biomero_converter.metadata import get_extra_metadata, is_plausible_pixel_size
 from biomero_converter.util import get_filetitle, redimension_data, to_plain_types, without_keys
 
 
@@ -46,13 +45,10 @@ class GenericSource(ImageSource):
         self.bits_per_pixel = self.dtype.itemsize * 8
 
         # only a size the metadata states: the resolution (dpi) of these formats is for printing
-        shape = dict(zip(self.dim_order, self.shape))
-        pixel_size = {}
-        for source in (stated_pixel_size, field_of_view_pixel_size):
-            for dim, size in source(self.acquisition_metadata, shape).items():
-                pixel_size.setdefault(dim, size)
-        self.pixel_size = {dim: size for dim, size in pixel_size.items() if is_plausible_pixel_size(size)}
-        self.position = get_position_um(self.acquisition_metadata)
+        spatial = self.get_spatial_metadata(dict(zip(self.dim_order, self.shape)))
+        self.pixel_size = {dim: size for dim, size in spatial['pixel_size'].items() if is_plausible_pixel_size(size)}
+        self.position = spatial['position']
+        self.rotation = spatial['rotation']
 
         self.acquisition_datetime = None
         # Exif date the image was taken, else when it was written

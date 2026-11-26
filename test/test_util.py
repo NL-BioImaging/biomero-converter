@@ -4,7 +4,23 @@ from types import SimpleNamespace
 import psutil
 import pytest
 
-from biomero_converter.util import get_available_memory
+from biomero_converter.util import convert_to_um, get_available_memory
+
+
+def test_convert_to_um():
+    assert convert_to_um(1.5, 'mm') == 1500.0
+
+
+def test_convert_to_um_angstrom():
+    assert convert_to_um(10, 'Å') == 0.001
+
+
+def test_convert_to_um_without_unit():
+    assert convert_to_um(3, None) == 3
+
+
+def test_convert_to_um_unknown_unit():
+    assert convert_to_um(3, 'reference frame') == 3
 
 GB = 1024 ** 3
 FREE = 64 * GB
