@@ -8,6 +8,11 @@ from tkinter import filedialog
 
 import customtkinter
 
+try:    # optional: dropping files and folders from the file explorer onto the input list
+    from tkinterdnd2 import DND_FILES, TkinterDnD
+except ImportError:
+    TkinterDnD = None
+
 from biomero_converter.converter import convert
 from biomero_converter.helper import LEICA_EXTENSIONS, WHOLE_SLIDE_EXTENSIONS, get_selections
 from biomero_converter.parameters import DEFAULT_OUTPUT_FORMAT, VERSION
@@ -228,6 +233,43 @@ class ConverterFrame(customtkinter.CTkFrame):
         self.convert_button = customtkinter.CTkButton(run_frame, text='Convert', command=self.start_conversion)
         self.convert_button.grid(row=0, column=3, sticky='e', pady=5, padx=5)
 
+        self.drop_enabled = self._enable_drop()
+        if self.drop_enabled:
+            self.log('Drop files or folders onto the input list to add them.')
+
+    def _enable_drop(self):
+        """Accept files and folders dropped onto the input list (with tkinterdnd2 installed).
+
+        tkdnd is loaded into the Tcl interpreter of whatever window this frame is in, so this also works when an
+        application (e.g. the UMIC Toolkit) places the frame in its own window, without a DnD-enabled root.
+        """
+        if TkinterDnD is None:
+            return False
+        try:
+            TkinterDnD._require(self.winfo_toplevel())   # loads tkdnd once per interpreter; repeating is harmless
+        except RuntimeError as error:
+            logging.warning(f'Drag and drop not available: {error}')
+            return False
+        # a CTkScrollableFrame is an outer frame with a canvas (and scrollbar) holding the frame the rows go in:
+        # register from the outer frame, so drops land anywhere on the list
+        self._register_drop(self.input_list._parent_frame)
+        return True
+
+    def _register_drop(self, widget):
+        # a drop is delivered to the widget under the cursor, so register the widget and all its children
+        widgets = [widget]
+        while widgets:
+            current = widgets.pop()
+            current.drop_target_register(DND_FILES)
+            current.dnd_bind('<<Drop>>', self._on_drop)
+            widgets.extend(current.winfo_children())
+
+    def _on_drop(self, event):
+        # dropped paths come as a Tcl list: paths with spaces are wrapped in braces
+        if not self.busy:
+            self.add_inputs(self.tk.splitlist(event.data))
+        return event.action
+
     @property
     def inputs(self):
         return list(self.rows)
@@ -259,7 +301,11 @@ class ConverterFrame(customtkinter.CTkFrame):
             path = os.path.normpath(path)
             if path in self.rows:
                 continue
-            self.rows[path] = _InputRow(self.input_list, len(self.rows), path)
+            row = _InputRow(self.input_list, len(self.rows), path)
+            self.rows[path] = row
+            if self.drop_enabled:
+                self._register_drop(row.label)
+                self._register_drop(row.menu)
             thread = threading.Thread(target=self._read_contents, args=(path,), daemon=True)
             self.scan_threads.append(thread)
             thread.start()

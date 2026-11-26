@@ -226,6 +226,57 @@ def test_gui_progress_bar(app, tmp_path, monkeypatch):
     assert frame.status_label.cget('text') == 'Finished'
 
 
+def _drop_bound(widget):
+    return bool(widget.tk.call('bind', widget._w, '<<Drop>>'))
+
+
+def test_gui_drop_adds_inputs(app, tmp_path, monkeypatch):
+    # dropped paths (a Tcl list: paths with spaces in braces) are added; new rows accept drops too
+    pytest.importorskip('tkinterdnd2')
+    from types import SimpleNamespace
+    from biomero_converter.gui import ConverterFrame
+    from biomero_converter.gui import app as gui_app
+    monkeypatch.setattr(gui_app, 'get_selections', lambda path: [])
+    frame = ConverterFrame(app)
+    assert frame.drop_enabled
+    assert _drop_bound(frame.input_list)
+    first, second = tmp_path / 'with space' / 'a.lif', tmp_path / 'b.tif'
+    data = f'{{{first.as_posix()}}} {second.as_posix()}'
+    assert frame._on_drop(SimpleNamespace(data=data, action='copy')) == 'copy'
+    wait_until_read(frame)
+    assert frame.inputs == [os.path.normpath(str(first)), os.path.normpath(str(second))]
+    assert _drop_bound(frame.rows[frame.inputs[0]].label)
+
+
+def test_gui_drop_in_child_window(app):
+    # as hosted by another application (e.g. the UMIC Toolkit): a child window of a plain, non-DnD root
+    pytest.importorskip('tkinterdnd2')
+    from biomero_converter.gui import ConverterWindow
+    window = ConverterWindow(app)
+    assert window.frame.drop_enabled
+    assert _drop_bound(window.frame.input_list)
+
+
+def test_gui_drop_ignored_while_converting(app, tmp_path, monkeypatch):
+    pytest.importorskip('tkinterdnd2')
+    from types import SimpleNamespace
+    from biomero_converter.gui import ConverterFrame
+    frame = ConverterFrame(app)
+    monkeypatch.setattr(ConverterFrame, 'busy', property(lambda self: True))
+    frame._on_drop(SimpleNamespace(data=(tmp_path / 'a.tif').as_posix(), action='copy'))
+    assert frame.inputs == []
+
+
+def test_gui_without_drag_and_drop(app, monkeypatch):
+    # tkinterdnd2 is optional: without it the GUI works, inputs are added with the buttons
+    from biomero_converter.gui import ConverterFrame
+    from biomero_converter.gui import app as gui_app
+    monkeypatch.setattr(gui_app, 'TkinterDnD', None)
+    frame = ConverterFrame(app)
+    assert not frame.drop_enabled
+    assert 'Drop files' not in log_text(frame)
+
+
 def test_gui_crop_option_for_slides(app, tmp_path, monkeypatch):
     # the crop checkbox goes to whole-slide inputs only
     from biomero_converter.gui import ConverterFrame

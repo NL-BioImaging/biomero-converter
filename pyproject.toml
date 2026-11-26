@@ -52,7 +52,7 @@ dependencies = [
 [project.optional-dependencies]
 test = ["pytest>=7.0", "pytest-timeout>=2.1"]
 # desktop GUI (biomero-converter-gui)
-gui = ["customtkinter>=5.2"]
+gui = ["customtkinter>=5.2", "tkinterdnd2>=0.4"]
 
 [project.scripts]
 biomero-converter = "biomero_converter.main:main"
