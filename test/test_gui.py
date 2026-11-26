@@ -71,6 +71,16 @@ def test_gui_defaults(app):
     assert 'Please add at least one input' in log_text(frame)
 
 
+def test_gui_default_output_folder(app, tmp_path):
+    # by default, output goes to a "converted" folder next to each input
+    from biomero_converter.gui import ConverterFrame
+    from biomero_converter.gui.app import resolve_output_folder
+    frame = ConverterFrame(app)
+    assert frame.output_folder == 'converted'
+    input_path = str(tmp_path / 'a.lif')
+    assert resolve_output_folder(frame.output_folder, input_path) == os.path.normpath(str(tmp_path / 'converted'))
+
+
 def test_gui_converts_and_continues_after_failure(app, tmp_path):
     from biomero_converter.gui import ConverterFrame
     from biomero_converter.gui.app import WHOLE_FILE

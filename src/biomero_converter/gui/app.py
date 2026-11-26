@@ -41,6 +41,8 @@ READING = 'Reading contents...'
 TITLE = f'biomero-converter {VERSION}'
 POLL_INTERVAL_MS = 100
 MAX_PATH_CHARS = 60       # longer input paths are shortened from the left, keeping the file name visible
+# relative: a folder next to each input, so output is kept apart from the inputs and never replaces one
+DEFAULT_OUTPUT_FOLDER = 'converted'
 
 
 def _short_path(path, max_chars=MAX_PATH_CHARS):
@@ -191,6 +193,7 @@ class ConverterFrame(customtkinter.CTkFrame):
         # an absolute folder, or a relative path (e.g. "converted") used next to each input
         self.output_entry = customtkinter.CTkEntry(
             output_frame, placeholder_text='a folder, or a relative path (e.g. converted) next to each input')
+        self.output_entry.insert(0, DEFAULT_OUTPUT_FOLDER)
         self.output_entry.grid(row=0, column=1, sticky='ew', pady=5, padx=5)
         self.output_button = customtkinter.CTkButton(output_frame, text='Browse', command=self.browse_output)
         self.output_button.grid(row=0, column=2, sticky='ew', pady=5, padx=5)
