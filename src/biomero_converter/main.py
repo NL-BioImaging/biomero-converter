@@ -3,6 +3,7 @@ import argparse
 import multiprocessing
 
 from biomero_converter.converter import convert, init_logging
+from biomero_converter.metadata_view import VIEWS, format_metadata, read_metadata
 from biomero_converter.parameters import DEFAULT_OUTPUT_FORMAT
 
 
@@ -10,7 +11,11 @@ def main():
     multiprocessing.freeze_support()   # worker processes (e.g. iSyntax reads) in a frozen (PyInstaller) app
     parser = argparse.ArgumentParser(description='Convert file to ome format')
     parser.add_argument('--inputfile', required=True, help='input file')
-    parser.add_argument('--outputfolder', required=True, help='output folder')
+    parser.add_argument('--outputfolder', help='output folder (required to convert)')
+    parser.add_argument('--metadata', nargs='?', const='all', choices=('all',) + VIEWS,
+                        help='only print the metadata of the input, as YAML, without converting: the source '
+                             '(vendor) metadata, the model metadata it maps to, the spatial metadata (pixel size, '
+                             'position, rotation) the conversion writes, or all (default)')
     parser.add_argument('--altoutputfolder', help='alternative output folder')
     parser.add_argument('--outputformat', default=DEFAULT_OUTPUT_FORMAT,
                         help=f'output format: omezarr04, omezarr05, omezarr06 or ometiff (default: {DEFAULT_OUTPUT_FORMAT})')
@@ -25,6 +30,8 @@ def main():
                         help='MIRAX: crop to the scanned region, leaving out the unscanned (background) area '
                              '(default; --no-crop_to_scan: the whole slide)')
     args = parser.parse_args()
+    if args.metadata is None and args.outputfolder is None:
+        parser.error('--outputfolder is required to convert (or use --metadata to only print the metadata)')
 
     init_logging('db_to_zarr.log', verbose=args.verbose)
 
@@ -37,6 +44,12 @@ def main():
     if args.position is not None:
         source_kwargs['position'] = args.position
     source_kwargs['crop_to_scan'] = args.crop_to_scan
+
+    if args.metadata is not None:
+        views = VIEWS if args.metadata == 'all' else (args.metadata,)
+        metadata = read_metadata(args.inputfile, views, **source_kwargs)
+        print(format_metadata(metadata if args.metadata == 'all' else metadata[args.metadata]))
+        sys.exit(0)
 
     result = convert(
         args.inputfile,

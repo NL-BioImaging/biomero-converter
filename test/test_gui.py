@@ -314,6 +314,49 @@ def test_gui_overwrite_option(app, tmp_path, monkeypatch):
     assert calls == [False, True]
 
 
+def test_gui_row_has_metadata_button(app, tmp_path, monkeypatch):
+    from biomero_converter.gui import ConverterFrame
+    from biomero_converter.gui import app as gui_app
+    monkeypatch.setattr(gui_app, 'get_selections', lambda path: [])
+    frame = ConverterFrame(app)
+    frame.add_inputs([str(tmp_path / 'a.tif')])
+    assert frame.rows[frame.inputs[0]].metadata_button.cget('text') == 'Metadata'
+
+
+def test_gui_empty_list_hint(app, tmp_path, monkeypatch):
+    # shown while there are no inputs: how to add them, and that each gets a Metadata button
+    from biomero_converter.gui import ConverterFrame
+    from biomero_converter.gui import app as gui_app
+    monkeypatch.setattr(gui_app, 'get_selections', lambda path: [])
+    frame = ConverterFrame(app)
+    assert frame.empty_hint.winfo_manager() == 'grid' and 'Metadata' in frame.empty_hint.cget('text')
+    frame.add_inputs([str(tmp_path / 'a.tif')])
+    assert frame.empty_hint.winfo_manager() == ''
+    frame.clear_inputs()
+    assert frame.empty_hint.winfo_manager() == 'grid'
+
+
+def test_gui_metadata_window(app, tmp_path):
+    # the metadata is read in the background, then shown in its tabs
+    from biomero_converter.gui.app import MetadataWindow
+    path = str(tmp_path / 'a.tif')
+    tifffile.imwrite(path, np.zeros((32, 32), dtype=np.uint8),
+                     extratags=[(34682, 's', 0, '[Beam]\r\nElectricRotate=-30\r\n', True)])
+    window = MetadataWindow(app, path)
+    window.thread.join(60)
+    window._poll()
+    assert 'rotation: -30.0' in window.text('Spatial')
+    assert 'ElectricRotate: -30' in window.text('Source')
+
+
+def test_gui_metadata_window_unreadable(app, tmp_path):
+    from biomero_converter.gui.app import MetadataWindow
+    window = MetadataWindow(app, str(tmp_path / 'missing.tif'))
+    window.thread.join(60)
+    window._poll()
+    assert window.text('Model').startswith('Could not read the metadata')
+
+
 def test_gui_crop_option_for_slides(app, tmp_path, monkeypatch):
     # the crop checkbox goes to whole-slide inputs only
     from biomero_converter.gui import ConverterFrame

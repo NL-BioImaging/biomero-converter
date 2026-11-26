@@ -258,6 +258,54 @@ def test_tiff_without_spatial_metadata(tmp_path):
     assert (source.get_rotation(), source.get_position_um()) == (None, {})
 
 
+CIQTEK_HEADER = '[Beam]\r\nElectricRotate=-30\r\n'
+
+
+def test_read_metadata_spatial(tmp_path):
+    from biomero_converter.metadata_view import read_metadata
+    tiny_tiff(tmp_path / 'a.tif', CIQTEK_HEADER)
+    assert read_metadata(str(tmp_path / 'a.tif'), ('spatial',))['spatial']['rotation'] == -30.0
+
+
+def test_read_metadata_source(tmp_path):
+    from biomero_converter.metadata_view import read_metadata
+    tiny_tiff(tmp_path / 'a.tif', CIQTEK_HEADER)
+    source = read_metadata(str(tmp_path / 'a.tif'), ('source',))['source']
+    assert source['FEI_HELIOS']['Beam']['ElectricRotate'] == -30
+
+
+def test_read_metadata_model(tmp_path):
+    from biomero_converter.metadata_view import read_metadata
+    tiny_tiff(tmp_path / 'a.tif', CIQTEK_HEADER)
+    model = read_metadata(str(tmp_path / 'a.tif'), ('model',))['model']
+    assert model['Image']['BeamScanSettings']['Rotation'] == -30
+
+
+def test_format_metadata_as_yaml():
+    from biomero_converter.metadata_view import format_metadata
+    assert format_metadata({'rotation': -30.0, 'position': {'x': 1.5}}) == 'rotation: -30.0\nposition:\n  x: 1.5\n'
+
+
+def test_cli_prints_metadata(tmp_path, monkeypatch, capsys):
+    from biomero_converter.main import main
+    tiny_tiff(tmp_path / 'a.tif', CIQTEK_HEADER)
+    monkeypatch.chdir(tmp_path)     # its log file
+    monkeypatch.setattr('sys.argv', ['biomero-converter', '--inputfile', str(tmp_path / 'a.tif'),
+                                     '--metadata', 'spatial'])
+    with pytest.raises(SystemExit) as stop:
+        main()
+    assert stop.value.code == 0
+    assert 'rotation: -30.0' in capsys.readouterr().out
+
+
+def test_cli_needs_output_folder_to_convert(tmp_path, monkeypatch):
+    from biomero_converter.main import main
+    monkeypatch.setattr('sys.argv', ['biomero-converter', '--inputfile', str(tmp_path / 'a.tif')])
+    with pytest.raises(SystemExit) as stop:
+        main()
+    assert stop.value.code == 2
+
+
 @pytest.mark.integration
 def test_tiff_acquisition_datetime():
     # the vendor's acquisition date, not the file's time; none if the metadata has none
