@@ -37,6 +37,9 @@ writing.
 - `output_folder` (str): Output folder path.
 - `alt_output_folder` (str, optional): Alternative output folder path.
 - `output_format` (str): Output format: `'omezarr04'`, `'omezarr05'`, `'omezarr06'` (OME-Zarr version) or `'ometiff'` (default: `'omezarr05'`, available as `biomero_converter.parameters.DEFAULT_OUTPUT_FORMAT`; OME-Zarr input defaults to `'ometiff'`).
+  OME-Zarr 0.6 also holds the image's rotation (e.g. an electron microscope's scan rotation, read by
+  imaging-metadata-converter): a `rotation` between the scale and the translation, turning the y-x plane as napari's
+  `rotate` does. Earlier versions have no rotation; there it is kept in the metadata only.
 - `show_progress` (bool): If `True`, prints progress.
 - `verbose` (bool): If `True`, enables verbose logging.
 - `progress` (callable, optional): Called with the progress of the conversion as a fraction from 0 to 1, e.g. to

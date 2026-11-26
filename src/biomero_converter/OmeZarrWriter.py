@@ -84,7 +84,8 @@ class OmeZarrWriter(OmeWriter):
             zarr_root, total_size = self._write_image(filepath, source, progress, **kwargs)
 
         if self.ome_version == '0.6':
-            self._convert_to_v06(zarr_root)
+            # only 0.6 can turn an image: a screen's fields have no single rotation
+            self._convert_to_v06(zarr_root, None if source.is_screen() else source.get_rotation())
         zarr_root.attrs['_creator'] = {'name': 'nl.biomero.OmeZarrWriter', 'version': VERSION}
 
         if write_xml:
@@ -305,22 +306,23 @@ class OmeZarrWriter(OmeWriter):
             factor *= scaler.downscale
         return pixel_size_scales, scaler
 
-    def _convert_to_v06(self, group):
+    def _convert_to_v06(self, group, rotation_deg=None):
         """
         Convert the OME-Zarr 0.5 metadata of a group and its sub-groups to 0.6.
 
         Args:
             group: Zarr group to convert.
+            rotation_deg (float, optional): Rotation of the image in degrees.
         """
         ome = group.attrs.get('ome')
         if ome is not None:
             ome = dict(ome)
             ome['version'] = self.ome_version
             if 'multiscales' in ome:
-                ome['multiscales'] = convert_multiscales_to_v06(ome['multiscales'])
+                ome['multiscales'] = convert_multiscales_to_v06(ome['multiscales'], rotation_deg=rotation_deg)
             group.attrs['ome'] = ome
         for _, subgroup in group.groups():
-            self._convert_to_v06(subgroup)
+            self._convert_to_v06(subgroup, rotation_deg)
 
     def _write_ome_xml(self, filepath, source, wells=None, **kwargs):
         """

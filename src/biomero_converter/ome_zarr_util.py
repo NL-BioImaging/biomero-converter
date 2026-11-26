@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import os
 import sys
@@ -96,17 +97,55 @@ def create_transformation_metadata(dimension_order, pixel_size_um, factor, trans
     return metadata
 
 
-def convert_multiscales_to_v06(multiscales, coordinate_system='physical'):
+def create_rotation_transform(axis_names, rotation_deg):
+    """
+    Create an OME-Zarr 0.6 rotation, turning the y-x plane by an angle and leaving the other axes.
+
+    The matrix acts on (y, x) as napari's layer rotate does ([[cos, -sin], [sin, cos]]), so an image is placed the
+    same by a 0.6 viewer and by napari (napari-meta-tiff) given the same angle.
+
+    Args:
+        axis_names (list): Axis names, in order (e.g. ['c', 'y', 'x']).
+        rotation_deg (float): Rotation in degrees.
+
+    Returns:
+        dict: Rotation transformation.
+    """
+    angle = math.radians(rotation_deg)
+    matrix = [[1.0 if row == column else 0.0 for column in range(len(axis_names))] for row in range(len(axis_names))]
+    y_index, x_index = axis_names.index('y'), axis_names.index('x')
+    matrix[y_index][y_index], matrix[y_index][x_index] = math.cos(angle), -math.sin(angle)
+    matrix[x_index][y_index], matrix[x_index][x_index] = math.sin(angle), math.cos(angle)
+    return {'type': 'rotation', 'rotation': matrix}
+
+
+def get_rotation_degrees(transforms, axis_names):
+    """
+    Get the angle of the y-x plane rotation among (0.6) transformations, in degrees (see create_rotation_transform).
+
+    Returns:
+        float: Rotation in degrees, or None without a rotation.
+    """
+    rotation = next((transform['rotation'] for transform in transforms if transform['type'] == 'rotation'), None)
+    if rotation is None:
+        return None
+    y_index, x_index = axis_names.index('y'), axis_names.index('x')
+    return math.degrees(math.atan2(rotation[x_index][y_index], rotation[y_index][y_index]))
+
+
+def convert_multiscales_to_v06(multiscales, coordinate_system='physical', rotation_deg=None):
     """
     Convert OME-Zarr 0.4/0.5 multiscales metadata to the 0.6 (RFC-5) layout.
 
     The axes move into a named coordinate system, and the transformations of each dataset become
-    a single transformation (or a sequence of scale and translation) from the dataset path
+    a single transformation (or a sequence of scale, rotation and translation) from the dataset path
     to that coordinate system.
 
     Args:
         multiscales (list): Multiscales metadata.
         coordinate_system (str): Name of the (physical) coordinate system.
+        rotation_deg (float, optional): Rotation of the image in degrees, turning it about its origin after the
+            scale, before the translation places it (see create_rotation_transform).
 
     Returns:
         list: Multiscales metadata in the 0.6 layout.
@@ -114,11 +153,15 @@ def convert_multiscales_to_v06(multiscales, coordinate_system='physical'):
     converted = []
     for multiscale in multiscales:
         multiscale = dict(multiscale)
-        multiscale['coordinateSystems'] = [{'name': coordinate_system, 'axes': multiscale.pop('axes')}]
+        axes = multiscale.pop('axes')
+        multiscale['coordinateSystems'] = [{'name': coordinate_system, 'axes': axes}]
+        rotation = create_rotation_transform([axis['name'] for axis in axes], rotation_deg) if rotation_deg else None
         datasets = []
         for dataset in multiscale['datasets']:
             path = dataset['path']
             transforms = dataset['coordinateTransformations']
+            if rotation is not None:
+                transforms = transforms[:1] + [rotation] + transforms[1:]
             if len(transforms) == 1:
                 transform = dict(transforms[0])
             else:
