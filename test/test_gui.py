@@ -71,6 +71,16 @@ def test_gui_defaults(app):
     assert 'Please add at least one input' in log_text(frame)
 
 
+def test_gui_default_output_folder(app, tmp_path):
+    # by default, output goes to a "converted" folder next to each input
+    from biomero_converter.gui import ConverterFrame
+    from biomero_converter.gui.app import resolve_output_folder
+    frame = ConverterFrame(app)
+    assert frame.output_folder == 'converted'
+    input_path = str(tmp_path / 'a.lif')
+    assert resolve_output_folder(frame.output_folder, input_path) == os.path.normpath(str(tmp_path / 'converted'))
+
+
 def test_gui_converts_and_continues_after_failure(app, tmp_path):
     from biomero_converter.gui import ConverterFrame
     from biomero_converter.gui.app import WHOLE_FILE
@@ -111,7 +121,7 @@ def test_gui_selection_dropdown(app, tmp_path, monkeypatch):
     monkeypatch.setattr(gui_app, 'get_selections', lambda path: parts if path.endswith('.lif') else [])
     calls = []
 
-    def fake_convert(input_path, output_folder, output_format=None, progress=None, **source_kwargs):
+    def fake_convert(input_path, output_folder, output_format=None, progress=None, overwrite=True, **source_kwargs):
         calls.append(source_kwargs)
         return json.dumps([{'name': 'out', 'full_path': os.path.join(output_folder, 'out.ome.zarr')}])
 
@@ -182,7 +192,7 @@ def test_gui_relative_output_folder(app, tmp_path, monkeypatch):
     monkeypatch.setattr(gui_app, 'get_selections', lambda path: [])
     output_folders = []
 
-    def fake_convert(input_path, output_folder, output_format=None, progress=None, **source_kwargs):
+    def fake_convert(input_path, output_folder, output_format=None, progress=None, overwrite=True, **source_kwargs):
         output_folders.append(output_folder)
         return json.dumps([{'name': 'out', 'full_path': os.path.join(output_folder, 'out.ome.zarr')}])
 
@@ -204,7 +214,7 @@ def test_gui_progress_bar(app, tmp_path, monkeypatch):
     from biomero_converter.gui import app as gui_app
     monkeypatch.setattr(gui_app, 'get_selections', lambda path: [])
 
-    def fake_convert(input_path, output_folder, output_format=None, progress=None, **source_kwargs):
+    def fake_convert(input_path, output_folder, output_format=None, progress=None, overwrite=True, **source_kwargs):
         progress(0.5)
         progress(1.0)
         return json.dumps([{'name': 'out', 'full_path': os.path.join(output_folder, 'out.ome.zarr')}])
@@ -226,6 +236,33 @@ def test_gui_progress_bar(app, tmp_path, monkeypatch):
     assert frame.status_label.cget('text') == 'Finished'
 
 
+def test_gui_overwrite_option(app, tmp_path, monkeypatch):
+    # off by default: existing outputs are skipped (reported in the log); on: passed on to convert
+    from biomero_converter.gui import ConverterFrame
+    from biomero_converter.gui import app as gui_app
+    monkeypatch.setattr(gui_app, 'get_selections', lambda path: [])
+    calls = []
+
+    def fake_convert(input_path, output_folder, output_format=None, progress=None, overwrite=True, **source_kwargs):
+        calls.append(overwrite)
+        return json.dumps([{'name': 'a', 'full_path': os.path.join(output_folder, 'a.ome.zarr'),
+                            **({} if overwrite else {'skipped': True})}])
+
+    monkeypatch.setattr(gui_app, 'convert', fake_convert)
+    frame = ConverterFrame(app)
+    frame.add_inputs([str(tmp_path / 'a.tif')])
+    wait_until_read(frame)
+    frame.start_conversion()
+    wait_until_done(frame)
+    assert calls == [False]
+    assert 'already exists: skipped' in log_text(frame) and '1 existing output(s) skipped' in log_text(frame)
+
+    frame.overwrite_checkbox.select()
+    frame.start_conversion()
+    wait_until_done(frame)
+    assert calls == [False, True]
+
+
 def test_gui_crop_option_for_slides(app, tmp_path, monkeypatch):
     # the crop checkbox goes to whole-slide inputs only
     from biomero_converter.gui import ConverterFrame
@@ -233,7 +270,7 @@ def test_gui_crop_option_for_slides(app, tmp_path, monkeypatch):
     monkeypatch.setattr(gui_app, 'get_selections', lambda path: [])
     calls = []
 
-    def fake_convert(input_path, output_folder, output_format=None, progress=None, **source_kwargs):
+    def fake_convert(input_path, output_folder, output_format=None, progress=None, overwrite=True, **source_kwargs):
         calls.append((os.path.basename(input_path), source_kwargs))
         return json.dumps([])
 
