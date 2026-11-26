@@ -12,7 +12,9 @@ pip install "biomero-converter[gui]"
 biomero-converter-gui
 ```
 
-The `[gui]` extra installs [customtkinter](https://github.com/TomSchimansky/CustomTkinter). The command line,
+The `[gui]` extra installs [customtkinter](https://github.com/TomSchimansky/CustomTkinter), and
+[tkinterdnd2](https://github.com/Eliav2/tkinterdnd2) for drag and drop (optional: without it the GUI works, but
+inputs can only be added with the buttons). The command line,
 Docker image and Python API do not need it.
 
 Tk must be available in the Python installation:
@@ -23,7 +25,9 @@ Tk must be available in the Python installation:
 
 ## Use
 
-1. **Add files** or **Add folder** (folder inputs such as OME-Zarr or DICOM folders); several inputs can be queued.
+1. **Add files** or **Add folder** (folder inputs such as OME-Zarr or DICOM folders), or drag files and folders
+   from the file explorer onto the input list; several inputs can be queued. (On Windows, drag and drop does not
+   work into an application running as administrator.)
 2. Next to each input, choose **what to convert**. When an input is added, its contents are read and listed:
     - Leica files: their images, by name (with the start of the image UUID, or `#index` for older files);
     - Incucyte archives: their plates (`Plate <id>`);
@@ -62,8 +66,12 @@ frame.add_inputs(['path/to/file.lif'])
 frame.set_output_folder('path/to/output')
 ```
 
+Drag and drop also works there: the frame loads tkdnd into its window itself, so the host application does not
+need a drag-and-drop enabled root window, only `tkinterdnd2` installed.
+
 For applications frozen with PyInstaller, biomero-converter provides a PyInstaller hook (registered automatically)
-that bundles the data files and libraries it needs at runtime.
+that bundles the data files and libraries it needs at runtime; tkinterdnd2 registers its own hook for its tkdnd
+binaries.
 
 ## Acknowledgements
 
