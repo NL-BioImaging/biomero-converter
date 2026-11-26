@@ -310,6 +310,55 @@ def test_convert_progress(tmp_path, monkeypatch, output_format):
     assert reports[-1] == 1.0 and all(type(fraction) is float for fraction in reports)
 
 
+def test_check_output_path(tmp_path):
+    from biomero_converter.converter import OutputPathError, check_output_path
+    check_output_path(str(tmp_path / 'a.tif'), str(tmp_path / 'converted' / 'a.ome.zarr'))
+    check_output_path(str(tmp_path / 'a.ome.zarr'), str(tmp_path / 'a.ome.tiff'))      # same folder, other name
+    for output_path in (tmp_path / 'a.ome.zarr',                     # the input itself
+                        tmp_path / 'a.ome.zarr' / 'converted' / 'a.ome.tiff',   # inside a folder input
+                        tmp_path):                                   # a folder containing the input
+        with pytest.raises(OutputPathError):
+            check_output_path(str(tmp_path / 'a.ome.zarr'), str(output_path))
+
+
+def _tiny_tiff(tmp_path):
+    import tifffile
+    input_filename = str(tmp_path / 'input.tif')
+    tifffile.imwrite(input_filename, np.zeros((32, 32), dtype=np.uint8))
+    return input_filename
+
+
+def test_convert_skips_existing_output(tmp_path):
+    from biomero_converter.converter import convert
+    input_filename = _tiny_tiff(tmp_path)
+    output_folder = str(tmp_path / 'output')
+    first = json.loads(convert(input_filename, output_folder, output_format='ometiff', overwrite=False))
+    assert 'skipped' not in first[0]
+    written = os.path.getmtime(first[0]['full_path'])
+    second = json.loads(convert(input_filename, output_folder, output_format='ometiff', overwrite=False))
+    assert second[0]['skipped'] and second[0]['full_path'] == first[0]['full_path']
+    assert os.path.getmtime(first[0]['full_path']) == written
+
+
+def test_convert_overwrites_by_default(tmp_path):
+    from biomero_converter.converter import convert
+    input_filename = _tiny_tiff(tmp_path)
+    output_folder = str(tmp_path / 'output')
+    convert(input_filename, output_folder, output_format='ometiff')
+    again = json.loads(convert(input_filename, output_folder, output_format='ometiff'))
+    assert 'skipped' not in again[0]
+
+
+def test_convert_refuses_replacing_input(tmp_path):
+    # OME-Zarr to OME-Zarr in its own folder: refused at once (not retried), the input is kept
+    from biomero_converter.converter import OutputPathError, convert
+    zarr_path = json.loads(convert(_tiny_tiff(tmp_path), str(tmp_path), output_format='omezarr05'))[0]['full_path']
+    contents = sorted(os.listdir(zarr_path))
+    with pytest.raises(OutputPathError):
+        convert(zarr_path, str(tmp_path), output_format='omezarr05')
+    assert sorted(os.listdir(zarr_path)) == contents
+
+
 @pytest.mark.integration
 def test_convert_progress_plate(tmp_path, monkeypatch):
     # a plate reports progress per well/field
