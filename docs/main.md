@@ -26,7 +26,11 @@ Adjust the image name (`biomero-converter:latest`) as needed.
 Refer to the main script for all available arguments:
 
 - `--inputfile`: Path to the input file (required)
-- `--outputfolder`: Path to the output folder (required)
+- `--outputfolder`: Path to the output folder (required to convert)
+- `--metadata [VIEW]`: Only print the input's metadata as YAML, without converting (no output folder needed).
+  `VIEW` is `source` (the vendor metadata as read), `model` (mapped onto the imaging metadata model), `spatial`
+  (the pixel size, position and rotation the conversion writes) or `all` (default). Combine with `--image_uuid` or
+  `--plateid` for one part of the input.
 - `--altoutputfolder`: Alternative output folder (optional)
 - `--outputformat`: Output format: `omezarr04`, `omezarr05`, `omezarr06` (OME-Zarr version) or `ometiff` (default: `omezarr05`)
 - `--show_progress`: Show progress bar (flag)
@@ -48,8 +52,14 @@ biomero-converter \
     --show_progress \
     --verbose
     
-usage: biomero-converter [-h] --inputfile INPUTFILE --outputfolder OUTPUTFOLDER [--altoutputfolder ALTOUTPUTFOLDER] [--outputformat OUTPUTFORMAT] [--show_progress] [--verbose] [--plateid PLATEID] [--image_uuid IMAGE_UUID]
-biomero-converter: error: the following arguments are required: --inputfile, --outputfolder
+usage: biomero-converter [-h] --inputfile INPUTFILE [--outputfolder OUTPUTFOLDER] [--metadata [{all,source,model,spatial}]] ...
+biomero-converter: error: --outputfolder is required to convert (or use --metadata to only print the metadata)
+```
+
+To check what is read from a file before converting it:
+
+```sh
+biomero-converter --inputfile /data/input/input_file.tiff --metadata spatial
 ```
 
 ## Desktop GUI

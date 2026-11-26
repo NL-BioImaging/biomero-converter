@@ -35,6 +35,10 @@ Tk must be available in the Python installation:
 
     The default **All ...** converts every image, plate or series separately. Other inputs (e.g. TIFF, OME-Zarr,
     image `.db`) are converted as a whole.
+
+    **Metadata** shows what is read from an input (the part chosen, or the first for **All ...**), without
+    converting it: **Spatial** (the pixel size, position and rotation the conversion writes), **Source** (the
+    vendor metadata as read) and **Model** (mapped onto the imaging metadata model). **Copy** copies the tab shown.
 3. Choose the **output folder** (default: `converted`, next to each input): **Browse** to a folder, or type a
    **relative path** (e.g. `converted`, or `.`) to
    write each input's output next to it: `C:\Data\Leica\a.lif` with `converted` is written to

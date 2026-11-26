@@ -15,6 +15,7 @@ except ImportError:
 
 from biomero_converter.converter import convert
 from biomero_converter.helper import LEICA_EXTENSIONS, WHOLE_SLIDE_EXTENSIONS, get_selections
+from biomero_converter.metadata_view import format_metadata, read_metadata
 from biomero_converter.parameters import DEFAULT_OUTPUT_FORMAT, VERSION
 
 OUTPUT_FORMATS = {
@@ -99,9 +100,10 @@ class _QueueLogHandler(logging.Handler):
 
 
 class _InputRow:
-    """One input in the input list: its path, and a dropdown to choose which part of it to convert."""
+    """One input in the input list: its path, a dropdown to choose which part of it to convert, and a button to show
+    its metadata."""
 
-    def __init__(self, master, row, path):
+    def __init__(self, master, row, path, show_metadata):
         self.path = path
         self.selections = []            # (label, source kwargs) per part; empty: the whole file
         self.all_label = None           # dropdown entry that converts every part
@@ -110,6 +112,9 @@ class _InputRow:
         self.menu = customtkinter.CTkOptionMenu(master, values=[READING], width=300, dynamic_resizing=False)
         self.menu.grid(row=row, column=1, sticky='e', pady=2, padx=5)
         self.menu.configure(state='disabled')
+        self.metadata_button = customtkinter.CTkButton(master, text='Metadata', width=80,
+                                                       command=lambda: show_metadata(self))
+        self.metadata_button.grid(row=row, column=2, sticky='e', pady=2, padx=5)
         self.ready = False
 
     def set_selections(self, selections):
@@ -139,6 +144,65 @@ class _InputRow:
     def destroy(self):
         self.label.destroy()
         self.menu.destroy()
+        self.metadata_button.destroy()
+
+
+class MetadataWindow(customtkinter.CTkToplevel):
+    """The metadata of one input (or one part of it), read in the background: the spatial metadata the conversion
+    writes, the source (vendor) metadata as read, and the model metadata it maps to, each in a tab."""
+
+    TABS = {'Spatial': 'spatial', 'Source': 'source', 'Model': 'model'}
+
+    def __init__(self, master, path, part_label=None, source_kwargs=None):
+        super().__init__(master)
+        name = os.path.basename(os.path.normpath(path)) + (f' ({part_label})' if part_label else '')
+        self.title(f'Metadata: {name}')
+        self.geometry('720x560')
+        self.transient(master.winfo_toplevel())
+        self.results = queue.Queue()
+        self.tabs = customtkinter.CTkTabview(self)
+        self.tabs.pack(fill='both', expand=True, padx=10, pady=(5, 0))
+        self.boxes = {}
+        for tab in self.TABS:
+            box = customtkinter.CTkTextbox(self.tabs.add(tab), wrap='none', font=('Courier New', 12))
+            box.pack(fill='both', expand=True)
+            self.boxes[tab] = box
+            self._set_text(tab, 'Reading...')
+        customtkinter.CTkButton(self, text='Copy', width=80, command=self.copy).pack(anchor='e', padx=10, pady=10)
+        self.thread = threading.Thread(target=self._read, args=(path, source_kwargs or {}), daemon=True)
+        self.thread.start()
+        self.after(POLL_INTERVAL_MS, self._poll)
+
+    def _read(self, path, source_kwargs):
+        # runs in a reading thread: only communicates with the GUI through self.results
+        try:
+            metadata = read_metadata(path, tuple(self.TABS.values()), **source_kwargs)
+            self.results.put({tab: format_metadata(metadata[view]) for tab, view in self.TABS.items()})
+        except Exception as error:
+            self.results.put({tab: f'Could not read the metadata: {error}' for tab in self.TABS})
+
+    def _poll(self):
+        try:
+            for tab, text in self.results.get_nowait().items():
+                self._set_text(tab, text)
+        except queue.Empty:
+            if self.winfo_exists():
+                self.after(POLL_INTERVAL_MS, self._poll)
+
+    def _set_text(self, tab, text):
+        box = self.boxes[tab]
+        box.configure(state='normal')
+        box.delete('0.0', 'end')
+        box.insert('0.0', text)
+        box.configure(state='disabled')
+
+    def text(self, tab):
+        return self.boxes[tab].get('0.0', 'end').rstrip('\n')
+
+    def copy(self):
+        """Copy the metadata of the tab shown."""
+        self.clipboard_clear()
+        self.clipboard_append(self.text(self.tabs.get()))
 
 
 class ConverterFrame(customtkinter.CTkFrame):
@@ -181,6 +245,11 @@ class ConverterFrame(customtkinter.CTkFrame):
             row=0, column=0, sticky='e', pady=(5, 0), padx=5)
         self.input_list = customtkinter.CTkScrollableFrame(input_frame, height=120)
         self.input_list.grid(row=1, column=0, rowspan=4, sticky='nsew', pady=5, padx=5)
+        self.empty_hint = customtkinter.CTkLabel(
+            self.input_list, text_color='gray', justify='left', anchor='w',
+            text='No inputs yet: Add files or Add folder, or drop them here.\n'
+                 'Each input gets a Metadata button, to check what is read from it before converting.')
+        self.empty_hint.grid(row=0, column=0, columnspan=3, sticky='w', pady=10, padx=5)
         self.input_list.grid_columnconfigure(0, weight=1)
         self.add_files_button = customtkinter.CTkButton(input_frame, text='Add files', command=self.browse_files)
         self.add_files_button.grid(row=1, column=1, sticky='ew', pady=5, padx=5)
@@ -307,11 +376,13 @@ class ConverterFrame(customtkinter.CTkFrame):
             path = os.path.normpath(path)
             if path in self.rows:
                 continue
-            row = _InputRow(self.input_list, len(self.rows), path)
+            self.empty_hint.grid_remove()
+            row = _InputRow(self.input_list, len(self.rows), path, self.show_metadata)
             self.rows[path] = row
             if self.drop_enabled:
                 self._register_drop(row.label)
                 self._register_drop(row.menu)
+                self._register_drop(row.metadata_button)
             thread = threading.Thread(target=self._read_contents, args=(path,), daemon=True)
             self.scan_threads.append(thread)
             thread.start()
@@ -345,6 +416,12 @@ class ConverterFrame(customtkinter.CTkFrame):
         for row in self.rows.values():
             row.destroy()
         self.rows = {}
+        self.empty_hint.grid()
+
+    def show_metadata(self, row):
+        """Open a window with the metadata of an input: of the part chosen, the first one for "All"."""
+        label, source_kwargs = row.get_parts()[0]
+        return MetadataWindow(self, row.path, label, self._source_options(row.path, source_kwargs))
 
     def browse_output(self):
         path = filedialog.askdirectory(parent=self, title='Select output folder')
