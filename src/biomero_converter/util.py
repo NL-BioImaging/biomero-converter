@@ -5,6 +5,7 @@ import os.path
 from collections.abc import Sequence
 from decimal import Decimal
 from enum import Enum
+from imaging_metadata_converter.units import normalise
 import numbers
 import re
 
@@ -310,14 +311,9 @@ def camel_to_snake(name):
 
 
 def convert_to_um(value, unit):
-    conversions = {
-        'nm': 1e-3, 'nanometer': 1e-3,
-        'µm': 1, 'um': 1, 'micrometer': 1, 'micron': 1,
-        'mm': 1e3, 'millimeter': 1e3,
-        'cm': 1e4, 'centimeter': 1e4,
-        'm': 1e6, 'meter': 1e6
-    }
-    return value * conversions.get(unit, 1)
+    """A length in µm, by the imaging metadata converter's units; without a unit it knows, the value as it is."""
+    converted = normalise(value, unit, 'µm') if unit else None
+    return value if converted is None else converted
 
 
 def convert_to_s(value, unit):

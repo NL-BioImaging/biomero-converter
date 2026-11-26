@@ -1,21 +1,18 @@
-# Copied from https://github.com/NL-BioImaging/napari-meta-tiff (src/napari_meta_tiff/_metadata.py, ce2b8a5);
-# keep in sync with it rather than changing it here.
+"""Read the metadata of a TIFF file, and the pixel size only a TIFF itself gives.
 
-"""Read the metadata of a TIFF file, and what it says about space.
-
-Vendors write the pixel size and the stage position in their own tags,
-under their own names and in their own units, so rather than reading the
-tags of particular vendors, the whole metadata tree is searched for the
-names these values are known by, and every value is normalised to
-micrometres. That way a vendor which is not known here is picked up as
-well, as long as it names its fields the way the rest do.
+Every private tag, vendor XML and Exif field is collected into one plain
+metadata dict, for the imaging metadata converter
+(https://github.com/NL-BioImaging/imaging-metadata-converter) to map: it
+also gives the pixel size, position and rotation the metadata states
+(spatial_metadata), shared with the other readers. What is left here is
+what only the TIFF holds: ImageJ's pixel size and the baseline resolution.
 """
 
 from enum import Enum
 import logging
-import re
+from imaging_metadata_converter.units import normalise
 from tifffile import TiffFile, xml2dict
-from typing import Any, Dict, Iterator, Optional, Tuple
+from typing import Any, Dict, Optional
 from xml.etree.ElementTree import ParseError
 
 
@@ -166,16 +163,11 @@ def repair_text(value: Any) -> Any:
     return value
 
 
-# how many micrometres a unit is worth, keyed by the spellings vendors
-# use. Angstrom is included because electron microscopes report in it.
-UM_CONVERSIONS = {
-    'a': 1e-4, 'angstrom': 1e-4,
-    'nm': 1e-3, 'nanometer': 1e-3, 'nanometre': 1e-3,
-    'um': 1, 'µm': 1, 'micrometer': 1, 'micrometre': 1, 'micron': 1,
-    'mm': 1e3, 'millimeter': 1e3, 'millimetre': 1e3,
-    'cm': 1e4, 'centimeter': 1e4, 'centimetre': 1e4,
-    'm': 1e6, 'meter': 1e6, 'metre': 1e6,
-    'inch': 25400, 'in': 25400,
+# text a vendor wrote in one encoding and tifffile read back as latin-1,
+# keyed by how it reads, with the character that was meant. Helios writes
+# the micro sign as the Greek mu in GBK, whose two bytes read as '¦Ì'.
+MOJIBAKE = {
+    '¦Ì': 'µ',
 }
 
 # a pixel below this is smaller than an atom, and one above it is wider
@@ -187,160 +179,19 @@ PLAUSIBLE_PIXEL_SIZE_UM = (1e-5, 1e4)
 # which say what a viewer should print at rather than what was imaged
 SCREEN_RESOLUTIONS = (72, 96)
 
-# the value and unit of a quantity, where a vendor spells them out as a
-# pair of fields rather than as one string
-VALUE_KEYS = ('value', 'val')
-UNIT_KEYS = ('unit', 'units')
 
-# a unit written onto the end of a number, as in '21.12um'
-QUANTITY_PATTERN = re.compile(
-    r'^\s*([-+]?[\d.]+(?:[eE][-+]?\d+)?)\s*([^\d\s]*)\s*$')
-
-# text a vendor wrote in one encoding and tifffile read back as latin-1,
-# keyed by how it reads, with the character that was meant. Helios writes
-# the micro sign as the Greek mu in GBK, whose two bytes read as '¦Ì'.
-MOJIBAKE = {
-    '¦Ì': 'µ',
-}
-
-# names a pixel size goes by, once the axis is taken off the end
-PIXEL_SIZE_NAMES = ('pixelsize', 'pixelspacing', 'physicalsize')
-
-# 'pixel' on its own only means a size when the axis was named by a
-# dimension rather than by a letter, as in pixelWidth. Left looser it
-# would read SamplesPerPixel, and anything else counted per pixel, as
-# a measurement of one.
-DIMENSION_SUFFIXES = ('width', 'height', 'depth')
-
-# names the width of the whole image goes by, which divided by the
-# number of pixels across gives the size of one of them
-FIELD_OF_VIEW_NAMES = ('fov', 'fieldofview', 'fieldwidth', 'hfw',
-                       'horizontalfieldwidth', 'vfw')
-
-# names of the structures a stage position sits in, and of the fields
-# themselves where a vendor writes them out flat instead
-POSITION_CONTAINER_NAMES = ('stage', 'position')
-POSITION_NAMES = ('stage', 'stagepos', 'position', 'pos')
-
-# the travel of a stage, as vendors write it into the name of the
-# model: 110x110x69 for the Helios stage, which is millimetres
-STAGE_TRAVEL_PATTERN = re.compile(r'(\d{1,4})x(\d{1,4})(?:x(\d{1,4}))?',
-                                  re.IGNORECASE)
-
-# an axis written onto the end of a field name
-AXIS_SUFFIXES = (('x', 'x'), ('y', 'y'), ('z', 'z'),
-                 ('width', 'x'), ('height', 'y'), ('depth', 'z'))
-
-
-def normalise_name(key: Any) -> str:
-    """Return a key as bare lowercase letters, for comparing names."""
-    if not isinstance(key, str):
-        return ''
-    return ''.join(character for character in key.lower()
-                   if character.isalnum())
-
-
-def split_axis(name: str) -> Tuple[str, Optional[str], str]:
-    """Split the axis off the end of a normalised field name.
-
-    The suffix itself comes back as well, because a name means
-    different things depending on how the axis was written.
-    """
-    for suffix, axis in AXIS_SUFFIXES:
-        if name.endswith(suffix) and name != suffix:
-            return name[:-len(suffix)], axis, suffix
-    return name, None, ''
-
-
-def convert_to_um(value: Any, unit: Any) -> Optional[float]:
-    """Return a value in micrometres, or None if it cannot be read."""
-    try:
-        value = float(value)
-    except (TypeError, ValueError):
-        return None
-    factor = UM_CONVERSIONS.get(normalise_name(unit))
-    if factor is None:
-        return None
-    return value * factor
-
-
-def parse_quantity(value: Any, unit: Any = None) -> Optional[float]:
-    """Return a metadata value in micrometres, however it is written.
-
-    A vendor writes a measurement as a number beside a unit field, as a
-    number with the unit stuck on the end of the string, or as a bare
-    number whose unit is named by a neighbouring field.
-    """
-    if isinstance(value, dict):
-        keyed = {normalise_name(key): item for key, item in value.items()}
-        for value_key in VALUE_KEYS:
-            if value_key in keyed:
-                return parse_quantity(keyed[value_key],
-                                      find_unit(keyed) or unit)
-        return None
-    if isinstance(value, str):
-        match = QUANTITY_PATTERN.match(repair_text(value))
-        if match is None:
-            return None
-        number, written_unit = match.groups()
-        return convert_to_um(number, written_unit or unit)
-    return convert_to_um(value, unit)
-
-
-def find_unit(keyed: Dict[str, Any]) -> Optional[str]:
-    """Return the unit a mapping names, if it names one."""
-    for unit_key in UNIT_KEYS:
-        if isinstance(keyed.get(unit_key), str):
-            return keyed[unit_key]
-    return None
-
-
-def walk_fields(metadata: Any) -> Iterator[Tuple[str, Any, Dict]]:
-    """Yield every field in the metadata, with the mapping holding it.
-
-    The mapping comes along so that a field can be read together with
-    its neighbours, which is where the unit of a bare number is named.
-    """
-    if isinstance(metadata, dict):
-        for key, value in metadata.items():
-            yield key, value, metadata
-            yield from walk_fields(value)
-    elif isinstance(metadata, list):
-        for item in metadata:
-            yield from walk_fields(item)
-
-
-def sibling_unit(key: str, siblings: Dict) -> Optional[str]:
-    """Return the unit a neighbouring field names for this one.
-
-    OME writes PhysicalSizeX beside PhysicalSizeXUnit, which is the same
-    name with the unit on the end.
-    """
-    for unit_key in UNIT_KEYS:
-        for sibling, value in siblings.items():
-            if (isinstance(value, str)
-                    and normalise_name(sibling) == normalise_name(key)
-                    + unit_key):
-                return value
-    return None
-
-
-def get_pixel_size_um(tif: TiffFile, metadata: Dict,
-                      shape: Dict[str, int]) -> Dict[str, float]:
+def get_pixel_size_um(tif: TiffFile, stated: Dict[str, float]) -> Dict[str, float]:
     """Return the size of a pixel in micrometres, per axis.
 
-    The sources are tried in the order they can be trusted: what a
-    vendor states outright, then the width of the image divided by the
-    pixels across it, and last the baseline TIFF resolution, which is
+    The sources are tried in the order they can be trusted: what ImageJ
+    writes, then what the metadata states (mapped by the imaging metadata
+    converter: `stated`), and last the baseline TIFF resolution, which is
     the one every writer fills in whether it knows the answer or not.
     """
     pixel_size = {}
     if tif.is_imagej and tif.imagej_metadata:
         pixel_size.update(imagej_pixel_size(tif))
-    for source in (stated_pixel_size, field_of_view_pixel_size):
-        for axis, size in source(metadata, shape).items():
-            pixel_size.setdefault(axis, size)
-    for axis, size in resolution_pixel_size(tif).items():
+    for axis, size in list(stated.items()) + list(resolution_pixel_size(tif).items()):
         pixel_size.setdefault(axis, size)
     return {axis: size for axis, size in pixel_size.items()
             if is_plausible_pixel_size(size)}
@@ -350,62 +201,6 @@ def is_plausible_pixel_size(size: Any) -> bool:
     """Return whether a pixel size can be a measurement at all."""
     low, high = PLAUSIBLE_PIXEL_SIZE_UM
     return isinstance(size, float) and low <= size <= high
-
-
-def stated_pixel_size(metadata: Dict, shape: Dict[str, int]) -> Dict:
-    """Return the pixel size from any field naming one.
-
-    This is where OME PhysicalSizeX, and every vendor field named after
-    the size or the spacing of a pixel, is picked up.
-    """
-    pixel_size = {}
-    for key, value, siblings in walk_fields(metadata):
-        name, axis, suffix = split_axis(normalise_name(key))
-        if not (name.endswith(PIXEL_SIZE_NAMES)
-                or (name.endswith('pixel') and suffix in DIMENSION_SUFFIXES)):
-            continue
-        size = parse_quantity(value, sibling_unit(key, siblings)
-                              or implied_unit(name))
-        if size is None:
-            continue
-        for each_axis in (axis,) if axis else ('x', 'y'):
-            pixel_size.setdefault(each_axis, size)
-    return pixel_size
-
-
-def implied_unit(name: str) -> str:
-    """Return the unit a pixel size with no unit beside it is in.
-
-    OME states that PhysicalSize defaults to micrometres. Anywhere else
-    a bare length is in the SI unit: Olympus writes 1.65e-9, which is
-    metres or nothing.
-    """
-    return 'um' if name.endswith('physicalsize') else 'm'
-
-
-def field_of_view_pixel_size(metadata: Dict,
-                             shape: Dict[str, int]) -> Dict:
-    """Return the pixel size from the width of the whole image.
-
-    Electron microscopes state the field of view rather than the pixel,
-    so divide it by the pixels across the image.
-    """
-    pixel_size = {}
-    for key, value, siblings in walk_fields(metadata):
-        name, axis, _ = split_axis(normalise_name(key))
-        if not name.endswith(FIELD_OF_VIEW_NAMES):
-            continue
-        axis = axis or 'x'
-        extent = parse_quantity(value, sibling_unit(key, siblings))
-        pixels = shape.get(axis)
-        if extent is None or not pixels:
-            continue
-        pixel_size.setdefault(axis, extent / pixels)
-    # a field of view given for one axis describes square pixels
-    if len(pixel_size) == 1:
-        (size,) = pixel_size.values()
-        pixel_size = {'x': size, 'y': size}
-    return pixel_size
 
 
 def resolution_pixel_size(tif: TiffFile) -> Dict:
@@ -419,26 +214,24 @@ def resolution_pixel_size(tif: TiffFile) -> Dict:
     unit = getattr(tags.valueof('ResolutionUnit'), 'name', '')
     for axis, name in (('x', 'XResolution'), ('y', 'YResolution')):
         value = tags.valueof(name)
-        if not isinstance(value, tuple) or not all(value):
-            continue
-        numerator, denominator = value
-        if numerator == denominator:
-            # the rational cancels out, so the ratio says nothing and
-            # only the numerator is left to read. A resolution that
-            # large is pixels per metre, whatever the unit tag claims,
-            # which is filled in by default as readily as the value.
-            size = convert_to_um(1 / numerator, 'm')
-        elif unit == 'CENTIMETER':
-            size = convert_to_um(denominator / numerator, 'cm')
-        elif unit == 'INCH' and numerator / denominator not in (
-                SCREEN_RESOLUTIONS):
-            size = convert_to_um(denominator / numerator, 'inch')
-        else:
-            # no unit at all, or one of the resolutions a writer fills
-            # in to say how large to print the image on a screen
-            size = None
-        if size is not None:
-            pixel_size[axis] = size
+        if isinstance(value, tuple) and all(value):
+            numerator, denominator = value
+            if numerator == denominator:
+                # the rational cancels out, so the ratio says nothing and
+                # only the numerator is left to read. A resolution that
+                # large is pixels per metre, whatever the unit tag claims,
+                # which is filled in by default as readily as the value.
+                size = normalise(1 / numerator, 'm', 'µm')
+            elif unit == 'CENTIMETER':
+                size = normalise(denominator / numerator, 'cm', 'µm')
+            elif unit == 'INCH' and numerator / denominator not in SCREEN_RESOLUTIONS:
+                size = normalise(denominator / numerator, 'in', 'µm')
+            else:
+                # no unit at all, or one of the resolutions a writer fills
+                # in to say how large to print the image on a screen
+                size = None
+            if size is not None:
+                pixel_size[axis] = size
     return pixel_size
 
 
@@ -449,78 +242,10 @@ def imagej_pixel_size(tif: TiffFile) -> Dict:
     pixel_size = {}
     for axis, name in (('x', 'XResolution'), ('y', 'YResolution')):
         value = tif.pages.first.tags.valueof(name)
-        if isinstance(value, tuple) and all(value):
-            size = convert_to_um(value[1] / value[0], unit)
-            if size is not None:
-                pixel_size[axis] = size
-    spacing = convert_to_um(metadata.get('spacing'), unit)
+        size = normalise(value[1] / value[0], unit, 'µm') if isinstance(value, tuple) and all(value) else None
+        if size is not None:
+            pixel_size[axis] = size
+    spacing = normalise(metadata['spacing'], unit, 'µm') if 'spacing' in metadata else None
     if spacing is not None:
         pixel_size['z'] = spacing
     return pixel_size
-
-
-def stage_travel_mm(metadata: Dict) -> Optional[float]:
-    """Return how far the stage travels, where a field names it.
-
-    A vendor writes the travel into the model of the stage, as in
-    TMCM-GYLZ-4000X-FIVE-110x110x69, and quotes it in millimetres.
-    """
-    travels = []
-    for key, value, _ in walk_fields(metadata):
-        if 'stage' not in normalise_name(key) or not isinstance(value, str):
-            continue
-        for match in STAGE_TRAVEL_PATTERN.finditer(value):
-            travels.extend(float(group) for group in match.groups() if group)
-    return max(travels) if travels else None
-
-
-def implied_position_unit(value: Any,
-                          travel_mm: Optional[float]) -> str:
-    """Return the unit a position with no unit beside it is in.
-
-    A vendor leaving the unit out means the SI one, except where the
-    file also names the travel of its stage: a coordinate that fits
-    inside that travel read as millimetres is millimetres, because no
-    stage of that size reaches metres away from its own origin.
-    """
-    if travel_mm is None:
-        return 'm'
-    if isinstance(value, dict):
-        keyed = {normalise_name(key): item for key, item in value.items()}
-        value = next((keyed[key] for key in VALUE_KEYS if key in keyed), None)
-    try:
-        magnitude = abs(float(value))
-    except (TypeError, ValueError):
-        return 'm'
-    return 'mm' if magnitude <= travel_mm else 'm'
-
-
-def get_position_um(metadata: Dict) -> Dict[str, float]:
-    """Return the stage position in micrometres, per axis.
-
-    A vendor writes the position as a structure named after the stage,
-    holding one field per axis, or as flat fields with the axis on the
-    end of the name. Where no unit is given the value is read as metres,
-    unless the file says how far the stage travels.
-    """
-    position = {}
-    travel_mm = stage_travel_mm(metadata)
-    for key, value, siblings in walk_fields(metadata):
-        name, axis, _ = split_axis(normalise_name(key))
-        if isinstance(value, dict) and name.endswith(
-                POSITION_CONTAINER_NAMES) and axis is None:
-            for axis_key, axis_value in value.items():
-                axis = normalise_name(axis_key)
-                if axis in ('x', 'y', 'z'):
-                    coordinate = parse_quantity(
-                        axis_value,
-                        implied_position_unit(axis_value, travel_mm))
-                    if coordinate is not None:
-                        position.setdefault(axis, coordinate)
-        elif axis is not None and name.endswith(POSITION_NAMES):
-            coordinate = parse_quantity(
-                value, sibling_unit(key, siblings)
-                or implied_position_unit(value, travel_mm))
-            if coordinate is not None:
-                position.setdefault(axis, coordinate)
-    return position

@@ -1,5 +1,6 @@
 from abc import ABC
 from imaging_metadata_converter import convert_metadata
+from imaging_metadata_converter.spatial import spatial_metadata
 import numpy as np
 
 from biomero_converter.parameters import TILE_SIZE
@@ -301,6 +302,29 @@ class ImageSource(ABC):
         if getattr(self, '_model_metadata', None) is None:
             self._model_metadata = convert_metadata(to_plain_types(self.get_source_metadata()))
         return self._model_metadata
+
+    def get_spatial_metadata(self, shape=None):
+        """
+        Get the pixel size and position (µm) and the image's and stage's rotation (degrees) the model metadata gives,
+        as every reader of the imaging metadata converter reads them (its spatial_metadata).
+
+        Args:
+            shape (dict, optional): {axis: pixels} of the image, for a pixel size given as the field of view.
+
+        Returns:
+            dict: {'pixel_size': {axis: µm}, 'position': {axis: µm}, 'rotation': degrees or None,
+            'stage_rotation': degrees or None}.
+        """
+        return spatial_metadata(self.get_model_metadata(), shape)
+
+    def get_rotation(self):
+        """
+        Get how far the image is turned against the stage axes, in degrees (its scan rotation).
+
+        Returns:
+            float: Rotation in degrees, or None if the metadata does not give it.
+        """
+        return getattr(self, 'rotation', None)
 
     def get_model_acquisition_datetime(self):
         """
