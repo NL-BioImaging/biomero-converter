@@ -43,6 +43,9 @@ writing.
   show a progress bar in an application. Progress is reported per well and field for plates, per pyramid level
   and tile while writing images, and per finished dask task. Reading an image fully into memory is one step, so
   progress can pause there. A retried conversion starts again from 0. The command line does not use it.
+- `overwrite` (bool, default `True`): If `False`, outputs that already exist are not written again; their result
+  has `'skipped': True`. An output that would replace the input, or be written inside it, is always refused with
+  `biomero_converter.converter.OutputPathError` (not retried).
 - `**kwargs`: Source specific parameters, e.g.:
   - `plate_id` (str): Incucyte plate ID (default: all plates).
   - `image_uuid` (str) or `image_index` (int): Leica image to convert (default: all images in the file).

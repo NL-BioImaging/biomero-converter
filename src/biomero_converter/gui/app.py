@@ -210,6 +210,9 @@ class ConverterFrame(customtkinter.CTkFrame):
         self.crop_checkbox = customtkinter.CTkCheckBox(options, text='Crop slides to the scanned region')
         self.crop_checkbox.select()
         self.crop_checkbox.grid(row=0, column=2, sticky='w', pady=5, padx=15)
+        # off: outputs that already exist are skipped, not replaced
+        self.overwrite_checkbox = customtkinter.CTkCheckBox(options, text='Overwrite existing output')
+        self.overwrite_checkbox.grid(row=0, column=3, sticky='w', pady=5, padx=15)
 
         # log
         self.log_box = customtkinter.CTkTextbox(self, wrap='word')
@@ -336,7 +339,7 @@ class ConverterFrame(customtkinter.CTkFrame):
         self.status_label.configure(text='Starting...')
         self.worker = threading.Thread(
             target=self._convert_all,
-            args=(conversions, OUTPUT_FORMATS[self.format_menu.get()]),
+            args=(conversions, OUTPUT_FORMATS[self.format_menu.get()], bool(self.overwrite_checkbox.get())),
             daemon=True)
         self.worker.start()
         self.after(POLL_INTERVAL_MS, self._poll_messages)
@@ -352,7 +355,7 @@ class ConverterFrame(customtkinter.CTkFrame):
         self.stop_button.configure(state='disabled')
         self.log('Stop requested: finishing the current conversion, then stopping.')
 
-    def _convert_all(self, conversions, output_format):
+    def _convert_all(self, conversions, output_format, overwrite=False):
         # runs in the conversion thread: only communicates with the GUI through self.messages
         messages = self.messages
         handler = _QueueLogHandler(messages)
@@ -364,6 +367,7 @@ class ConverterFrame(customtkinter.CTkFrame):
 
         nconversions = len(conversions)
         nconverted = 0
+        nskipped = 0        # outputs that already existed
         try:
             for index, (input_path, label, source_kwargs, output_folder) in enumerate(conversions):
                 if self.stop_requested.is_set():
@@ -380,9 +384,12 @@ class ConverterFrame(customtkinter.CTkFrame):
                 report(0)
                 try:
                     result = convert(input_path, output_folder, output_format=output_format, progress=report,
-                                     **source_kwargs)
+                                     overwrite=overwrite, **source_kwargs)
                     for output in json.loads(result or '[]'):
-                        messages.put(('log', f"    -> {output.get('full_path', output)}"))
+                        skipped = isinstance(output, dict) and output.get('skipped')
+                        nskipped += bool(skipped)
+                        messages.put(('log', f"    -> {output.get('full_path', output)}"
+                                             + (' (already exists: skipped)' if skipped else '')))
                     nconverted += 1
                 except Exception as error:
                     # the cause is logged by convert() above
@@ -391,6 +398,9 @@ class ConverterFrame(customtkinter.CTkFrame):
         finally:
             root_logger.removeHandler(handler)
             root_logger.setLevel(old_level)
+            if nskipped:
+                messages.put(('log', f'{nskipped} existing output(s) skipped; '
+                                     f'check "Overwrite existing output" to replace them.'))
             messages.put(('done', f'Finished: {nconverted}/{nconversions} converted successfully.'))
 
     def _poll_messages(self):
@@ -420,7 +430,8 @@ class ConverterFrame(customtkinter.CTkFrame):
     def _set_running(self, running):
         state = 'disabled' if running else 'normal'
         for widget in (self.convert_button, self.add_files_button, self.add_folder_button, self.clear_button,
-                       self.output_entry, self.output_button, self.format_menu, self.crop_checkbox):
+                       self.output_entry, self.output_button, self.format_menu, self.crop_checkbox,
+                       self.overwrite_checkbox):
             widget.configure(state=state)
         for row in self.rows.values():
             row.set_state(state)

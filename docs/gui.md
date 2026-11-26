@@ -37,6 +37,9 @@ Tk must be available in the Python installation:
    `C:\Data\Leica\converted`. For folder inputs (DICOM, OME-Zarr) the relative path starts from the folder that
    contains them, so output is never written inside them.
 4. Choose the **output format** (default: OME-Zarr 0.5, see `DEFAULT_OUTPUT_FORMAT` in [Convert](convert.md)).
+   Outputs that already exist are skipped (listed in the log) unless **Overwrite existing output** is checked.
+   An output that would replace the input itself, or be written inside it (e.g. an OME-Zarr folder converted to
+   OME-Zarr in its own folder), is always refused.
 5. **Convert.** Everything is converted one after the other; the log shows each output path. If a conversion fails,
    the error is logged and the next one continues. **Stop after current** stops after the conversion in progress.
    One progress bar covers all conversions, including the progress within each one; the text next to it shows

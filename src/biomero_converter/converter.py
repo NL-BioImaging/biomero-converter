@@ -33,13 +33,15 @@ def init_logging(log_filename, verbose=False):
 
 def convert(input_filename, output_folder, alt_output_folder=None,
             output_format=None, show_progress=False, verbose=False, max_attempts=RETRY_ATTEMPTS, progress=None,
-            **kwargs):
+            overwrite=True, **kwargs):
     """
     Convert an input file to OME format (retrying a failed conversion); see _convert().
 
     Args:
         progress (callable, optional): Called with the progress of the conversion as a fraction (0 to 1), e.g.
             for a progress bar in an application; a retry starts again from 0.
+        overwrite (bool): If False, outputs that already exist are skipped (see _convert_single()).
+            An output that would replace or modify the input is always refused (OutputPathError).
     """
     max_attempts = max(max_attempts, 1)
     first_error = None
@@ -47,7 +49,9 @@ def convert(input_filename, output_folder, alt_output_folder=None,
         try:
             return _convert(input_filename, output_folder, alt_output_folder=alt_output_folder,
                             output_format=output_format, show_progress=show_progress, verbose=verbose,
-                            progress=Progress(progress), **kwargs)
+                            progress=Progress(progress), overwrite=overwrite, **kwargs)
+        except OutputPathError:
+            raise       # a retry would refuse again
         except Exception as e:
             # Log every attempt (with the traceback of the first): a retry can fail differently as a
             # side effect of the first failure (e.g. a half-imported module), hiding the real cause.
@@ -60,7 +64,7 @@ def convert(input_filename, output_folder, alt_output_folder=None,
 
 
 def _convert(input_filename, output_folder, alt_output_folder=None,
-             output_format=None, show_progress=False, verbose=False, progress=None, **kwargs):
+             output_format=None, show_progress=False, verbose=False, progress=None, overwrite=True, **kwargs):
     """
     Convert an input file to OME format and write to output folder(s).
 
@@ -102,6 +106,7 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
                     show_progress=show_progress,
                     verbose=verbose,
                     progress=progress.part(index / len(available_plates), (index + 1) / len(available_plates)),
+                    overwrite=overwrite,
                     **plate_kwargs)
                 results.extend(json.loads(result))
             return json.dumps(results)
@@ -125,6 +130,7 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
                 show_progress=show_progress,
                 verbose=verbose,
                 progress=progress.part(image_index / image_count, (image_index + 1) / image_count),
+                overwrite=overwrite,
                 **image_kwargs)
             results.extend(json.loads(result))
         return json.dumps(results)
@@ -137,12 +143,25 @@ def _convert(input_filename, output_folder, alt_output_folder=None,
         show_progress=show_progress,
         verbose=verbose,
         progress=progress,
+        overwrite=overwrite,
         **kwargs)
+
+
+class OutputPathError(ValueError):
+    """The output would replace the input, or be written inside it (e.g. inside an OME-Zarr input folder)."""
+
+
+def check_output_path(input_path, output_path):
+    """Raise OutputPathError if writing output_path would replace or modify input_path."""
+    paths = [os.path.normcase(os.path.abspath(path)) for path in (input_path, output_path)]
+    if os.path.commonpath(paths) in paths:
+        raise OutputPathError(f'The output {output_path} would replace or modify the input {input_path}; '
+                              f'choose another output folder')
 
 
 def _convert_single(input_filename, output_folder, alt_output_folder=None,
                     output_format=None, show_progress=False,
-                    verbose=False, progress=None, **kwargs):
+                    verbose=False, progress=None, overwrite=True, **kwargs):
     """
     Convert a single source to OME format.
 
@@ -155,6 +174,8 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
         show_progress (bool): If True, print progress.
         verbose (bool): If True, enable verbose logging.
         progress (Progress, optional): Progress of the conversion.
+        overwrite (bool): If False, an output that already exists is not written again: it is skipped, and its
+            result has 'skipped': True.
         **kwargs: Source-specific parameters (e.g., plate_id for Incucyte).
 
     Returns:
@@ -184,12 +205,16 @@ def _convert_single(input_filename, output_folder, alt_output_folder=None,
         if alt_output_folder:
             alt_output_folder = os.path.join(alt_output_folder, plate_folder)
 
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
     output_path = os.path.join(output_folder, validate_filename(name) + output_ext)
-    
+
     progress = progress or Progress()
     try:
+        check_output_path(input_filename, output_path)
+        if not overwrite and os.path.exists(output_path):
+            logging.info(f'Skipped    {output_path}: it already exists')
+            return json.dumps([{'name': name, 'full_path': output_path, 'skipped': True}])
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
         output = writer.write(output_path, source, progress=progress, **kwargs)
     finally:
         source.close()
