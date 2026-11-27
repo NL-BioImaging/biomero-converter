@@ -29,6 +29,7 @@ This tool can be used as biomero plugin, Docker container, stand-alone command l
   - (Large) whole slide images
   - Screen Plate Well / High Content Screening format
 - Compatible with Omero
+- Pure Python, no Java: vendor formats are read without Bio-Formats
 - Desktop GUI for Windows, macOS and Linux (see below)
 
 ## Desktop GUI
