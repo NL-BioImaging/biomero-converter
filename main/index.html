@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -629,7 +629,11 @@ Adjust the image name (<code>biomero-converter:latest</code>) as needed.</p>
 <p>Refer to the main script for all available arguments:</p>
 <ul>
 <li><code>--inputfile</code>: Path to the input file (required)</li>
-<li><code>--outputfolder</code>: Path to the output folder (required)</li>
+<li><code>--outputfolder</code>: Path to the output folder (required to convert)</li>
+<li><code>--metadata [VIEW]</code>: Only print the input's metadata as YAML, without converting (no output folder needed).
+  <code>VIEW</code> is <code>source</code> (the vendor metadata as read), <code>model</code> (mapped onto the imaging metadata model), <code>spatial</code>
+  (the pixel size, position and rotation the conversion writes) or <code>all</code> (default). Combine with <code>--image_uuid</code> or
+  <code>--plateid</code> for one part of the input.</li>
 <li><code>--altoutputfolder</code>: Alternative output folder (optional)</li>
 <li><code>--outputformat</code>: Output format: <code>omezarr04</code>, <code>omezarr05</code>, <code>omezarr06</code> (OME-Zarr version) or <code>ometiff</code> (default: <code>omezarr05</code>)</li>
 <li><code>--show_progress</code>: Show progress bar (flag)</li>
@@ -650,8 +654,11 @@ Adjust the image name (<code>biomero-converter:latest</code>) as needed.</p>
 <span class="w">    </span>--show_progress<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--verbose
 
-usage:<span class="w"> </span>biomero-converter<span class="w"> </span><span class="o">[</span>-h<span class="o">]</span><span class="w"> </span>--inputfile<span class="w"> </span>INPUTFILE<span class="w"> </span>--outputfolder<span class="w"> </span>OUTPUTFOLDER<span class="w"> </span><span class="o">[</span>--altoutputfolder<span class="w"> </span>ALTOUTPUTFOLDER<span class="o">]</span><span class="w"> </span><span class="o">[</span>--outputformat<span class="w"> </span>OUTPUTFORMAT<span class="o">]</span><span class="w"> </span><span class="o">[</span>--show_progress<span class="o">]</span><span class="w"> </span><span class="o">[</span>--verbose<span class="o">]</span><span class="w"> </span><span class="o">[</span>--plateid<span class="w"> </span>PLATEID<span class="o">]</span><span class="w"> </span><span class="o">[</span>--image_uuid<span class="w"> </span>IMAGE_UUID<span class="o">]</span>
-biomero-converter:<span class="w"> </span>error:<span class="w"> </span>the<span class="w"> </span>following<span class="w"> </span>arguments<span class="w"> </span>are<span class="w"> </span>required:<span class="w"> </span>--inputfile,<span class="w"> </span>--outputfolder
+usage:<span class="w"> </span>biomero-converter<span class="w"> </span><span class="o">[</span>-h<span class="o">]</span><span class="w"> </span>--inputfile<span class="w"> </span>INPUTFILE<span class="w"> </span><span class="o">[</span>--outputfolder<span class="w"> </span>OUTPUTFOLDER<span class="o">]</span><span class="w"> </span><span class="o">[</span>--metadata<span class="w"> </span><span class="o">[{</span>all,source,model,spatial<span class="o">}]]</span><span class="w"> </span>...
+biomero-converter:<span class="w"> </span>error:<span class="w"> </span>--outputfolder<span class="w"> </span>is<span class="w"> </span>required<span class="w"> </span>to<span class="w"> </span>convert<span class="w"> </span><span class="o">(</span>or<span class="w"> </span>use<span class="w"> </span>--metadata<span class="w"> </span>to<span class="w"> </span>only<span class="w"> </span>print<span class="w"> </span>the<span class="w"> </span>metadata<span class="o">)</span>
+</code></pre></div>
+<p>To check what is read from a file before converting it:</p>
+<div class="highlight"><pre><span></span><code>biomero-converter<span class="w"> </span>--inputfile<span class="w"> </span>/data/input/input_file.tiff<span class="w"> </span>--metadata<span class="w"> </span>spatial
 </code></pre></div>
 <h2 id="desktop-gui">Desktop GUI</h2>
 <p>To convert files without the command line, install the GUI extra and start the desktop application:</p>

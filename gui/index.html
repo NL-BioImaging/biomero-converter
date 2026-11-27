@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -595,7 +595,9 @@ It runs on Windows, macOS and Linux.</p>
 <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"biomero-converter[gui]"</span>
 biomero-converter-gui
 </code></pre></div>
-<p>The <code>[gui]</code> extra installs <a href="https://github.com/TomSchimansky/CustomTkinter">customtkinter</a>. The command line,
+<p>The <code>[gui]</code> extra installs <a href="https://github.com/TomSchimansky/CustomTkinter">customtkinter</a>, and
+<a href="https://github.com/Eliav2/tkinterdnd2">tkinterdnd2</a> for drag and drop (optional: without it the GUI works, but
+inputs can only be added with the buttons). The command line,
 Docker image and Python API do not need it.</p>
 <p>Tk must be available in the Python installation:</p>
 <ul>
@@ -605,7 +607,9 @@ Docker image and Python API do not need it.</p>
 </ul>
 <h2 id="use">Use</h2>
 <ol>
-<li><strong>Add files</strong> or <strong>Add folder</strong> (folder inputs such as OME-Zarr or DICOM folders); several inputs can be queued.</li>
+<li><strong>Add files</strong> or <strong>Add folder</strong> (folder inputs such as OME-Zarr or DICOM folders), or drag files and folders
+   from the file explorer onto the input list; several inputs can be queued. (On Windows, drag and drop does not
+   work into an application running as administrator.)</li>
 <li>
 <p>Next to each input, choose <strong>what to convert</strong>. When an input is added, its contents are read and listed:</p>
 <ul>
@@ -614,12 +618,19 @@ Docker image and Python API do not need it.</p>
 <li>DICOM files and folders: their series, by the name the converted series gets, with the number of slices.</li>
 </ul>
 <p>The default <strong>All ...</strong> converts every image, plate or series separately. Other inputs (e.g. TIFF, OME-Zarr,
-image <code>.db</code>) are converted as a whole.
-3. Choose the <strong>output folder</strong>: <strong>Browse</strong> to a folder, or type a <strong>relative path</strong> (e.g. <code>converted</code>, or <code>.</code>) to
+image <code>.db</code>) are converted as a whole.</p>
+<p><strong>Metadata</strong> shows what is read from an input (the part chosen, or the first for <strong>All ...</strong>), without
+converting it: <strong>Spatial</strong> (the pixel size, position and rotation the conversion writes), <strong>Source</strong> (the
+vendor metadata as read) and <strong>Model</strong> (mapped onto the imaging metadata model). <strong>Copy</strong> copies the tab shown.
+3. Choose the <strong>output folder</strong> (default: <code>converted</code>, next to each input): <strong>Browse</strong> to a folder, or type a
+   <strong>relative path</strong> (e.g. <code>converted</code>, or <code>.</code>) to
    write each input's output next to it: <code>C:\Data\Leica\a.lif</code> with <code>converted</code> is written to
    <code>C:\Data\Leica\converted</code>. For folder inputs (DICOM, OME-Zarr) the relative path starts from the folder that
    contains them, so output is never written inside them.
 4. Choose the <strong>output format</strong> (default: OME-Zarr 0.5, see <code>DEFAULT_OUTPUT_FORMAT</code> in <a href="../convert/">Convert</a>).
+   Outputs that already exist are skipped (listed in the log) unless <strong>Overwrite existing output</strong> is checked.
+   An output that would replace the input itself, or be written inside it (e.g. an OME-Zarr folder converted to
+   OME-Zarr in its own folder), is always refused.
 5. <strong>Convert.</strong> Everything is converted one after the other; the log shows each output path. If a conversion fails,
    the error is logged and the next one continues. <strong>Stop after current</strong> stops after the conversion in progress.
    One progress bar covers all conversions, including the progress within each one; the text next to it shows
@@ -637,8 +648,11 @@ image <code>.db</code>) are converted as a whole.
 <span class="n">frame</span><span class="o">.</span><span class="n">add_inputs</span><span class="p">([</span><span class="s1">'path/to/file.lif'</span><span class="p">])</span>
 <span class="n">frame</span><span class="o">.</span><span class="n">set_output_folder</span><span class="p">(</span><span class="s1">'path/to/output'</span><span class="p">)</span>
 </code></pre></div>
+<p>Drag and drop also works there: the frame loads tkdnd into its window itself, so the host application does not
+need a drag-and-drop enabled root window, only <code>tkinterdnd2</code> installed.</p>
 <p>For applications frozen with PyInstaller, biomero-converter provides a PyInstaller hook (registered automatically)
-that bundles the data files and libraries it needs at runtime.</p>
+that bundles the data files and libraries it needs at runtime; tkinterdnd2 registers its own hook for its tkdnd
+binaries.</p>
 <h2 id="acknowledgements">Acknowledgements</h2>
 <p>The desktop GUI started as the biomero-converter module of the
 <a href="https://github.com/BHPD/UMIC_Toolkit">UMIC Toolkit</a> by Peter Duinkerken, a GUI toolkit for UMIC microscopy
