@@ -9,8 +9,9 @@ Distilled from recurring feedback across sessions. Follow these when making chan
 
 ## Releases
 - Before writing a release body, read the current [shared component release-note guide](https://github.com/NL-BioImaging/NL-BIOMERO/blob/master/.agents/skills/omero-biomero-expert/references/component-release-notes.md). Keep the format there rather than copying it into this repository.
-- Release only from `main`, with the next `v0.2.x` tag (use generated notes as input
-  for the concise release body). Publishing the release builds the Docker image and
+- Release only from `main`, with the next `v0.x.y` tag after the latest release (`gh release list`): a minor
+  bump (`v0.6.0` -> `v0.7.0`) for new features or changed defaults, a patch bump for fixes only. Use generated
+  notes as input for the concise release body. Publishing the release builds the Docker image and
   the docs (`.github/workflows/docker-image.yml`),
   and publishes the package to PyPI (`.github/workflows/publish.yml`; a manual run publishes to TestPyPI).
 - Only release when converter code changed. Test-only (or docs-only) changes need no release.
